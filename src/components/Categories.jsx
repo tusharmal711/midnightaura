@@ -1,6 +1,6 @@
 // CategoryLayout.jsx
-// This is the LAYOUT component — it renders the sticky categories bar
-// and an <Outlet /> below it where child routes render automatically.
+// Added: on first mobile open, the categories bar auto-scrolls right then back
+// to hint that more categories exist beyond the visible area.
 
 import { useState, useEffect, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
@@ -15,7 +15,7 @@ import {
 } from "react-icons/fi";
 
 const categories = [
-  { label: "For You",           path: "/",    icon: <FiShoppingBag /> },
+  { label: "For You",           path: "/",                       icon: <FiShoppingBag /> },
   { label: "Men",               path: "/categories/men",         icon: <FiUser /> },
   { label: "Women",             path: "/categories/women",       icon: <FiUsers /> },
   { label: "Kids",              path: "/categories/kids",        icon: <FiSmile /> },
@@ -26,18 +26,53 @@ const categories = [
   { label: "Customize T-shirt", path: "/categories/customize",   special: true },
 ];
 
+// Key used to track if the hint has already been shown this session
+const HINT_KEY = "ma_cat_hint_shown";
+
 export default function Categories() {
-  const navigate   = useNavigate();
-  const location   = useLocation();
+  const navigate  = useNavigate();
+  const location  = useLocation();
   const [scrolled, setScrolled] = useState(false);
 
   const btnRefs  = useRef([]);
   const trackRef = useRef(null);
   const [pill, setPill] = useState({ left: 0, width: 0, ready: false });
 
-  // derive active from the current URL — no separate state needed
+  // derive active from the current URL
   const activeIndex = categories.findIndex((c) => c.path === location.pathname);
 
+  // ── Hint scroll animation (mobile only, once per session) ──────────────────
+  const hintDone = useRef(false);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    // Only run on mobile (narrow screens) and only once per session
+    const isMobile = window.innerWidth < 768;
+    const alreadyShown = sessionStorage.getItem(HINT_KEY);
+    if (!isMobile || alreadyShown || hintDone.current) return;
+
+    hintDone.current = true;
+
+    // Wait a beat after mount so the bar is visible first
+    const t1 = setTimeout(() => {
+      // Scroll right smoothly to reveal hidden categories
+      track.scrollTo({ left: 220, behavior: "smooth" });
+
+      // Then scroll back to start
+      const t2 = setTimeout(() => {
+        track.scrollTo({ left: 0, behavior: "smooth" });
+        sessionStorage.setItem(HINT_KEY, "1");
+      }, 900); // hold at end for 900ms
+
+      return () => clearTimeout(t2);
+    }, 600); // delay before starting
+
+    return () => clearTimeout(t1);
+  }, []);
+
+  // ── Pill position ──────────────────────────────────────────────────────────
   useEffect(() => {
     const idx   = activeIndex === -1 ? 0 : activeIndex;
     const btn   = btnRefs.current[idx];
@@ -54,6 +89,7 @@ export default function Categories() {
     });
   }, [activeIndex, scrolled]);
 
+  // ── Sticky scroll state ────────────────────────────────────────────────────
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", handleScroll);
@@ -63,8 +99,24 @@ export default function Categories() {
   return (
     <div className="min-h-screen bg-[#0E1320]">
 
-      {/* ── Sticky Categories Bar — unchanged visually ── */}
+      {/* ── Sticky Categories Bar ── */}
       <div className="sticky top-[64px] z-40 bg-[#0E1320]/95 backdrop-blur-md border-b border-white/5 transition-all duration-300">
+
+        {/* Fade-out gradient on right edge to hint scrollability */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: 40,
+            background: "linear-gradient(to right, transparent, #0E1320ee)",
+            zIndex: 20,
+            pointerEvents: "none",
+          }}
+        />
+
         <div
           ref={trackRef}
           className={`relative flex gap-1.5 px-4 max-w-screen-xl mx-auto overflow-x-auto scrollbar-none transition-all duration-300 ${
@@ -132,7 +184,7 @@ export default function Categories() {
         `}</style>
       </div>
 
-      {/* ── Outlet: React Router renders the matched child route here ── */}
+      {/* ── Child route renders here ── */}
       <main className="max-w-screen-xl mx-auto">
         <Outlet />
       </main>

@@ -40,7 +40,14 @@ const INITIAL_PRODUCTS = [
   { id:"MA008", name:"Void Chain Necklace", category:"Necklaces",subCategory:null,      price:499,  stock:0,   status:"Out",    sizeStock:null,                           color:null, image:null },
   { id:"MA009", name:"Oversized Kanji Tee", category:"Oversized",subCategory:null,      price:899,  stock:67,  status:"Active", sizeStock:{S:15,M:20,L:18,XL:10,XXL:4},  color:null, image:null },
   { id:"MA010", name:"Aurora Crop Top",     category:"Women",    subCategory:"Top",     price:749,  stock:8,   status:"Low",    sizeStock:{S:2, M:3, L:2, XL:1, XXL:0 }, color:null, image:null },
+  { id:"MA011", name:"Sakura Blossom Tee",  category:"Women",    subCategory:"T-Shirt", price:699,  stock:45,  status:"Active", sizeStock:{S:10,M:15,L:12,XL:6, XXL:2 }, color:null, image:null },
+  { id:"MA012", name:"Dragonball Hoodie",   category:"Hoodies",  subCategory:null,      price:1499, stock:22,  status:"Active", sizeStock:{S:5, M:8, L:6, XL:2, XXL:1 }, color:null, image:null },
+  { id:"MA013", name:"Celestial Pendant",   category:"Necklaces",subCategory:null,      price:599,  stock:80,  status:"Active", sizeStock:null,                           color:null, image:null },
+  { id:"MA014", name:"Kids Dino Print Tee", category:"Kids",     subCategory:"T-Shirt", price:449,  stock:55,  status:"Active", sizeStock:{S:15,M:20,L:12,XL:6, XXL:2 }, color:null, image:null },
+  { id:"MA015", name:"Star Stud Earrings",  category:"Earrings", subCategory:null,      price:299,  stock:0,   status:"Out",    sizeStock:null,                           color:null, image:null },
 ];
+
+const PRODUCTS_PER_PAGE = 10;
 
 const STATUS_STYLES = {
   Active:{ bg:"rgba(34,197,94,0.12)",  color:"#4ade80", border:"rgba(34,197,94,0.3)"  },
@@ -101,7 +108,6 @@ function Lightbox({ src, productName, onClose }) {
         cursor: "zoom-out",
       }}
     >
-      {/* ✕ Close button */}
       <button
         onClick={e => { e.stopPropagation(); handleClose(); }}
         style={{
@@ -123,7 +129,6 @@ function Lightbox({ src, productName, onClose }) {
         ✕
       </button>
 
-      {/* Image card */}
       <div
         onClick={e => e.stopPropagation()}
         style={{
@@ -144,8 +149,6 @@ function Lightbox({ src, productName, onClose }) {
           alt={productName}
           style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", maxHeight: "88vh" }}
         />
-
-        {/* Bottom info bar */}
         <div style={{
           position: "absolute", bottom: 0, left: 0, right: 0,
           padding: "48px 22px 22px",
@@ -165,7 +168,8 @@ function Lightbox({ src, productName, onClose }) {
 }
 
 // ─── Image Hover Zoom Popup ───────────────────────────────────────────────────
-function ImageZoomPopup({ src, anchorRect, productName, onOpenLightbox }) {
+// Fixed: popup stays visible when mouse moves into it, preventing flickering
+function ImageZoomPopup({ src, anchorRect, productName, onOpenLightbox, onMouseEnterPopup, onMouseLeavePopup }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -184,6 +188,8 @@ function ImageZoomPopup({ src, anchorRect, productName, onOpenLightbox }) {
   return (
     <div
       onClick={e => { e.stopPropagation(); onOpenLightbox(); }}
+      onMouseEnter={onMouseEnterPopup}
+      onMouseLeave={onMouseLeavePopup}
       style={{
         position: "fixed", left, top,
         width: popupW, height: popupH,
@@ -201,7 +207,6 @@ function ImageZoomPopup({ src, anchorRect, productName, onOpenLightbox }) {
       <img src={src} alt={productName}
         style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", pointerEvents:"none" }}/>
 
-      {/* Top "EXPAND" hint */}
       <div style={{
         position:"absolute", top:0, left:0, right:0,
         padding:"8px 10px 22px",
@@ -215,7 +220,6 @@ function ImageZoomPopup({ src, anchorRect, productName, onOpenLightbox }) {
         <span style={{ fontSize:9, fontWeight:800, color:"rgba(255,255,255,0.75)", letterSpacing:"0.06em" }}>CLICK TO EXPAND</span>
       </div>
 
-      {/* Bottom name */}
       <div style={{
         position:"absolute", bottom:0, left:0, right:0,
         padding:"22px 10px 10px",
@@ -229,101 +233,207 @@ function ImageZoomPopup({ src, anchorRect, productName, onOpenLightbox }) {
   );
 }
 
-// ─── Image Cropper ────────────────────────────────────────────────────────────
+// ─── Image Cropper — FIXED: centered on mobile, touch + mouse drag ────────────
 const CROP_RATIO = 3/4;
 
 function ImageCropper({ src, onDone, onCancel }) {
-  const imgRef   = useRef(null);
-  const dragging = useRef(false);
-  const resizing = useRef(null);
-  const lastPos  = useRef({x:0,y:0});
+  const containerRef = useRef(null);
+  const imgRef       = useRef(null);
+  const dragging     = useRef(false);
+  const resizing     = useRef(null);
+  const lastPos      = useRef({x:0,y:0});
   const [imgLoaded, setImgLoaded] = useState(false);
   const [crop,    setCrop]    = useState({ x:0,y:0,w:0,h:0 });
   const [natural, setNatural] = useState({ w:1,h:1 });
   const [display, setDisplay] = useState({ w:0,h:0,offX:0,offY:0 });
+  const [containerSize, setContainerSize] = useState({ w:300, h:250 });
+
+  // Measure the container so we can be responsive on mobile
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const { width } = entry.contentRect;
+        setContainerSize({ w: Math.floor(width), h: Math.floor(width * 0.75) });
+      }
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   const handleImgLoad = useCallback((e) => {
-    const img=e.target, natW=img.naturalWidth, natH=img.naturalHeight;
-    setNatural({w:natW,h:natH});
-    const maxW=440,maxH=330;
-    let dispW=natW,dispH=natH;
-    if(dispW>maxW){dispH=dispH*(maxW/dispW);dispW=maxW;}
-    if(dispH>maxH){dispW=dispW*(maxH/dispH);dispH=maxH;}
-    dispW=Math.round(dispW);dispH=Math.round(dispH);
-    const offX=Math.round((maxW-dispW)/2),offY=Math.round((maxH-dispH)/2);
-    setDisplay({w:dispW,h:dispH,offX,offY});
-    const cw=dispW,ch=Math.min(Math.round(cw/CROP_RATIO),dispH);
-    setCrop({x:offX,y:offY+Math.round((dispH-ch)/2),w:cw,h:ch});
+    const img = e.target;
+    const natW = img.naturalWidth, natH = img.naturalHeight;
+    setNatural({ w:natW, h:natH });
+  }, []);
+
+  // Recalculate display whenever containerSize or natural changes
+  useEffect(() => {
+    if (natural.w === 1 && natural.h === 1) return;
+    const maxW = containerSize.w, maxH = containerSize.h;
+    let dispW = natural.w, dispH = natural.h;
+    if (dispW > maxW) { dispH = dispH * (maxW / dispW); dispW = maxW; }
+    if (dispH > maxH) { dispW = dispW * (maxH / dispH); dispH = maxH; }
+    dispW = Math.round(dispW); dispH = Math.round(dispH);
+    const offX = Math.round((maxW - dispW) / 2);
+    const offY = Math.round((maxH - dispH) / 2);
+    setDisplay({ w:dispW, h:dispH, offX, offY });
+    const cw = dispW;
+    const ch = Math.min(Math.round(cw / CROP_RATIO), dispH);
+    setCrop({ x:offX, y:offY + Math.round((dispH - ch) / 2), w:cw, h:ch });
     setImgLoaded(true);
-  },[]);
+  }, [containerSize, natural]);
 
-  const getHandle=useCallback((mx,my,c)=>{
-    const hs=10,handles=[{id:"tl",x:c.x,y:c.y},{id:"tr",x:c.x+c.w,y:c.y},{id:"bl",x:c.x,y:c.y+c.h},{id:"br",x:c.x+c.w,y:c.y+c.h}];
-    for(const h of handles)if(Math.abs(mx-h.x)<hs&&Math.abs(my-h.y)<hs)return h.id;
+  const getHandle = useCallback((mx,my,c) => {
+    const hs = 16;
+    const handles = [
+      {id:"tl",x:c.x,y:c.y},{id:"tr",x:c.x+c.w,y:c.y},
+      {id:"bl",x:c.x,y:c.y+c.h},{id:"br",x:c.x+c.w,y:c.y+c.h}
+    ];
+    for (const h of handles) if (Math.abs(mx-h.x)<hs && Math.abs(my-h.y)<hs) return h.id;
     return null;
-  },[]);
+  }, []);
 
-  const clamp=(v,mn,mx)=>Math.max(mn,Math.min(mx,v));
+  const clamp = (v,mn,mx) => Math.max(mn, Math.min(mx, v));
 
-  const onMouseDown=useCallback((e)=>{
-    const r=e.currentTarget.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
-    const h=getHandle(mx,my,crop);
-    if(h)resizing.current=h;
-    else if(mx>=crop.x&&mx<=crop.x+crop.w&&my>=crop.y&&my<=crop.y+crop.h)dragging.current=true;
-    lastPos.current={x:mx,y:my};e.preventDefault();
-  },[crop,getHandle]);
+  const getEventPos = (e, rect) => {
+    if (e.touches) {
+      const t = e.touches[0];
+      return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+    }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
 
-  const onMouseMove=useCallback((e)=>{
-    if(!dragging.current&&!resizing.current)return;
-    const r=e.currentTarget.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
-    const dx=mx-lastPos.current.x,dy=my-lastPos.current.y;
-    lastPos.current={x:mx,y:my};
-    const{offX,offY,w:dw,h:dh}=display,minX=offX,maxX=offX+dw,minY=offY,maxY=offY+dh;
-    setCrop(prev=>{
-      let{x,y,w,h}=prev;
-      if(dragging.current){x=clamp(x+dx,minX,maxX-w);y=clamp(y+dy,minY,maxY-h);}
-      else if(resizing.current){
-        const r2=resizing.current;let nx=x,ny=y,nw=w,nh=h;
-        if(r2==="br"){nw=clamp(w+dx,50,maxX-x);nh=Math.round(nw/CROP_RATIO);}
-        if(r2==="tr"){nw=clamp(w+dx,50,maxX-x);nh=Math.round(nw/CROP_RATIO);ny=clamp(y+h-nh,minY,y+h-50);}
-        if(r2==="bl"){nw=clamp(w-dx,50,x-minX+w);nx=clamp(x+dx,minX,x+w-50);nh=Math.round(nw/CROP_RATIO);}
-        if(r2==="tl"){nw=clamp(w-dx,50,x-minX+w);nx=clamp(x+dx,minX,x+w-50);nh=Math.round(nw/CROP_RATIO);ny=clamp(y+h-nh,minY,y+h-50);}
-        if(nx<minX)nx=minX;if(ny<minY)ny=minY;
+  const onPointerDown = useCallback((e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const { x:mx, y:my } = getEventPos(e, rect);
+    const h = getHandle(mx, my, crop);
+    if (h) resizing.current = h;
+    else if (mx>=crop.x && mx<=crop.x+crop.w && my>=crop.y && my<=crop.y+crop.h) dragging.current = true;
+    lastPos.current = { x:mx, y:my };
+    e.preventDefault();
+  }, [crop, getHandle]);
+
+  const onPointerMove = useCallback((e) => {
+    if (!dragging.current && !resizing.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const { x:mx, y:my } = getEventPos(e, rect);
+    const dx = mx - lastPos.current.x, dy = my - lastPos.current.y;
+    lastPos.current = { x:mx, y:my };
+    const { offX, offY, w:dw, h:dh } = display;
+    const minX=offX, maxX=offX+dw, minY=offY, maxY=offY+dh;
+    setCrop(prev => {
+      let { x,y,w,h } = prev;
+      if (dragging.current) {
+        x = clamp(x+dx, minX, maxX-w);
+        y = clamp(y+dy, minY, maxY-h);
+      } else if (resizing.current) {
+        const r = resizing.current;
+        let nx=x,ny=y,nw=w,nh=h;
+        if(r==="br"){nw=clamp(w+dx,50,maxX-x);nh=Math.round(nw/CROP_RATIO);}
+        if(r==="tr"){nw=clamp(w+dx,50,maxX-x);nh=Math.round(nw/CROP_RATIO);ny=clamp(y+h-nh,minY,y+h-50);}
+        if(r==="bl"){nw=clamp(w-dx,50,x-minX+w);nx=clamp(x+dx,minX,x+w-50);nh=Math.round(nw/CROP_RATIO);}
+        if(r==="tl"){nw=clamp(w-dx,50,x-minX+w);nx=clamp(x+dx,minX,x+w-50);nh=Math.round(nw/CROP_RATIO);ny=clamp(y+h-nh,minY,y+h-50);}
+        if(nx<minX)nx=minX; if(ny<minY)ny=minY;
         if(nx+nw>maxX){nw=maxX-nx;nh=Math.round(nw/CROP_RATIO);}
         if(ny+nh>maxY){nh=maxY-ny;nw=Math.round(nh*CROP_RATIO);}
-        x=nx;y=ny;w=nw;h=nh;
+        x=nx; y=ny; w=nw; h=nh;
       }
-      return{x,y,w,h};
+      return { x,y,w,h };
     });
-  },[display]);
+    e.preventDefault();
+  }, [display]);
 
-  const onMouseUp=useCallback(()=>{dragging.current=false;resizing.current=null;},[]);
+  const onPointerUp = useCallback(() => {
+    dragging.current = false;
+    resizing.current = null;
+  }, []);
 
-  const handleCrop=()=>{
-    const img=imgRef.current,{x,y,w,h}=crop,{offX,offY,w:dw,h:dh}=display;
-    const scaleX=natural.w/dw,scaleY=natural.h/dh;
-    const canvas=document.createElement("canvas");
-    canvas.width=Math.round(w*scaleX);canvas.height=Math.round(h*scaleY);
+  const handleCrop = () => {
+    const img = imgRef.current;
+    const { x,y,w,h } = crop;
+    const { offX,offY,w:dw,h:dh } = display;
+    const scaleX = natural.w/dw, scaleY = natural.h/dh;
+    const canvas = document.createElement("canvas");
+    canvas.width  = Math.round(w*scaleX);
+    canvas.height = Math.round(h*scaleY);
     canvas.getContext("2d").drawImage(img,(x-offX)*scaleX,(y-offY)*scaleY,w*scaleX,h*scaleY,0,0,canvas.width,canvas.height);
-    onDone(canvas.toDataURL("image/jpeg",0.92));
+    onDone(canvas.toDataURL("image/jpeg", 0.92));
   };
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:12}}>
-      <div style={{position:"relative",width:440,height:330,background:"#0d0b1e",borderRadius:12,overflow:"hidden",margin:"0 auto",maxWidth:"100%"}}>
-        <img ref={imgRef} src={src} alt="crop" onLoad={handleImgLoad} style={{position:"absolute",left:display.offX,top:display.offY,width:display.w,height:display.h,display:"block",userSelect:"none",pointerEvents:"none"}}/>
-        {imgLoaded&&(
-          <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",cursor:"crosshair"}}
-            onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
-            <defs><mask id="cropMask"><rect width="100%" height="100%" fill="white"/><rect x={crop.x} y={crop.y} width={crop.w} height={crop.h} fill="black"/></mask></defs>
+      {/* FIXED: full-width container so it centers on mobile */}
+      <div
+        ref={containerRef}
+        style={{
+          position:"relative",
+          width:"100%",
+          height: containerSize.h,
+          background:"#0d0b1e",
+          borderRadius:12,
+          overflow:"hidden",
+          touchAction:"none",
+          userSelect:"none",
+        }}
+      >
+        <img
+          ref={imgRef}
+          src={src}
+          alt="crop"
+          onLoad={handleImgLoad}
+          style={{
+            position:"absolute",
+            left: display.offX,
+            top: display.offY,
+            width: display.w,
+            height: display.h,
+            display:"block",
+            userSelect:"none",
+            pointerEvents:"none",
+            WebkitUserSelect:"none",
+          }}
+        />
+        {imgLoaded && (
+          <svg
+            style={{ position:"absolute", inset:0, width:"100%", height:"100%", cursor:"crosshair", touchAction:"none" }}
+            onMouseDown={onPointerDown}
+            onMouseMove={onPointerMove}
+            onMouseUp={onPointerUp}
+            onMouseLeave={onPointerUp}
+            onTouchStart={onPointerDown}
+            onTouchMove={onPointerMove}
+            onTouchEnd={onPointerUp}
+          >
+            <defs>
+              <mask id="cropMask">
+                <rect width="100%" height="100%" fill="white"/>
+                <rect x={crop.x} y={crop.y} width={crop.w} height={crop.h} fill="black"/>
+              </mask>
+            </defs>
             <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#cropMask)"/>
             <rect x={crop.x} y={crop.y} width={crop.w} height={crop.h} fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeDasharray="6 3"/>
-            {[1/3,2/3].map((t,i)=>(<g key={i}><line x1={crop.x+crop.w*t} y1={crop.y} x2={crop.x+crop.w*t} y2={crop.y+crop.h} stroke="rgba(167,139,250,0.25)" strokeWidth="1"/><line x1={crop.x} y1={crop.y+crop.h*t} x2={crop.x+crop.w} y2={crop.y+crop.h*t} stroke="rgba(167,139,250,0.25)" strokeWidth="1"/></g>))}
-            {[{id:"tl",cx:crop.x,cy:crop.y},{id:"tr",cx:crop.x+crop.w,cy:crop.y},{id:"bl",cx:crop.x,cy:crop.y+crop.h},{id:"br",cx:crop.x+crop.w,cy:crop.y+crop.h}].map(h=>(<rect key={h.id} x={h.cx-6} y={h.cy-6} width={12} height={12} rx={3} fill="#a78bfa" stroke="#fff" strokeWidth="1.5" style={{cursor:"nwse-resize"}}/>))}
+            {[1/3,2/3].map((t,i)=>(
+              <g key={i}>
+                <line x1={crop.x+crop.w*t} y1={crop.y} x2={crop.x+crop.w*t} y2={crop.y+crop.h} stroke="rgba(167,139,250,0.25)" strokeWidth="1"/>
+                <line x1={crop.x} y1={crop.y+crop.h*t} x2={crop.x+crop.w} y2={crop.y+crop.h*t} stroke="rgba(167,139,250,0.25)" strokeWidth="1"/>
+              </g>
+            ))}
+            {/* Larger touch targets for handles */}
+            {[
+              {id:"tl",cx:crop.x,cy:crop.y},
+              {id:"tr",cx:crop.x+crop.w,cy:crop.y},
+              {id:"bl",cx:crop.x,cy:crop.y+crop.h},
+              {id:"br",cx:crop.x+crop.w,cy:crop.y+crop.h}
+            ].map(h=>(
+              <rect key={h.id} x={h.cx-10} y={h.cy-10} width={20} height={20} rx={4} fill="#a78bfa" stroke="#fff" strokeWidth="1.5" style={{cursor:"nwse-resize"}}/>
+            ))}
           </svg>
         )}
       </div>
-      <p style={{textAlign:"center",fontSize:11,color:"rgba(255,255,255,0.3)",margin:0}}>Drag to move · Drag corners to resize · Ratio locked 3:4</p>
+      <p style={{textAlign:"center",fontSize:11,color:"rgba(255,255,255,0.3)",margin:0}}>
+        Drag to move · Drag corners to resize · Ratio locked 3:4
+      </p>
       <div style={{display:"flex",gap:10}}>
         <button onClick={onCancel} style={{flex:1,padding:"10px",borderRadius:10,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.08)",color:"rgba(255,255,255,0.45)",fontSize:13,fontWeight:600,cursor:"pointer"}}>← Back</button>
         <button onClick={handleCrop} style={{flex:2,padding:"10px",borderRadius:10,background:"linear-gradient(135deg,#7c3aed,#6d28d9)",border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 16px rgba(109,40,217,0.4)"}}>✓ Apply Crop</button>
@@ -398,7 +508,7 @@ function ProductModal({ onClose, onSave, products, editProduct }) {
         input[type=number].no-spin{-moz-appearance:textfield}
       `}</style>
       <div onClick={e=>e.target===e.currentTarget&&!cropping&&onClose()}
-        style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(5,3,18,0.82)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        style={{position:"fixed",inset:0,zIndex:9000,background:"rgba(5,3,18,0.82)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
         <div className="ms-scroll" style={{background:"linear-gradient(170deg,#18143a 0%,#100e22 100%)",border:"1px solid rgba(139,92,246,0.18)",borderRadius:22,width:"100%",maxWidth:cropping?500:490,boxShadow:"0 40px 120px rgba(0,0,0,0.85),inset 0 1px 0 rgba(255,255,255,0.04)",maxHeight:"92vh",overflowY:"auto",display:"flex",flexDirection:"column"}}>
           <div style={{height:3,borderRadius:"22px 22px 0 0",background:"linear-gradient(90deg,#6d28d9,#a855f7,#7c3aed)"}}/>
           <div style={{padding:"22px 24px 20px",display:"flex",alignItems:"flex-start",justifyContent:"space-between"}}>
@@ -493,27 +603,51 @@ function SizeTooltip({ sizeStock }) {
 }
 
 // ─── Image Thumbnail — hover zoom + click lightbox ────────────────────────────
+// Fixed: popup stays visible when mouse enters it, using shared hover state timer
 function ImageThumbCell({ image, name, thumbW=38, thumbH=50, onOpenLightbox }) {
-  const [hovered,    setHovered]    = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
   const [anchorRect, setAnchorRect] = useState(null);
   const ref = useRef(null);
+  const hideTimer = useRef(null);
 
-  const handleMouseEnter = () => {
-    if (image && ref.current) { setAnchorRect(ref.current.getBoundingClientRect()); setHovered(true); }
+  const scheduleHide = () => {
+    hideTimer.current = setTimeout(() => setShowPopup(false), 120);
   };
-  const handleMouseLeave = () => { setHovered(false); setAnchorRect(null); };
+  const cancelHide = () => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+  };
+
+  const handleThumbEnter = () => {
+    if (!image) return;
+    cancelHide();
+    if (ref.current) setAnchorRect(ref.current.getBoundingClientRect());
+    setShowPopup(true);
+  };
+  const handleThumbLeave = () => {
+    scheduleHide();
+  };
+  const handlePopupEnter = () => {
+    cancelHide();
+  };
+  const handlePopupLeave = () => {
+    scheduleHide();
+  };
 
   return (
     <>
-      <div ref={ref} onMouseEnter={handleMouseEnter}  onMouseLeave={handleMouseLeave}
+      <div
+        ref={ref}
+        onMouseEnter={handleThumbEnter}
+        onMouseLeave={handleThumbLeave}
         style={{
           width:thumbW, height:thumbH, borderRadius:8, overflow:"hidden",
           background:"rgba(255,255,255,0.06)",
-          border: hovered&&image ? "1.5px solid rgba(139,92,246,0.6)" : "1px solid rgba(255,255,255,0.08)",
+          border: showPopup&&image ? "1.5px solid rgba(139,92,246,0.6)" : "1px solid rgba(255,255,255,0.08)",
           flexShrink:0, cursor:image?"zoom-in":"default",
           transition:"border-color 0.15s, box-shadow 0.15s",
-          boxShadow: hovered&&image ? "0 0 0 3px rgba(139,92,246,0.18)" : "none",
-        }}>
+          boxShadow: showPopup&&image ? "0 0 0 3px rgba(139,92,246,0.18)" : "none",
+        }}
+      >
         {image
           ? <img src={image} alt={name} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
           : <div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -524,13 +658,72 @@ function ImageThumbCell({ image, name, thumbW=38, thumbH=50, onOpenLightbox }) {
         }
       </div>
 
-      {hovered && image && (
+      {showPopup && image && (
         <ImageZoomPopup
-          src={image} anchorRect={anchorRect} productName={name}
-          onOpenLightbox={() => { setHovered(false); setAnchorRect(null); onOpenLightbox(image, name); }}
+          src={image}
+          anchorRect={anchorRect}
+          productName={name}
+          onOpenLightbox={() => { setShowPopup(false); onOpenLightbox(image, name); }}
+          onMouseEnterPopup={handlePopupEnter}
+          onMouseLeavePopup={handlePopupLeave}
         />
       )}
     </>
+  );
+}
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+function Pagination({ current, total, onChange }) {
+  if (total <= 1) return null;
+  const pages = [];
+  for (let i = 1; i <= total; i++) pages.push(i);
+
+  // Show at most 5 page numbers with ellipsis
+  let visible = pages;
+  if (total > 7) {
+    if (current <= 4) visible = [...pages.slice(0,5), "...", total];
+    else if (current >= total - 3) visible = [1, "...", ...pages.slice(total-5)];
+    else visible = [1, "...", current-1, current, current+1, "...", total];
+  }
+
+  const btnBase = {
+    minWidth:36, height:36, borderRadius:9, border:"1px solid rgba(255,255,255,0.08)",
+    fontSize:13, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+    transition:"all 0.15s",
+  };
+
+  return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,padding:"20px 0 4px",flexWrap:"wrap"}}>
+      <button
+        onClick={() => onChange(current - 1)}
+        disabled={current === 1}
+        style={{...btnBase, padding:"0 12px", background:"rgba(255,255,255,0.04)", color: current===1?"rgba(255,255,255,0.2)":"rgba(255,255,255,0.6)", cursor: current===1?"not-allowed":"pointer"}}
+      >← Prev</button>
+
+      {visible.map((p, i) =>
+        p === "..." ? (
+          <span key={`ellipsis-${i}`} style={{color:"rgba(255,255,255,0.3)",padding:"0 4px",fontSize:13}}>…</span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onChange(p)}
+            style={{
+              ...btnBase,
+              background: p===current ? "linear-gradient(135deg,#7c3aed,#6d28d9)" : "rgba(255,255,255,0.04)",
+              color: p===current ? "#fff" : "rgba(255,255,255,0.55)",
+              border: p===current ? "1px solid rgba(139,92,246,0.5)" : "1px solid rgba(255,255,255,0.08)",
+              boxShadow: p===current ? "0 4px 14px rgba(109,40,217,0.35)" : "none",
+            }}
+          >{p}</button>
+        )
+      )}
+
+      <button
+        onClick={() => onChange(current + 1)}
+        disabled={current === total}
+        style={{...btnBase, padding:"0 12px", background:"rgba(255,255,255,0.04)", color: current===total?"rgba(255,255,255,0.2)":"rgba(255,255,255,0.6)", cursor: current===total?"not-allowed":"pointer"}}
+      >Next →</button>
+    </div>
   );
 }
 
@@ -541,17 +734,26 @@ export default function ListingProducts() {
   const [filter,      setFilter]      = useState("All");
   const [showModal,   setShowModal]   = useState(false);
   const [editProduct, setEditProduct] = useState(null);
-  const [lightbox,    setLightbox]    = useState(null); // { src, name } | null
+  const [lightbox,    setLightbox]    = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filterTabs = ["All",...ALL_CATEGORIES];
-  const filtered   = products.filter(p=>
-    (filter==="All"||p.category===filter)&&
-    (p.name.toLowerCase().includes(search.toLowerCase())||p.id.toLowerCase().includes(search.toLowerCase()))
+
+  const filtered = products.filter(p =>
+    (filter==="All" || p.category===filter) &&
+    (p.name.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PRODUCTS_PER_PAGE));
+  const safePage   = Math.min(currentPage, totalPages);
+  const paginated  = filtered.slice((safePage-1)*PRODUCTS_PER_PAGE, safePage*PRODUCTS_PER_PAGE);
+
+  // Reset to page 1 when filter/search changes
+  useEffect(() => { setCurrentPage(1); }, [filter, search]);
+
   const handleSave = product => {
-    if(editProduct) setProducts(prev=>prev.map(p=>p.id===product.id?product:p));
-    else            setProducts(prev=>[...prev,product]);
+    if (editProduct) setProducts(prev => prev.map(p => p.id===product.id ? product : p));
+    else             setProducts(prev => [...prev, product]);
   };
 
   const openAdd     = ()  => { setEditProduct(null); setShowModal(true); };
@@ -614,10 +816,10 @@ export default function ListingProducts() {
 
         {filtered.length===0 ? (
           <div className="py-16 text-center" style={{color:"rgba(255,255,255,0.35)"}}>No products found.</div>
-        ) : filtered.map((p,i) => (
+        ) : paginated.map((p,i) => (
           <div key={p.id}
             className="hidden sm:grid px-5 py-3 items-center group transition-colors duration-150"
-            style={{gridTemplateColumns:"56px 80px 1fr 160px 90px 60px 50px 120px 60px",borderBottom:i<filtered.length-1?"1px solid rgba(255,255,255,0.05)":"none"}}
+            style={{gridTemplateColumns:"56px 80px 1fr 160px 90px 60px 50px 120px 60px",borderBottom:i<paginated.length-1?"1px solid rgba(255,255,255,0.05)":"none"}}
             onMouseEnter={e=>e.currentTarget.style.background="rgba(139,92,246,0.05)"}
             onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
 
@@ -649,9 +851,9 @@ export default function ListingProducts() {
         ))}
 
         {/* Mobile rows */}
-        {filtered.map((p,i)=>(
+        {paginated.map((p,i)=>(
           <div key={p.id+"-m"} className="sm:hidden px-4 py-4"
-            style={{borderBottom:i<filtered.length-1?"1px solid rgba(255,255,255,0.05)":"none"}}>
+            style={{borderBottom:i<paginated.length-1?"1px solid rgba(255,255,255,0.05)":"none"}}>
             <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
               <ImageThumbCell image={p.image} name={p.name} thumbW={44} thumbH={58} onOpenLightbox={openLightbox}/>
               <div style={{flex:1}}>
@@ -676,6 +878,16 @@ export default function ListingProducts() {
           </div>
         ))}
       </div>
+
+      {/* Pagination */}
+      {filtered.length > 0 && (
+        <div style={{marginTop:4}}>
+          <div style={{textAlign:"center",fontSize:12,color:"rgba(255,255,255,0.28)",marginBottom:4}}>
+            Showing {(safePage-1)*PRODUCTS_PER_PAGE+1}–{Math.min(safePage*PRODUCTS_PER_PAGE, filtered.length)} of {filtered.length} products
+          </div>
+          <Pagination current={safePage} total={totalPages} onChange={p=>{ setCurrentPage(p); window.scrollTo({top:0,behavior:"smooth"}); }}/>
+        </div>
+      )}
     </div>
   );
 }

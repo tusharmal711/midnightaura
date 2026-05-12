@@ -27,11 +27,13 @@ import Oversized from "./pages/Categories/Oversized";
 import Men from "./pages/Categories/Men";
 import UserCategories from "./components/UserCategories";
 import UserDashboardProfileLayout from "./layouts/UserDashboardProfileLayout";
+import ScrollToTop from "./components/ScrollToTop";
 // import Dashboard from "./pages/Dashboard";
 
 function App() {
   return (
     <BrowserRouter>
+    <ScrollToTop />  
       <Routes>
 
        
