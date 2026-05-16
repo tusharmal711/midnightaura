@@ -363,7 +363,7 @@ export default function ProductView() {
 
               {/* ── Inline CTA ── */}
               <div ref={productDetailsRef}>
-                <CTAButtons compact onCart={handleCart} onBuy={handleBuy} />
+                <CTAButtons onCart={handleCart} onBuy={handleBuy} />
               </div>
 
             </div>
@@ -428,16 +428,16 @@ export default function ProductView() {
 
         {/* ══ Fixed bottom bar ══ */}
         <div
-          className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out ${
-            fixedBar ? "translate-y-0" : "translate-y-full"
-          }`}
-        >
-          <div className="px-1 py-3">
-            <div className="max-w-6xl mx-auto">
-              <CTAButtons onCart={handleCart} onBuy={handleBuy} />
-            </div>
-          </div>
-        </div>
+  className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out ${
+    fixedBar ? "translate-y-0" : "translate-y-full"
+  }`}
+>
+  <div className="px-1 py-3">
+    <div className="max-w-6xl mx-auto">
+      <CTAButtons onCart={handleCart} onBuy={handleBuy}/>
+    </div>
+  </div>
+</div>
       </div>
     </>
   );
