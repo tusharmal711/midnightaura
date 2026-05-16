@@ -28,6 +28,7 @@ import Men from "./pages/Categories/Men";
 import UserCategories from "./components/UserCategories";
 import UserDashboardProfileLayout from "./layouts/UserDashboardProfileLayout";
 import ScrollToTop from "./components/ScrollToTop";
+import ProductView from "./pages/ProductDetails/ProductView";
 // import Dashboard from "./pages/Dashboard";
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
           <Route path="categories/necklaces" element={<Necklaces />} />
            <Route path="categories/oversized" element={<Oversized />} />
             <Route path="categories/men" element={<Men />} />
+
        </Route>
       </Route>
 
@@ -99,6 +101,18 @@ function App() {
         </Route>
 
         {/* user dashboard routing is ending here */}
+
+
+
+
+        {/* product view is starting from here */}
+         <Route element={<MainLayout />}>
+          <Route path="/product-view" element={<ProductView />} />
+         
+         </Route>
+         {/* product view is ending here */}
+
+
 
 
 

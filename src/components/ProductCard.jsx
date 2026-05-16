@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function ProductCard({ product }) {
   const [added, setAdded] = useState(false);
   const [loaded, setLoaded] = useState(false);
-
+  const navigate=useNavigate();
   const handleAdd = () => {
     setAdded(true);
     setTimeout(() => setAdded(false), 1200);
@@ -13,7 +14,7 @@ export default function ProductCard({ product }) {
     <div className="bg-[#141928] border border-white/[0.06] rounded-2xl overflow-hidden group hover:border-purple-500/30 transition-all shadow-lg hover:shadow-purple-900/20">
       
       {/* Image area */}
-      <div className="relative bg-[#0f1420] aspect-square flex items-center justify-center overflow-hidden">
+      <div  onClick={()=>navigate("/product-view")}  className="relative bg-[#0f1420] aspect-square flex items-center justify-center overflow-hidden">
 
         {/* 🔥 Skeleton Loader */}
         {!loaded && (
@@ -24,6 +25,7 @@ export default function ProductCard({ product }) {
           <img
             src={product.image}
             alt={product.name}
+           
             loading="lazy"
             onLoad={() => setLoaded(true)}
             className={`
