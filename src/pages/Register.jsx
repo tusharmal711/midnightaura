@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { Link } from "react-router-dom";
+import { API } from "../api";
 export default function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -13,18 +14,41 @@ export default function Register() {
     setTimeout(() => setToast(""), 2800);
   };
 
-  const handleRegister = (e) => {
-    e.preventDefault();
-    if (!username || !email || !password)
+
+
+
+const handleRegister = async (e) => {
+  e.preventDefault();
+
+  if (!username || !email || !password)
       return showToast("Please fill in all fields.");
     if (!email.includes("@"))
       return showToast("Enter a valid email address.");
     if (password.length < 6)
       return showToast("Password must be at least 6 characters.");
 
+  try {
     showToast("Creating your account...");
-    // 🔁 your register logic here
-  };
+
+    const res = await API.post("/user/register", {
+      firstName: username,   // backend firstName use korche
+      lastName: "user",      // temporary
+      email,
+      password,
+    });
+    console.log(res);
+    
+
+    if (res.data.success) {
+      showToast("Account created successfully 🎉");
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 1500);
+    }
+  } catch (err) {
+    showToast(err.response?.data?.message || "Registration failed");
+  }
+};
 
   const handleGoogle = () => showToast("Connecting to Google...");
 
