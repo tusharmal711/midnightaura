@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { Link } from "react-router-dom";
+import { API } from "../api";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -12,13 +13,37 @@ export default function Login() {
     setTimeout(() => setToast(""), 2800);
   };
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (!email || !password) return showToast("Please fill in all fields.");
+  
+
+
+const handleLogin = async (e) => {
+  e.preventDefault();
+
+if (!email || !password) return showToast("Please fill in all fields.");
     if (!email.includes("@")) return showToast("Enter a valid email address.");
     if (password.length < 6) return showToast("Password must be at least 6 characters.");
-    showToast("Signing you in...");
-  };
+
+  try {
+    showToast("Logging in...");
+
+    const res = await API.post("/user/login", {
+      email,
+      password,
+    });
+
+    if (res.data.success) {
+      showToast("Login successful 🎉");
+
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
+    }
+  } catch (err) {
+    showToast(err.response?.data?.message || "Login failed");
+  }
+};
 
   const handleGoogle = () => showToast("Connecting to Google...");
 
