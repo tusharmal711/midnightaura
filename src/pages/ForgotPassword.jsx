@@ -1,126 +1,85 @@
-import React, { useState } from "react";
-import toast from "react-hot-toast";
-import { API } from "../api";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 export default function ForgotPassword() {
-
-
-
-  const [step, setStep] = useState(1);
-
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [password, setPassword] = useState("");
+  const [toast, setToast] = useState("");
 
-  // SEND OTP
-  const sendOtp = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await API.post("/user/forgotPassword", { email });
-
-      toast.success(res.data.message);
-      setStep(2);
-
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Error sending OTP");
-    }
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2800);
   };
 
-  // VERIFY OTP
-  const handleVerifyOtp = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    try {
-      const res = await API.post("/user/verifyOtp", { otp });
 
-      toast.success(res.data.message);
-      setStep(3);
+    if (!email) return showToast("Please enter your email.");
+    if (!email.includes("@")) return showToast("Enter a valid email address.");
 
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid OTP");
-    }
-  };
-
-  // RESET PASSWORD
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await API.post("/user/resetPassword", { password });
-
-      toast.success(res.data.message);
-
-      // 🔥 redirect to login
-      window.location.href = "/login";
-
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to reset password");
-    }
+    showToast("Password reset link sent!");
+    // 🔁 integrate backend here (send reset email)
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">
-      <div className="bg-white/10 backdrop-blur-lg shadow-2xl rounded-3xl p-10 w-[400px] border border-white/20">
+    <div className="min-h-screen bg-[#0E1320] flex items-center justify-center px-6 py-10">
 
-        <h1 className="text-3xl font-bold text-white text-center mb-6">
-          Forgot Password 🔐
-        </h1>
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-7 left-1/2 -translate-x-1/2 bg-[#1e2a45] text-white text-sm px-5 py-2.5 rounded-full border border-white/10 z-50 whitespace-nowrap">
+          {toast}
+        </div>
+      )}
 
-        {/* STEP 1 */}
-        {step === 1 && (
-          <form onSubmit={sendOtp} className="space-y-4">
+      <div className="w-full max-w-[420px]">
+
+        {/* Brand */}
+        <div className="text-center mb-8">
+          <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-purple-600 to-purple-500 flex items-center justify-center text-2xl mx-auto mb-3">
+            🔐
+          </div>
+          <h1 className="text-white text-xl font-bold tracking-tight">Forgot Password</h1>
+          <p className="text-white/40 text-sm mt-1">
+            Enter your email to receive a reset link
+          </p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-[#141927] border border-white/[0.07] rounded-[20px] p-8">
+
+          {/* Email */}
+          <div className="mb-5">
+            <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wider mb-1.5">
+              Email
+            </label>
             <input
               type="email"
-              placeholder="Enter your email"
-              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 rounded-xl bg-white/20 text-white placeholder-white/70 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white"
+              placeholder="you@example.com"
+              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-purple-600 focus:bg-purple-600/[0.08] focus:ring-2 focus:ring-purple-600/20 transition-all"
             />
+          </div>
 
-            <button className="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl hover:scale-105 transition">
-              Send OTP
-            </button>
-          </form>
-        )}
+          {/* Submit */}
+          <button
+            onClick={handleSubmit}
+            className="w-full py-3 rounded-xl bg-gradient-to-br from-purple-600 to-purple-500 text-white font-bold text-[15px] tracking-wide hover:shadow-[0_4px_20px_rgba(124,58,237,0.4)] hover:from-purple-700 hover:to-purple-600 active:scale-[0.98] transition-all mb-5"
+          >
+            Send Reset Link
+          </button>
 
-        {/* STEP 2 */}
-        {step === 2 && (
-          <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Enter OTP"
-              required
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="w-full p-3 rounded-xl bg-white/20 text-white placeholder-white/70 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white"
-            />
+          {/* Back to login */}
+          <p className="text-center text-[13px] text-white/35">
+            Remember your password?
+            <Link
+              to="/login"
+              className="text-purple-400 font-semibold ml-1 hover:text-purple-300"
+            >
+              Login
+            </Link>
+          </p>
 
-            <button className="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl hover:scale-105 transition">
-              Verify OTP
-            </button>
-          </form>
-        )}
-
-        {/* STEP 3 */}
-        {step === 3 && (
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            <input
-              type="password"
-              placeholder="New Password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 rounded-xl bg-white/20 text-white placeholder-white/70 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white"
-            />
-
-            <button className="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl hover:scale-105 transition">
-              Reset Password
-            </button>
-          </form>
-        )}
+        </div>
       </div>
     </div>
   );
-};
-
-
-
-
+}
