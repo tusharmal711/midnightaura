@@ -30,8 +30,13 @@ import UserDashboardProfileLayout from "./layouts/UserDashboardProfileLayout";
 import ScrollToTop from "./components/ScrollToTop";
 import ProductView from "./pages/ProductDetails/ProductView";
 // import Dashboard from "./pages/Dashboard";
+import Cookies from "js-cookie";
 
 function App() {
+  function ConditionalProductViewLayout() {
+  const isLoggedIn = !!Cookies.get("user");
+  return isLoggedIn ? <UserDashboardLayout /> : <MainLayout />;
+}
   return (
     <BrowserRouter>
     <ScrollToTop />  
@@ -106,7 +111,7 @@ function App() {
 
 
         {/* product view is starting from here */}
-         <Route element={<MainLayout />}>
+         <Route element={<ConditionalProductViewLayout  />}>
           <Route path="/product-view" element={<ProductView />} />
          
          </Route>

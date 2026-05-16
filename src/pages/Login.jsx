@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { FiEye, FiEyeOff } from "react-icons/fi";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { API } from "../api";
+import Cookies from "js-cookie";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,7 +15,7 @@ export default function Login() {
   };
 
   
-
+const navigate=useNavigate();
 
 const handleLogin = async (e) => {
   e.preventDefault();
@@ -35,10 +36,15 @@ if (!email || !password) return showToast("Please fill in all fields.");
       showToast("Login successful 🎉");
 
       localStorage.setItem("user", JSON.stringify(res.data.user));
-
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1500);
+      Cookies.set("user", JSON.stringify(res.data.user), {
+  expires: 7,
+  secure: true,
+  sameSite: "Strict",
+});
+      navigate("/user/dashboard");
+      // setTimeout(() => {
+      //   window.location.href = "/";
+      // }, 1500);
     }
   } catch (err) {
     showToast(err.response?.data?.message || "Login failed");

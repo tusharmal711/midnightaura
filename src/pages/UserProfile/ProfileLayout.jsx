@@ -2,7 +2,8 @@
 import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import Categories from "../../components/Categories";
-
+import Cookies from "js-cookie";
+import { API } from "../../api";
 const NAV_ITEMS = [
   { label: "Profile Info", to: "", end: true },
   { label: "Orders", to: "orders" },
@@ -37,6 +38,12 @@ const NAV_ICONS = [ProfileIcon, OrderIcon, CartIcon];
 export default function ProfileLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+ const [toast, setToast] = useState("");
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2800);
+  };
 
   const navRefs = useRef([]);
   const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, height: 0, opacity: 0 });
@@ -77,6 +84,41 @@ export default function ProfileLayout() {
       });
     }
   }, [location.pathname]);
+
+
+
+
+const handleLogout = async () => {
+  try {
+    showToast("Logging out...");
+
+    
+      localStorage.removeItem("user");
+
+      // Remove cookie
+      Cookies.remove("user");
+
+      showToast("Logout successful 👋");
+
+      navigate("/");
+
+      // Optional full refresh
+      // window.location.href = "/";
+
+    
+
+  } catch (err) {
+
+    showToast(
+      err.response?.data?.message || "Logout failed"
+    );
+
+  }
+};
+
+
+
+
 
   return (
    
@@ -324,10 +366,7 @@ export default function ProfileLayout() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  localStorage.removeItem("token");
-                  navigate("/");
-                }}
+                onClick={handleLogout}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
                 style={{
                   background: "linear-gradient(135deg, #dc2626, #b91c1c)",

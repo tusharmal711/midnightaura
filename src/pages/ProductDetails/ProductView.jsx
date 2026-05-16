@@ -2,10 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { IoIosFlash } from "react-icons/io";
 import { MdDeliveryDining } from "react-icons/md";
 import { HiHomeModern } from "react-icons/hi2";
+import { useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 import tshirt8 from "../../assets/images/products/tshirt8.png";
 import tshirt9 from "../../assets/images/products/tshirt9.png";
 import tshirt10 from "../../assets/images/products/tshirt10.png";
-// ── Data ─────────────────────────────────────────────────────────────────────
+
+// ── Data ──────────────────────────────────────────────────────────────────────
 const PRODUCT = {
   brand: "Canon",
   name: "PIXMA G3470 All-in-One Wi-Fi Ink Tank Colour Printer",
@@ -16,12 +19,7 @@ const PRODUCT = {
   ratingCount: "2,841",
   reviewCount: "318",
   badge: "Best Seller",
-  // 3 different images
-  images: [
-    tshirt9,
-    tshirt8,
-    tshirt10,
-  ],
+  images: [tshirt9, tshirt8, tshirt10],
   delivery: {
     address: "Udaynarayanpur, West Bengal 711226",
     eta: "Tomorrow by 11 PM",
@@ -83,12 +81,54 @@ const Stars = ({ n }) =>
     <span key={s} className={s <= n ? "text-yellow-400" : "text-[#3a3456]"}>★</span>
   ));
 
-// ── Shared CTA buttons ────────────────────────────────────────────────────────
-const CTAButtons = ({ compact = false }) => (
-  <div className="flex gap-3 w-full">
+// ── Auth Toast ────────────────────────────────────────────────────────────────
+// A dedicated overlay toast for the "please login" flow
+const AuthToast = ({ visible, onLogin, onDismiss }) => (
+  <div
+    className={`fixed inset-0 z-[60] flex items-end justify-center pb-10 px-4 pointer-events-none transition-all duration-300 ${
+      visible ? "opacity-100" : "opacity-0"
+    }`}
+  >
+    <div
+      className={`pointer-events-auto w-full max-w-sm bg-[#1a1730] border border-[rgba(160,120,255,0.35)] rounded-2xl px-5 py-4 shadow-[0_0_40px_rgba(160,120,255,0.25)] transition-transform duration-300 ${
+        visible ? "translate-y-0" : "translate-y-8"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-xl bg-[rgba(160,120,255,0.15)] flex items-center justify-center shrink-0 text-lg">
+          🔐
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-[#e8e0ff] mb-0.5">Login required</div>
+          <div className="text-xs text-[#8880aa] leading-relaxed">
+            Please sign in to continue with your purchase.
+          </div>
+        </div>
+      </div>
+      <div className="flex gap-2.5 mt-3.5">
+        <button
+          onClick={onDismiss}
+          className="flex-1 py-2 rounded-xl border border-[rgba(160,120,255,0.22)] bg-transparent text-[#8880aa] text-sm font-semibold hover:border-[rgba(160,120,255,0.45)] hover:text-[#e8e0ff] transition-all"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onLogin}
+          className="flex-1 py-2 rounded-xl bg-gradient-to-br from-purple-600 to-purple-500 text-white text-sm font-bold hover:from-purple-700 hover:to-purple-600 hover:shadow-[0_0_18px_rgba(124,58,237,0.4)] transition-all"
+        >
+          Sign In →
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
+// ── Shared CTA buttons ────────────────────────────────────────────────────────
+const CTAButtons = ({ compact = false, onCart, onBuy }) => (
+  <div className="flex gap-3 w-full">
     {/* Add To Cart */}
     <button
+      onClick={onCart}
       className={`
         flex-1 flex items-center justify-center gap-2
         rounded-xl border border-[#8B5CF6]
@@ -109,6 +149,7 @@ const CTAButtons = ({ compact = false }) => (
 
     {/* Buy Now */}
     <button
+      onClick={onBuy}
       className={`
         flex-1 flex items-center justify-center gap-2
         rounded-xl border-none
@@ -126,50 +167,54 @@ const CTAButtons = ({ compact = false }) => (
       <IoIosFlash size={20} />
       Buy Now
     </button>
-
   </div>
 );
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ProductView() {
+  const navigate = useNavigate();
+
   const [imgIdx, setImgIdx] = useState(0);
   const [selSize, setSelSize] = useState(null);
   const [selColor, setSelColor] = useState(null);
   const [fixedBar, setFixedBar] = useState(false);
+  const [authToast, setAuthToast] = useState(false);
 
-  // ref on the INLINE CTA block placed right below Delivery Details
-  const inlineCTARef = useRef(null);
-const productDetailsRef = useRef(null);
-useEffect(() => {
-  const handleScroll = () => {
-    if (!productDetailsRef.current) return;
+  const productDetailsRef = useRef(null);
 
-    const rect =
-      productDetailsRef.current.getBoundingClientRect();
+  // ── Scroll watcher for fixed bottom bar ──
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!productDetailsRef.current) return;
+      const rect = productDetailsRef.current.getBoundingClientRect();
+      setFixedBar(rect.top >= window.innerHeight);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-    // When product details arrive on screen
-    // hide fixed buttons
+  // ── Auth-gated action handler ──
+  const isLoggedIn = () => !!Cookies.get("user");
 
-    const reachedActualCTA = rect.top < window.innerHeight;
-
-    setFixedBar(!reachedActualCTA);
+  const handleProtectedAction = (destination) => {
+    if (isLoggedIn()) {
+      navigate(destination);
+    } else {
+      setAuthToast(true);
+    }
   };
 
-  handleScroll();
+  const handleCart = () => handleProtectedAction("/product-checkout");
+  const handleBuy = () => handleProtectedAction("/product-checkout");
 
-  window.addEventListener("scroll", handleScroll, {
-    passive: true,
-  });
-
-  return () =>
-    window.removeEventListener("scroll", handleScroll);
-}, []);
+  const handleGoToLogin = () => {
+    setAuthToast(false);
+    navigate("/login");
+  };
 
   const prev = () => setImgIdx((i) => (i - 1 + PRODUCT.images.length) % PRODUCT.images.length);
   const next = () => setImgIdx((i) => (i + 1) % PRODUCT.images.length);
-
-
-
 
   return (
     <>
@@ -183,6 +228,13 @@ useEffect(() => {
         .cinzel{font-family:'Cinzel',serif}
       `}</style>
 
+      {/* ── Auth Toast Overlay ── */}
+      <AuthToast
+        visible={authToast}
+        onLogin={handleGoToLogin}
+        onDismiss={() => setAuthToast(false)}
+      />
+
       <div className="min-h-screen bg-[#0E1320] text-[#e8e0ff]" style={{ fontFamily: "'Raleway',sans-serif" }}>
         <div className="max-w-6xl mx-auto px-5 py-8">
 
@@ -193,24 +245,24 @@ useEffect(() => {
             <div className="flex flex-col gap-4">
 
               {/* Slider */}
-<div className="
-  relative
-  bg-[#12121a]
-  border border-[rgba(160,120,255,0.15)]
-  rounded-2xl
-  overflow-hidden
-  aspect-[4/5]
-  mx-auto
-  lg:w-[70%]
-  w-[100%]
-  flex items-center justify-center
-  shadow-[0_0_40px_rgba(160,120,255,0.07)]
-">                <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_30%_20%,rgba(160,120,255,0.07)_0%,transparent_60%)]" />
-                
+              <div className="
+                relative
+                bg-[#12121a]
+                border border-[rgba(160,120,255,0.15)]
+                rounded-2xl
+                overflow-hidden
+                aspect-[4/5]
+                mx-auto
+                lg:w-[70%]
+                w-[100%]
+                flex items-center justify-center
+                shadow-[0_0_40px_rgba(160,120,255,0.07)]
+              ">
+                <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_30%_20%,rgba(160,120,255,0.07)_0%,transparent_60%)]" />
                 <img
                   src={PRODUCT.images[imgIdx]}
                   alt={`Product ${imgIdx + 1}`}
-                  className="w-[100%]object-contain drop-shadow-[0_8px_32px_rgba(160,120,255,0.22)]"
+                  className="w-[100%] object-contain drop-shadow-[0_8px_32px_rgba(160,120,255,0.22)]"
                 />
                 <button onClick={prev} className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[rgba(14,19,32,0.78)] backdrop-blur border border-[rgba(160,120,255,0.3)] text-[#a078ff] text-xl flex items-center justify-center z-10 hover:bg-[rgba(160,120,255,0.22)] transition-all">‹</button>
                 <button onClick={next} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[rgba(14,19,32,0.78)] backdrop-blur border border-[rgba(160,120,255,0.3)] text-[#a078ff] text-xl flex items-center justify-center z-10 hover:bg-[rgba(160,120,255,0.22)] transition-all">›</button>
@@ -241,42 +293,37 @@ useEffect(() => {
 
               {/* Brand + Name */}
               <div>
-               
-                <div className="cinzel text-xl font-bold leading-snug text-[#e8e0ff] mt-1.5"   style={{ fontFamily: "'Poppins', sans-serif" }}>{PRODUCT.name}</div>
+                <div className="cinzel text-xl font-bold leading-snug text-[#e8e0ff] mt-1.5" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                  {PRODUCT.name}
+                </div>
               </div>
 
-              
               {/* Size */}
-             
-                <div className="text-[11px] tracking-[0.14em] uppercase text-[#8880aa]">Select Size</div>
-                <div className="flex flex-wrap gap-2">
-                  {SIZES.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setSelSize(s)}
-                      className={`w-10 h-10 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center ${selSize === s ? "border-[#a078ff] bg-[rgba(160,120,255,0.13)] text-[#a078ff] shadow-[0_0_10px_rgba(160,120,255,0.22)]" : "border-[rgba(160,120,255,0.22)] bg-[#0E1320] text-[#e8e0ff] hover:border-[#a078ff] hover:text-[#a078ff]"}`}
-                    >{s}</button>
-                  ))}
-                </div>
-           
+              <div className="text-[11px] tracking-[0.14em] uppercase text-[#8880aa]">Select Size</div>
+              <div className="flex flex-wrap gap-2">
+                {SIZES.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSelSize(s)}
+                    className={`w-10 h-10 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center ${selSize === s ? "border-[#a078ff] bg-[rgba(160,120,255,0.13)] text-[#a078ff] shadow-[0_0_10px_rgba(160,120,255,0.22)]" : "border-[rgba(160,120,255,0.22)] bg-[#0E1320] text-[#e8e0ff] hover:border-[#a078ff] hover:text-[#a078ff]"}`}
+                  >{s}</button>
+                ))}
+              </div>
 
               {/* Color */}
-              
-                <div className="text-[11px] tracking-[0.14em] uppercase text-[#8880aa]">Color</div>
-                <div className="flex items-center gap-2.5">
-                  {COLORS.map((c) => (
-                    <button
-                      key={c.name}
-                      title={c.name}
-                      onClick={() => setSelColor(c.name)}
-                      style={{ background: c.hex }}
-                      className={`w-8 h-8 rounded-full border-2 border-transparent transition-all hover:scale-110 ${selColor === c.name ? "outline outline-2 outline-[#a078ff] outline-offset-2" : ""}`}
-                    />
-                  ))}
-                  {selColor && <span className="text-xs text-[#8880aa]">{selColor}</span>}
-                </div>
-              
-             
+              <div className="text-[11px] tracking-[0.14em] uppercase text-[#8880aa]">Color</div>
+              <div className="flex items-center gap-2.5">
+                {COLORS.map((c) => (
+                  <button
+                    key={c.name}
+                    title={c.name}
+                    onClick={() => setSelColor(c.name)}
+                    style={{ background: c.hex }}
+                    className={`w-8 h-8 rounded-full border-2 border-transparent transition-all hover:scale-110 ${selColor === c.name ? "outline outline-2 outline-[#a078ff] outline-offset-2" : ""}`}
+                  />
+                ))}
+                {selColor && <span className="text-xs text-[#8880aa]">{selColor}</span>}
+              </div>
 
               <div className="h-px bg-[rgba(160,120,255,0.13)]" />
 
@@ -294,12 +341,11 @@ useEffect(() => {
                 <div className="text-[11px] tracking-[0.14em] uppercase text-[#8880aa] mb-2.5">Delivery Details</div>
                 <div className="bg-[#12121a] border border-[rgba(160,120,255,0.13)] rounded-xl px-4 py-3.5 flex flex-col gap-3">
                   {[
-                    { icon: <HiHomeModern size={20} />, label: "Delivering to", val: PRODUCT.delivery.address},
+                    { icon: <HiHomeModern size={20} />, label: "Delivering to", val: PRODUCT.delivery.address },
                     {
-                      icon: <MdDeliveryDining size={25}/>, label: "Estimated Delivery",
+                      icon: <MdDeliveryDining size={25} />, label: "Estimated Delivery",
                       val: <><span className="text-green-400 font-semibold">{PRODUCT.delivery.eta}</span> — Free</>,
                     },
-                    
                   ].map((row, i) => (
                     <div key={i}>
                       {i > 0 && <div className="h-px bg-[rgba(160,120,255,0.09)] mb-3" />}
@@ -309,46 +355,32 @@ useEffect(() => {
                           <div className="text-[#8880aa] text-xs">{row.label}</div>
                           <div className="text-[#e8e0ff] font-medium">{row.val}</div>
                         </div>
-                        
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* ── INLINE CTA — sits right below delivery details ── */}
-              {/* This ref is watched: when it scrolls out of view, fixed bar appears */}
+              {/* ── Inline CTA ── */}
               <div ref={productDetailsRef}>
-  <CTAButtons compact/>
-</div>
+                <CTAButtons compact onCart={handleCart} onBuy={handleBuy} />
+              </div>
 
-          
-
-            
             </div>
           </div>
 
-
-             {/* Product Details */}
-              <div >
-                <div className="text-[11px] tracking-[0.14em] uppercase text-[#8880aa] mb-2.5">Product Details</div>
-                <div className="grid grid-cols-2 gap-2">
-                  {PRODUCT.details.map((d, i) => (
-                    <div key={i} className="bg-[#12121a] border border-[rgba(160,120,255,0.13)] rounded-lg px-3 py-2.5">
-                      <div className="text-[10px] text-[#8880aa] uppercase tracking-widest mb-1">{d.key}</div>
-                      <div className="text-sm text-[#e8e0ff] font-medium">{d.val}</div>
-                    </div>
-                  ))}
+          {/* Product Details */}
+          <div className="mt-10">
+            <div className="text-[11px] tracking-[0.14em] uppercase text-[#8880aa] mb-2.5">Product Details</div>
+            <div className="grid grid-cols-2 gap-2">
+              {PRODUCT.details.map((d, i) => (
+                <div key={i} className="bg-[#12121a] border border-[rgba(160,120,255,0.13)] rounded-lg px-3 py-2.5">
+                  <div className="text-[10px] text-[#8880aa] uppercase tracking-widest mb-1">{d.key}</div>
+                  <div className="text-sm text-[#e8e0ff] font-medium">{d.val}</div>
                 </div>
-              </div>
-
-
-
-
-
-
-
-
+              ))}
+            </div>
+          </div>
 
           {/* ══ Reviews ══ */}
           <div className="mt-14 pb-8">
@@ -394,22 +426,18 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* ══ Fixed bottom bar — Flipkart style ══
-            Slides UP only after the inline CTA buttons scroll out of view.
-            Slides DOWN (hidden) when user scrolls back up to them. */}
-<div
-  className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out ${
-    fixedBar ? "translate-y-0" : "translate-y-full"
-  }`}
->
-  <div className="px-1 py-3">
-
-    <div className="max-w-6xl mx-auto">
-      <CTAButtons />
-    </div>
-
-  </div>
-</div>
+        {/* ══ Fixed bottom bar ══ */}
+        <div
+          className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out ${
+            fixedBar ? "translate-y-0" : "translate-y-full"
+          }`}
+        >
+          <div className="px-1 py-3">
+            <div className="max-w-6xl mx-auto">
+              <CTAButtons onCart={handleCart} onBuy={handleBuy} />
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
