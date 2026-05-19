@@ -31,6 +31,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import ProductView from "./pages/ProductDetails/ProductView";
 // import Dashboard from "./pages/Dashboard";
 import Cookies from "js-cookie";
+import ViewCheckout from "./pages/ProductDetails/ViewCheckout";
 
 function App() {
   function ConditionalProductViewLayout() {
@@ -113,6 +114,7 @@ function App() {
         {/* product view is starting from here */}
          <Route element={<ConditionalProductViewLayout  />}>
           <Route path="/product-view" element={<ProductView />} />
+          <Route path="/view-checkout" element={<ViewCheckout />} />
          
          </Route>
          {/* product view is ending here */}

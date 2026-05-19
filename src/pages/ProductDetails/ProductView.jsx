@@ -206,7 +206,7 @@ export default function ProductView() {
   };
 
   const handleCart = () => handleProtectedAction("/product-checkout");
-  const handleBuy = () => handleProtectedAction("/product-checkout");
+  const handleBuy = () => handleProtectedAction("/view-checkout");
 
   const handleGoToLogin = () => {
     setAuthToast(false);
