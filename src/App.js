@@ -32,6 +32,7 @@ import ProductView from "./pages/ProductDetails/ProductView";
 // import Dashboard from "./pages/Dashboard";
 import Cookies from "js-cookie";
 import ViewCheckout from "./pages/ProductDetails/ViewCheckout";
+import ViewPayment from "./pages/ProductDetails/ViewPayment";
 
 function App() {
   function ConditionalProductViewLayout() {
@@ -113,8 +114,9 @@ function App() {
 
         {/* product view is starting from here */}
          <Route element={<ConditionalProductViewLayout  />}>
-          <Route path="/product-view" element={<ProductView />} />
+          <Route path="/product-view/:productId" element={<ProductView />} />
           <Route path="/view-checkout" element={<ViewCheckout />} />
+           <Route path="/view-payment" element={<ViewPayment />} />
          
          </Route>
          {/* product view is ending here */}
