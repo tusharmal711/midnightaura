@@ -115,8 +115,8 @@ function App() {
         {/* product view is starting from here */}
          <Route element={<ConditionalProductViewLayout  />}>
           <Route path="/product-view/:productId" element={<ProductView />} />
-          <Route path="/view-checkout" element={<ViewCheckout />} />
-           <Route path="/view-payment" element={<ViewPayment />} />
+          <Route path="/view-checkout/:productId" element={<ViewCheckout />} />
+           <Route path="/view-payment/:productId" element={<ViewPayment />} />
          
          </Route>
          {/* product view is ending here */}

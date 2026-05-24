@@ -1,74 +1,107 @@
-import { useState } from "react";
-
-// ── All icons from react-icons ────────────────────────────────────────────────
-import { IoIosFlash }                               from "react-icons/io";
-import { MdDeliveryDining, MdDiscount, MdEmail }    from "react-icons/md";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { IoIosFlash } from "react-icons/io";
+import { MdDeliveryDining, MdDiscount, MdEmail } from "react-icons/md";
 import {
   FiEdit2, FiChevronDown, FiChevronUp,
-  FiX, FiCheck, FiArrowLeft, FiUser,
-  FiPhone, FiMapPin, FiTag, FiZoomIn,
+  FiX, FiCheck, FiUser, FiPhone, FiTag,
 } from "react-icons/fi";
 import {
   BsShieldLockFill, BsArrowReturnLeft,
   BsPatchCheckFill, BsTagFill,
 } from "react-icons/bs";
 import { RiMapPin2Fill } from "react-icons/ri";
+import Cookies from "js-cookie";
+import { useNavigate, useParams } from "react-router-dom";
+import { API } from "../../api";
+import CryptoJS from "crypto-js";
 
-import { useNavigate } from "react-router-dom";
-import tshirt9 from "../../assets/images/products/tshirt9.png";
+const SECRET_KEY = "midnightaura_secret_key";
+const BASE_URL   = "http://localhost:8008";
 
-// ── Static data ───────────────────────────────────────────────────────────────
-const USER = {
-  name:      "Tushar Mal",
-  mobile:    "9641539527",
-  altMobile: "",
-  email:     "tushar.mal@example.com",
-  address: {
-    tag:   "HOME",
-    line1: "Udaynarayan pur, Udaynarayanpur, Pearapur,",
-    line2: "Pearapur, South Mal Para, Haora District 711226",
-  },
-};
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getStoredEmail() {
+  try {
+    const s = localStorage.getItem("user");
+    if (s) { const p = JSON.parse(s); if (p?.email) return p.email; }
+  } catch (_) {}
+  try {
+    const c = Cookies.get("user");
+    if (c) { const p = JSON.parse(c); if (p?.email) return p.email; }
+  } catch (_) {}
+  return null;
+}
 
-const PRODUCT = {
-  name:           "Canon PIXMA G3470 All-in-One Wi-Fi Ink Tank Colour Printer",
-  image:          tshirt9,
-  price:          8299,
-  oldPrice:       12495,
-  discountPct:    33,
-  deliveryCharge: 0,
-  deliveryDate:   "Tomorrow by 11 PM",
-  badge:          "Best Seller",
-  rating:         4.3,
-  ratingCount:    "2,841",
-};
+const fmt = (n) => "₹" + Number(n).toLocaleString("en-IN");
+
+/**
+ * Delivery charge rule:
+ *   finalPrice >= 699  →  FREE (0)
+ *   finalPrice <  699  →  7% of finalPrice (rounded)
+ */
+const calcDelivery = (finalPrice) =>
+  finalPrice >= 699 ? 0 : Math.round(finalPrice * 0.07);
 
 const STEPS = ["Address", "Order Summary", "Payment"];
-const fmt   = (n) => "₹" + Number(n).toLocaleString("en-IN");
+
+const ADDR_FIELDS = [
+  { key: "addressLine1", label: "Address Line 1", placeholder: "Street / Flat / Building",  autoComplete: "address-line1" },
+  { key: "addressLine2", label: "Address Line 2", placeholder: "Area / Landmark",            autoComplete: "address-line2", optional: true },
+  { key: "city",         label: "City",           placeholder: "City",                       autoComplete: "address-level2" },
+  { key: "district",     label: "District",       placeholder: "District",                   autoComplete: "off" },
+  { key: "state",        label: "State",          placeholder: "State",                      autoComplete: "address-level1" },
+  { key: "pincode",      label: "PIN Code",       placeholder: "PIN Code",                   autoComplete: "postal-code" },
+  { key: "country",      label: "Country",        placeholder: "Country",                    autoComplete: "country-name" },
+];
+
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+function SkeletonCard({ rows = 4 }) {
+  const shimmer = {
+    background: "linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%)",
+    backgroundSize: "600px 100%",
+    animation: "sk-shimmer 1.4s infinite linear",
+    borderRadius: 8,
+  };
+  return (
+    <div style={{ background: "#12121a", border: "1px solid rgba(160,120,255,0.13)", borderRadius: 20, padding: "1.25rem 1.5rem" }}>
+      <div style={{ ...shimmer, height: 10, width: "30%", marginBottom: 20 }} />
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 20 }}>
+          <div style={{ ...shimmer, width: 36, height: 36, borderRadius: 12, flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ ...shimmer, height: 8, width: "25%", marginBottom: 10 }} />
+            <div style={{ ...shimmer, height: 14, width: "55%" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ── Stepper ───────────────────────────────────────────────────────────────────
 const Stepper = ({ current }) => (
-  <div className="flex items-center justify-center gap-0 mb-8 select-none">
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: "2rem", userSelect: "none" }}>
     {STEPS.map((label, i) => {
-      const done   = i < current;
-      const active = i === current;
+      const done = i < current, active = i === current;
       return (
-        <div key={i} className="flex items-center">
-          <div className="flex flex-col items-center gap-1">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all
-              ${done   ? "bg-[#a078ff] border-[#a078ff] text-white shadow-[0_0_14px_rgba(160,120,255,0.55)]"
-              : active ? "bg-transparent border-[#a078ff] text-[#a078ff] shadow-[0_0_10px_rgba(160,120,255,0.3)]"
-              :          "bg-transparent border-[rgba(160,120,255,0.22)] text-[#8880aa]"}`}>
+        <div key={i} style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 13, fontWeight: 700, border: "2px solid",
+              borderColor: done || active ? "#a078ff" : "rgba(160,120,255,0.22)",
+              background: done ? "#a078ff" : "transparent",
+              color: done ? "#fff" : active ? "#a078ff" : "#8880aa",
+              boxShadow: active ? "0 0 10px rgba(160,120,255,0.3)" : done ? "0 0 14px rgba(160,120,255,0.55)" : "none",
+              transition: "all 0.3s",
+            }}>
               {done ? <FiCheck size={14} /> : i + 1}
             </div>
-            <span className={`text-[10px] tracking-widest uppercase
-              ${active ? "text-[#a078ff]" : done ? "text-[#a078ff]/70" : "text-[#8880aa]"}`}>
+            <span style={{ fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: active ? "#a078ff" : done ? "rgba(160,120,255,0.7)" : "#8880aa" }}>
               {label}
             </span>
           </div>
           {i < STEPS.length - 1 && (
-            <div className={`w-16 sm:w-24 h-px mx-1 mb-4
-              ${done ? "bg-[#a078ff]" : "bg-[rgba(160,120,255,0.18)]"}`} />
+            <div style={{ width: 64, height: 1, margin: "0 4px 16px", background: done ? "#a078ff" : "rgba(160,120,255,0.18)" }} />
           )}
         </div>
       );
@@ -76,575 +109,838 @@ const Stepper = ({ current }) => (
   </div>
 );
 
-// ── Shared primitives ─────────────────────────────────────────────────────────
-const Card       = ({ children, className = "" }) => (
-  <div className={`bg-[#12121a] border border-[rgba(160,120,255,0.13)] rounded-2xl px-5 py-4 ${className}`}>
+// ── Primitives ────────────────────────────────────────────────────────────────
+const Card = ({ children, style = {} }) => (
+  <div style={{ background: "#12121a", border: "1px solid rgba(160,120,255,0.13)", borderRadius: 20, padding: "1.25rem 1.5rem", ...style }}>
     {children}
   </div>
 );
-const Divider    = () => <div className="h-px bg-[rgba(160,120,255,0.10)] my-3" />;
-const SecLabel   = ({ children }) => (
-  <div className="text-[10px] tracking-[0.15em] uppercase text-[#8880aa] mb-2.5">{children}</div>
-);
-const FieldLabel = ({ children }) => (
-  <div className="text-[10px] text-[#8880aa] uppercase tracking-widest mb-1">{children}</div>
-);
-const TextInput  = ({ value, onChange, placeholder = "", type = "text", hasError = false }) => (
-  <input
-    type={type}
-    value={value}
-    onChange={onChange}
-    placeholder={placeholder}
-    className={`w-full bg-[#0E1320] border rounded-xl px-3 py-2.5 text-sm text-[#e8e0ff]
-      placeholder-[#5a5478] transition-all
-      focus:shadow-[0_0_10px_rgba(160,120,255,0.2)]
-      ${hasError
-        ? "border-red-500/60 focus:border-red-400"
-        : "border-[rgba(160,120,255,0.25)] focus:border-[#a078ff]"}`}
-  />
+
+const Divider = () => <div style={{ height: 1, background: "rgba(160,120,255,0.10)", margin: "0.75rem 0" }} />;
+
+const SecLabel = ({ children }) => (
+  <div style={{ fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "#8880aa", marginBottom: 12 }}>{children}</div>
 );
 
-// ── Image popup ───────────────────────────────────────────────────────────────
-const ImagePopup = ({ src, alt, onClose }) => (
-  <div
-    className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm px-5"
-    onClick={onClose}
-  >
-    <div
-      className="relative bg-[#12121a] border border-[rgba(160,120,255,0.28)] rounded-2xl p-3 w-full max-w-sm shadow-[0_0_60px_rgba(160,120,255,0.3)]"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <button
-        onClick={onClose}
-        className="absolute -top-3.5 -right-3.5 w-8 h-8 rounded-full bg-[#1a1730] border border-[rgba(160,120,255,0.35)] flex items-center justify-center text-[#a078ff] hover:bg-[rgba(160,120,255,0.18)] transition-all z-10"
-      >
-        <FiX size={15} />
-      </button>
-      <img src={src} alt={alt} className="w-full max-h-[72vh] object-contain rounded-xl" />
-      <p className="text-center text-[10px] text-[#8880aa] mt-2 leading-snug line-clamp-2">{alt}</p>
+const FieldLabel = ({ children }) => (
+  <div style={{ fontSize: 10, color: "#8880aa", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>{children}</div>
+);
+
+function StyledInput({ value, onValueChange, placeholder = "", type = "text", hasError = false, readOnly = false, autoComplete = "off" }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || readOnly) return;
+    const handleInput = () => { if (el.value !== value) onValueChange?.(el.value); };
+    el.addEventListener("input", handleInput);
+    return () => el.removeEventListener("input", handleInput);
+  }, [value, onValueChange, readOnly]);
+
+  return (
+    <input
+      ref={ref} type={type} value={value} autoComplete={autoComplete}
+      onChange={(e) => onValueChange?.(e.target.value)}
+      placeholder={placeholder} readOnly={readOnly}
+      style={{
+        width: "100%", boxSizing: "border-box",
+        background: readOnly ? "rgba(255,255,255,0.03)" : "#0E1320",
+        border: `1px solid ${hasError ? "rgba(239,68,68,0.6)" : "rgba(160,120,255,0.25)"}`,
+        borderRadius: 12, padding: "0.6rem 1rem",
+        fontSize: "0.85rem", color: readOnly ? "rgba(255,255,255,0.35)" : "#e8e0ff",
+        outline: "none", transition: "border 0.2s",
+        cursor: readOnly ? "not-allowed" : "auto",
+      }}
+      onFocus={(e) => { if (!readOnly && !hasError) e.target.style.borderColor = "#a078ff"; }}
+      onBlur={(e) => { if (!readOnly) e.target.style.borderColor = hasError ? "rgba(239,68,68,0.6)" : "rgba(160,120,255,0.25)"; }}
+    />
+  );
+}
+
+const ErrorMsg = ({ msg }) => (
+  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 12, color: "#f87171" }}>
+    <FiX size={12} /> {msg}
+  </div>
+);
+
+const InfoRow = ({ icon, label, children }) => (
+  <div style={{ display: "flex", alignItems: "flex-start", gap: 12, fontSize: 14 }}>
+    <div style={{ width: 36, height: 36, borderRadius: 12, background: "rgba(160,120,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      {icon}
+    </div>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <FieldLabel>{label}</FieldLabel>
+      {children}
     </div>
   </div>
 );
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function ChangeModal({ title, children, onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#12121a", border: "1px solid rgba(160,120,255,0.28)", borderRadius: 24, padding: "1.75rem", width: "100%", maxWidth: 500, boxShadow: "0 0 60px rgba(160,120,255,0.25)", maxHeight: "90vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "#8880aa" }}>{title}</div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(160,120,255,0.08)", border: "1px solid rgba(160,120,255,0.2)", color: "#a078ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <FiX size={15} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── Image Popup ───────────────────────────────────────────────────────────────
+const ImagePopup = ({ src, alt, onClose }) => (
+  <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(0,0,0,0.80)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1.25rem" }}>
+    <div onClick={(e) => e.stopPropagation()} style={{ position: "relative", background: "#12121a", border: "1px solid rgba(160,120,255,0.28)", borderRadius: 20, padding: 12, width: "100%", maxWidth: 360, boxShadow: "0 0 60px rgba(160,120,255,0.3)" }}>
+      <button onClick={onClose} style={{ position: "absolute", top: -14, right: -14, width: 32, height: 32, borderRadius: "50%", background: "#1a1730", border: "1px solid rgba(160,120,255,0.35)", color: "#a078ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }}>
+        <FiX size={15} />
+      </button>
+      <img src={src} alt={alt} style={{ width: "100%", maxHeight: "72vh", objectFit: "contain", borderRadius: 12 }} />
+      <p style={{ textAlign: "center", fontSize: 10, color: "#8880aa", marginTop: 8, lineHeight: 1.4 }}>{alt}</p>
+    </div>
+  </div>
+);
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function Toast({ message, type, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 3200); return () => clearTimeout(t); }, [onDone]);
+  return (
+    <div style={{ position: "fixed", top: "2rem", right: "2rem", zIndex: 99999, display: "flex", alignItems: "center", gap: 8, padding: "0.75rem 1.25rem", borderRadius: 12, fontSize: "0.85rem", fontWeight: 600, backdropFilter: "blur(16px)", background: type === "success" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)", border: type === "success" ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(239,68,68,0.4)", color: type === "success" ? "#6ee7b7" : "#fca5a5", boxShadow: type === "success" ? "0 4px 24px rgba(16,185,129,0.2)" : "0 4px 24px rgba(239,68,68,0.2)" }}>
+      {type === "success" ? <FiCheck size={15} /> : <FiX size={15} />}
+      {message}
+    </div>
+  );
+}
+
+// ── Save Button ───────────────────────────────────────────────────────────────
+const SaveBtn = ({ onClick, loading, label = "Save Changes" }) => (
+  <button onClick={onClick} disabled={loading} style={{ width: "100%", padding: "0.75rem", borderRadius: 14, marginTop: "1rem", background: loading ? "rgba(124,58,237,0.5)" : "linear-gradient(135deg,#a078ff,#7c3aed)", border: "1px solid rgba(139,92,246,0.5)", color: "#fff", fontSize: "0.9rem", fontWeight: 700, cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, boxShadow: "0 2px 20px rgba(124,58,237,0.4)", transition: "opacity 0.2s" }}>
+    {loading ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: "spin 0.75s linear infinite" }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> : <FiCheck size={15} />}
+    {loading ? "Saving…" : label}
+    <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+  </button>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
 export default function ViewCheckout() {
-  const navigate = useNavigate();
+  const navigate       = useNavigate();
+  const { productId }  = useParams();
+  const email          = getStoredEmail();
 
-  const [qty,      setQty]      = useState(1);
-  const [feesOpen, setFeesOpen] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [imgPopup, setImgPopup] = useState(false);
-  const [user,     setUser]     = useState(USER);
-  const [draft,    setDraft]    = useState({ ...USER, address: { ...USER.address } });
+  // ── Session values from ProductView ───────────────────────────────────────
+  const sessionSize = sessionStorage.getItem("selectedSize") || null;
 
-  // ── altMobile error state — triggered only on "Continue to Payment" click ──
-  const [altErr, setAltErr] = useState(false);
+  // ── Product state ──────────────────────────────────────────────────────────
+  const [product,     setProduct]     = useState(null);
+  const [productLoad, setProductLoad] = useState(true);
+  const [imgPopup,    setImgPopup]    = useState(false);
 
-  const subtotal = PRODUCT.price * qty;
-  const delivery = PRODUCT.deliveryCharge;
-  const total    = subtotal + delivery;
-  const saved    = (PRODUCT.oldPrice - PRODUCT.price) * qty;
+  // ── User / address state ───────────────────────────────────────────────────
+  const [loading,      setLoading]      = useState(true);
+  const [saving,       setSaving]       = useState(false);
+  const [toast,        setToast]        = useState(null);
+  const showToast = (message, type = "success") => setToast({ message, type });
 
-  // helpers
-  const openEdit = () => {
-    setDraft({ ...user, address: { ...user.address } });
-    setAltErr(false);
-    setEditMode(true);
+  const [savedUser,    setSavedUser]    = useState(null);
+  const [savedAddress, setSavedAddress] = useState(null);
+
+  // Inline personal
+  const [inlineUsername, setInlineUsername] = useState("");
+  const [inlinePhone,    setInlinePhone]    = useState("");
+  const [inlineAltPhone, setInlineAltPhone] = useState("");
+
+  // Inline address
+  const [inlineAddr, setInlineAddr] = useState({
+    addressLine1: "", addressLine2: "", city: "",
+    district: "", state: "", pincode: "", country: "India",
+  });
+  const setAddrField = useCallback((key, val) => {
+    setInlineAddr((prev) => ({ ...prev, [key]: val }));
+  }, []);
+
+  // ── Modal state ────────────────────────────────────────────────────────────
+  const [personalOpen,   setPersonalOpen]   = useState(false);
+  const [addressOpen,    setAddressOpen]    = useState(false);
+  const [savingPersonal, setSavingPersonal] = useState(false);
+  const [savingAddress,  setSavingAddress]  = useState(false);
+  const [draftPersonal,  setDraftPersonal]  = useState({});
+  const [draftAddress,   setDraftAddress]   = useState({});
+
+  // ── Qty (max 10) ───────────────────────────────────────────────────────────
+  const [qty, setQty] = useState(() => {
+    const stored = sessionStorage.getItem("selectedQty");
+    return stored ? Math.min(10, Math.max(1, Number(stored))) : 1;
+  });
+
+  // Persist qty to sessionStorage whenever it changes
+  useEffect(() => {
+    sessionStorage.setItem("selectedQty", String(qty));
+  }, [qty]);
+
+  // ── Validation errors ──────────────────────────────────────────────────────
+  const [errors,    setErrors]    = useState({});
+  const [feesOpen,  setFeesOpen]  = useState(false);
+  const clearError = useCallback((key) => setErrors((p) => { const n = { ...p }; delete n[key]; return n; }), []);
+
+  // Fixed bottom bar
+  const continueBtnRef = useRef(null);
+  const [fixedBar, setFixedBar] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      if (!continueBtnRef.current) return;
+      const r = continueBtnRef.current.getBoundingClientRect();
+      setFixedBar(r.bottom < 0 || r.top > window.innerHeight);
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    return () => window.removeEventListener("scroll", check);
+  }, [loading, productLoad]);
+
+  // ── Fetch product ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!productId) { setProductLoad(false); return; }
+    const fetchProduct = async () => {
+      setProductLoad(true);
+      try {
+        const decodedId  = decodeURIComponent(productId);
+        const bytes      = CryptoJS.AES.decrypt(decodedId, SECRET_KEY);
+        const originalId = bytes.toString(CryptoJS.enc.Utf8);
+        const res        = await API.get(`/productBuy/fetchProductById/${originalId}`);
+        if (res.data.success) setProduct(res.data.data);
+      } catch (err) {
+        console.error(err.response?.data?.message || "Failed to fetch product");
+      } finally {
+        setProductLoad(false);
+      }
+    };
+    fetchProduct();
+  }, [productId]);
+
+  // ── Fetch profile ──────────────────────────────────────────────────────────
+  const loadData = useCallback(async () => {
+    if (!email) { setLoading(false); return; }
+    try {
+      const res = await API.post("/user/getProfile", { email });
+      if (res.data.success) {
+        const u = res.data.user    ?? {};
+        const a = res.data.address ?? {};
+        const userData = { username: u.username ?? "", email: u.email ?? email, phone: u.phone ?? "", altPhone: u.altPhone ?? "", gender: u.gender ?? "Prefer not to say" };
+        const addrData = { addressLine1: a.addressLine1 ?? "", addressLine2: a.addressLine2 ?? "", city: a.city ?? "", district: a.district ?? "", state: a.state ?? "", pincode: a.pincode ?? "", country: a.country ?? "India" };
+        setSavedUser(userData);
+        setSavedAddress(addrData);
+        setInlineUsername(userData.username);
+        setInlinePhone(userData.phone);
+        setInlineAltPhone(userData.altPhone);
+        setInlineAddr(addrData);
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not load profile", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [email]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // ── Derived product values ─────────────────────────────────────────────────
+  const hasDiscount   = product && product.discount > 0 && product.finalPrice && product.finalPrice !== product.price;
+  const productPrice  = product ? (hasDiscount ? product.finalPrice : product.price) : 0;
+  const productOldPrice = product?.price ?? 0;
+  const discountPct   = product?.discount ?? 0;
+  const deliveryCharge = calcDelivery(productPrice);
+
+  // Image URL helper
+  const imageUrl = (path) =>
+    path ? (path.startsWith("/") ? `${BASE_URL}${path}` : path) : null;
+  const productImage = product?.images?.[0] ? imageUrl(product.images[0]) : null;
+
+  // ── Derived user values ────────────────────────────────────────────────────
+  const effectiveUsername = savedUser?.username?.trim() || inlineUsername;
+  const effectivePhone    = savedUser?.phone?.trim()    || inlinePhone;
+  const effectiveAltPhone = savedUser?.altPhone?.trim() || inlineAltPhone;
+
+  const effectiveAddr = savedAddress
+    ? Object.fromEntries(ADDR_FIELDS.map(({ key }) => [key, savedAddress[key]?.trim() ? savedAddress[key] : (inlineAddr[key] ?? "")]))
+    : inlineAddr;
+
+  const addrParts   = ADDR_FIELDS.filter(({ key }) => effectiveAddr[key]?.trim()).map(({ key }) => effectiveAddr[key]);
+  const addrSummary = addrParts.join(", ");
+
+  const emptyRequiredAddrFields = ADDR_FIELDS.filter(({ key, optional }) => !optional && !savedAddress?.[key]?.trim());
+  const hasEmptyAddrFields      = emptyRequiredAddrFields.length > 0;
+  const emptyOptionalAddrFields = ADDR_FIELDS.filter(({ key, optional }) => optional && !savedAddress?.[key]?.trim());
+
+  // ── Price calcs ────────────────────────────────────────────────────────────
+  const subtotal  = productPrice * qty;
+  const savedAmt  = (productOldPrice - productPrice) * qty;
+  const total     = subtotal + deliveryCharge;
+
+  // ── Open modals ────────────────────────────────────────────────────────────
+  const openPersonal = () => {
+    setDraftPersonal({ username: effectiveUsername, email: savedUser?.email ?? email, phone: effectivePhone, altPhone: effectiveAltPhone, gender: savedUser?.gender ?? "Prefer not to say" });
+    setErrors({});
+    setPersonalOpen(true);
   };
-  const setAddr  = (k, v) => setDraft((p) => ({ ...p, address: { ...p.address, [k]: v } }));
-  const setField = (k, v) => { setDraft((p) => ({ ...p, [k]: v })); if (k === "altMobile") setAltErr(false); };
-
-  // Save address — no alt-mobile validation here
-  const handleSave = () => {
-    setUser({ ...draft });
-    setEditMode(false);
+  const openAddress = () => {
+    setDraftAddress({ ...effectiveAddr });
+    setErrors({});
+    setAddressOpen(true);
   };
 
-  // Continue to Payment — validate alt mobile here
-  const handleContinue = () => {
-    const digits = user.altMobile?.trim().replace(/\D/g, "") || "";
-    if (digits.length < 10) {
-      setAltErr(true);
+  // ── Save personal ──────────────────────────────────────────────────────────
+  const handleSavePersonal = async () => {
+    if (!email) return;
+    try {
+      setSavingPersonal(true);
+      const res = await API.post("/user/updateProfile", { email, username: draftPersonal.username, phone: draftPersonal.phone, altPhone: draftPersonal.altPhone, gender: draftPersonal.gender });
+      if (res.data.success) {
+        const u = res.data.user;
+        const updated = { username: u.username ?? "", email: u.email ?? email, phone: u.phone ?? "", altPhone: u.altPhone ?? "", gender: u.gender ?? "Prefer not to say" };
+        setSavedUser(updated);
+        setInlineUsername(updated.username);
+        setInlinePhone(updated.phone);
+        setInlineAltPhone(updated.altPhone);
+        setPersonalOpen(false);
+        showToast("Personal details updated 🎉");
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to update", "error");
+    } finally {
+      setSavingPersonal(false);
+    }
+  };
+
+  // ── Save address ───────────────────────────────────────────────────────────
+  const handleSaveAddress = async () => {
+    if (!email) return;
+    try {
+      setSavingAddress(true);
+      const res = await API.post("/user/updateAddress", { email, ...draftAddress });
+      if (res.data.success) {
+        const a = res.data.address;
+        const updated = { addressLine1: a.addressLine1 ?? "", addressLine2: a.addressLine2 ?? "", city: a.city ?? "", district: a.district ?? "", state: a.state ?? "", pincode: a.pincode ?? "", country: a.country ?? "India" };
+        setSavedAddress(updated);
+        setInlineAddr(updated);
+        setAddressOpen(false);
+        showToast("Address updated 🎉");
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to update address", "error");
+    } finally {
+      setSavingAddress(false);
+    }
+  };
+
+  // ── Continue to Payment ────────────────────────────────────────────────────
+  const handleContinue = async () => {
+    const finalUsername = effectiveUsername.trim();
+    const finalPhone    = effectivePhone.trim();
+    const finalAltPhone = effectiveAltPhone.trim();
+
+    const errs = {};
+    if (!finalUsername)                                          errs.username = "Name is required";
+    if (!finalPhone)                                             errs.phone    = "Mobile number is required";
+    if (!finalAltPhone || finalAltPhone.replace(/\D/g,"").length < 10)
+                                                                 errs.altPhone = "A valid 10-digit alternative number is required";
+    ADDR_FIELDS.forEach(({ key, optional }) => {
+      if (!optional && !effectiveAddr[key]?.trim()) errs[key] = `${ADDR_FIELDS.find(f => f.key === key)?.label} is required`;
+    });
+
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    navigate("/view-payment");
+
+    try {
+      setSaving(true);
+
+      const personalChanged = finalUsername !== savedUser?.username || finalPhone !== savedUser?.phone || finalAltPhone !== savedUser?.altPhone;
+      if (personalChanged) {
+        const pRes = await API.post("/user/updateProfile", { email, username: finalUsername, phone: finalPhone, altPhone: finalAltPhone, gender: savedUser?.gender ?? "Prefer not to say" });
+        if (pRes.data.success) {
+          const u = pRes.data.user;
+          setSavedUser({ username: u.username ?? "", email: u.email ?? email, phone: u.phone ?? "", altPhone: u.altPhone ?? "", gender: u.gender ?? "Prefer not to say" });
+        }
+      }
+
+      const addrChanged = ADDR_FIELDS.some(({ key }) => effectiveAddr[key] !== savedAddress?.[key]);
+      if (addrChanged) {
+        const aRes = await API.post("/user/updateAddress", { email, ...effectiveAddr });
+        if (aRes.data.success) {
+          const a = aRes.data.address;
+          setSavedAddress({ addressLine1: a.addressLine1 ?? "", addressLine2: a.addressLine2 ?? "", city: a.city ?? "", district: a.district ?? "", state: a.state ?? "", pincode: a.pincode ?? "", country: a.country ?? "India" });
+        }
+      }
+
+      // Store qty & size for the next page
+      sessionStorage.setItem("selectedQty",  String(qty));
+      sessionStorage.setItem("selectedSize", sessionSize || "");
+
+      navigate(`/view-payment/${encodeURIComponent(productId)}`);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not save details. Please try again.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
+  const changeBtn = {
+    display: "flex", alignItems: "center", gap: 6,
+    fontSize: 12, fontWeight: 600, color: "#a078ff",
+    border: "1px solid rgba(160,120,255,0.3)",
+    padding: "0.3rem 0.85rem", borderRadius: 10,
+    background: "transparent", cursor: "pointer", transition: "all 0.2s",
+  };
+
+  const isPageLoading = loading || productLoad;
+
+  if (!email && !loading) return (
+    <div style={{ minHeight: "100vh", background: "#0E1320", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ color: "#f87171", fontSize: 14 }}>⚠️ No session found. Please <a href="/login" style={{ color: "#f87171" }}>log in</a> again.</div>
+    </div>
+  );
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap"
-        rel="stylesheet"
-      />
+      <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
       <style>{`
-        * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #0E1320; }
-        ::-webkit-scrollbar-thumb { background: rgba(160,120,255,0.28); border-radius: 4px; }
-        .cinzel { font-family: 'Cinzel', serif; }
-        body { margin: 0; }
-        input { outline: none; }
+        *{box-sizing:border-box} body{margin:0} input{outline:none}
+        ::-webkit-scrollbar{width:2px;height:2px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:rgba(160,120,255,0.22);border-radius:2px}
+        .cinzel{font-family:'Cinzel',serif}
+        @media(min-width:1024px){.checkout-grid{grid-template-columns:1fr 360px !important}}
+        @keyframes sk-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+        @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
 
-      {imgPopup && (
-        <ImagePopup
-          src={PRODUCT.image}
-          alt={PRODUCT.name}
-          onClose={() => setImgPopup(false)}
-        />
+      {imgPopup && productImage && (
+        <ImagePopup src={productImage} alt={product?.name} onClose={() => setImgPopup(false)} />
       )}
 
-      <div
-        className="min-h-screen bg-[#0E1320] text-[#e8e0ff] pb-28 lg:pb-12"
-        style={{ fontFamily: "'Raleway', sans-serif" }}
-      >
+      {/* ── Personal Modal ── */}
+      {personalOpen && (
+        <ChangeModal title="Edit Personal Details" onClose={() => setPersonalOpen(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {[
+              { key: "username", label: "Username",          type: "text", placeholder: "Your name",                   ac: "name" },
+              { key: "phone",    label: "Phone Number",      type: "tel",  placeholder: "10-digit mobile",             ac: "tel" },
+              { key: "altPhone", label: "Alternative Phone", type: "tel",  placeholder: "10-digit alternative number", ac: "tel" },
+            ].map(({ key, label, type, placeholder, ac }) => (
+              <div key={key}>
+                <FieldLabel>{label}</FieldLabel>
+                <StyledInput type={type} value={draftPersonal[key] ?? ""} placeholder={placeholder} autoComplete={ac}
+                  onValueChange={(v) => setDraftPersonal((p) => ({ ...p, [key]: v }))} />
+              </div>
+            ))}
+            <div>
+              <FieldLabel>Email Address <span style={{ color: "#8880aa", fontSize: 10 }}>(locked)</span></FieldLabel>
+              <StyledInput value={draftPersonal.email ?? ""} readOnly autoComplete="email" onValueChange={() => {}} />
+            </div>
+            <div>
+              <FieldLabel>Gender</FieldLabel>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 6 }}>
+                {["Male", "Female", "Prefer not to say"].map((opt) => (
+                  <label key={opt} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, cursor: "pointer", color: "#e8e0ff" }}>
+                    <input type="radio" name="gender-modal" value={opt} checked={draftPersonal.gender === opt}
+                      onChange={() => setDraftPersonal((p) => ({ ...p, gender: opt }))}
+                      style={{ appearance: "none", WebkitAppearance: "none", width: 18, height: 18, borderRadius: "50%", border: draftPersonal.gender === opt ? "5px solid #7c3aed" : "2px solid rgba(255,255,255,0.5)", background: "#fff", cursor: "pointer", transition: "all 0.2s" }} />
+                    {opt}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <SaveBtn onClick={handleSavePersonal} loading={savingPersonal} />
+          </div>
+        </ChangeModal>
+      )}
 
-        
+      {/* ── Address Modal ── */}
+      {addressOpen && (
+        <ChangeModal title="Edit Delivery Address" onClose={() => setAddressOpen(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+            {ADDR_FIELDS.map(({ key, label, placeholder, optional, autoComplete: ac }) => (
+              <div key={key}>
+                <FieldLabel>{label}{optional && <span style={{ color: "#555", marginLeft: 4 }}>(optional)</span>}</FieldLabel>
+                <StyledInput value={draftAddress[key] ?? ""} placeholder={placeholder || label} hasError={!!errors[key]} autoComplete={ac}
+                  onValueChange={(v) => setDraftAddress((p) => ({ ...p, [key]: v }))} />
+                {errors[key] && <ErrorMsg msg={errors[key]} />}
+              </div>
+            ))}
+            <SaveBtn onClick={handleSaveAddress} loading={savingAddress} label="Save Address" />
+          </div>
+        </ChangeModal>
+      )}
 
-        <div className="max-w-6xl mx-auto px-4 pt-8">
+      <div style={{ minHeight: "100vh", background: "#0E1320", color: "#e8e0ff", paddingBottom: 112, fontFamily: "'Raleway', sans-serif" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2rem 1rem 0" }}>
           <Stepper current={1} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
+          <div className="checkout-grid" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}>
 
-            {/* ════════════ LEFT ════════════ */}
-            <div className="flex flex-col gap-5">
+            {/* ════════ LEFT ════════ */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
-              {/* ── Delivery Details ── */}
-              <Card>
-                <div className="mb-4">
-                  <SecLabel>Delivery Details</SecLabel>
-                </div>
+              {/* ── Delivery Details Card ── */}
+              {isPageLoading ? <SkeletonCard rows={5} /> : (
+                <Card>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+                    <SecLabel>Delivery Details</SecLabel>
+                    <button style={changeBtn} onClick={openPersonal}><FiEdit2 size={12} /> Change Details</button>
+                  </div>
 
-                {/* ── VIEW mode ── */}
-                {!editMode && (
-                  <div className="flex flex-col gap-3.5">
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
 
                     {/* Name */}
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-8 h-8 rounded-xl bg-[rgba(160,120,255,0.1)] flex items-center justify-center shrink-0">
-                        <FiUser size={15} className="text-[#a078ff]" />
-                      </div>
-                      <div>
-                        <FieldLabel>Name</FieldLabel>
-                        <div className="text-[#e8e0ff] font-medium">{user.name}</div>
-                      </div>
-                    </div>
+                    <InfoRow icon={<FiUser size={15} color="#a078ff" />} label="Name">
+                      {savedUser?.username?.trim() ? (
+                        <div style={{ color: "#e8e0ff", fontWeight: 600 }}>{savedUser.username}</div>
+                      ) : (
+                        <>
+                          <StyledInput value={inlineUsername} placeholder="Enter your name" hasError={!!errors.username} autoComplete="name"
+                            onValueChange={(v) => { setInlineUsername(v); clearError("username"); }} />
+                          {errors.username && <ErrorMsg msg={errors.username} />}
+                        </>
+                      )}
+                    </InfoRow>
 
                     {/* Mobile */}
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-8 h-8 rounded-xl bg-[rgba(160,120,255,0.1)] flex items-center justify-center shrink-0">
-                        <FiPhone size={15} className="text-[#a078ff]" />
-                      </div>
-                      <div>
-                        <FieldLabel>Mobile</FieldLabel>
-                        <div className="text-[#e8e0ff] font-medium">{user.mobile}</div>
-                      </div>
-                    </div>
+                    <InfoRow icon={<FiPhone size={15} color="#a078ff" />} label="Mobile">
+                      {savedUser?.phone?.trim() ? (
+                        <div style={{ color: "#e8e0ff", fontWeight: 600 }}>{savedUser.phone}</div>
+                      ) : (
+                        <>
+                          <StyledInput type="tel" value={inlinePhone} placeholder="10-digit mobile" hasError={!!errors.phone} autoComplete="tel"
+                            onValueChange={(v) => { setInlinePhone(v); clearError("phone"); }} />
+                          {errors.phone && <ErrorMsg msg={errors.phone} />}
+                        </>
+                      )}
+                    </InfoRow>
 
-                    {/* Alt mobile — always visible, inline editable */}
-                    <div className="flex items-start gap-3 text-sm">
-                      <div className="w-8 h-8 rounded-xl bg-[rgba(160,120,255,0.1)] flex items-center justify-center shrink-0 mt-1">
-                        <FiPhone size={15} className="text-[#a078ff]" />
+                    {/* Alternative Mobile */}
+                    <InfoRow icon={<FiPhone size={15} color="#a078ff" />} label="Alternative Mobile">
+                      {savedUser?.altPhone?.trim() ? (
+                        <div style={{ color: "#e8e0ff", fontWeight: 600 }}>{savedUser.altPhone}</div>
+                      ) : (
+                        <>
+                          <StyledInput type="tel" value={inlineAltPhone} placeholder="Enter 10-digit alternative number" hasError={!!errors.altPhone} autoComplete="tel"
+                            onValueChange={(v) => { setInlineAltPhone(v); clearError("altPhone"); }} />
+                          {errors.altPhone && <ErrorMsg msg={errors.altPhone} />}
+                        </>
+                      )}
+                    </InfoRow>
+
+                    {/* Email */}
+                    <InfoRow icon={<MdEmail size={16} color="#a078ff" />} label="Email">
+                      <div style={{ color: "#e8e0ff", fontWeight: 600 }}>{savedUser?.email}</div>
+                    </InfoRow>
+
+                    <Divider />
+
+                    {/* Delivery Address */}
+                    <InfoRow icon={<RiMapPin2Fill size={16} color="#a078ff" />} label="Delivery Address">
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                        <div style={{ flex: 1 }}>
+                          {addrSummary ? (
+                            <div style={{ color: "#e8e0ff", fontWeight: 500, lineHeight: 1.6, fontSize: 14, marginBottom: hasEmptyAddrFields ? "0.75rem" : 0 }}>
+                              {addrSummary}
+                            </div>
+                          ) : (
+                            <div style={{ color: "#8880aa", fontSize: 13, marginBottom: "0.75rem" }}>
+                              Please fill in your delivery address below.
+                            </div>
+                          )}
+                        </div>
+                        {addrSummary && (
+                          <button style={{ ...changeBtn, flexShrink: 0 }} onClick={openAddress}><FiEdit2 size={12} /> Change</button>
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <FieldLabel>Alternative Mobile</FieldLabel>
-                        <TextInput
-                          type="tel"
-                          value={user.altMobile}
-                          onChange={(e) => {
-                            setUser((p) => ({ ...p, altMobile: e.target.value }));
-                            setAltErr(false);
-                          }}
-                          placeholder="Enter 10-digit alternative number"
-                          hasError={altErr}
-                        />
-                        {altErr && (
-                          <div className="flex items-center gap-1.5 mt-1.5 text-xs text-red-400">
-                            <FiX size={12} className="shrink-0" />
-                            <span>Please enter a valid 10-digit alternative number.</span>
+                    </InfoRow>
+
+                    {(hasEmptyAddrFields || emptyOptionalAddrFields.length > 0) && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                        {emptyRequiredAddrFields.map(({ key, label, placeholder, autoComplete: ac }) => (
+                          <div key={key} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                            <div style={{ width: 36, flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <FieldLabel>{label}</FieldLabel>
+                              <StyledInput value={inlineAddr[key] ?? ""} placeholder={placeholder || label} hasError={!!errors[key]} autoComplete={ac}
+                                onValueChange={(v) => { setAddrField(key, v); clearError(key); }} />
+                              {errors[key] && <ErrorMsg msg={errors[key]} />}
+                            </div>
+                          </div>
+                        ))}
+                        {emptyOptionalAddrFields.map(({ key, label, placeholder, autoComplete: ac }) => (
+                          <div key={key} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                            <div style={{ width: 36, flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <FieldLabel>{label} <span style={{ color: "#555" }}>(optional)</span></FieldLabel>
+                              <StyledInput value={inlineAddr[key] ?? ""} placeholder={placeholder || label} autoComplete={ac}
+                                onValueChange={(v) => setAddrField(key, v)} />
+                            </div>
+                          </div>
+                        ))}
+                        {!addrSummary && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                            <div style={{ width: 36, flexShrink: 0 }} />
+                            <button onClick={openAddress} style={{ display: "flex", alignItems: "center", gap: 6, padding: "0.45rem 1.1rem", borderRadius: 10, background: "rgba(160,120,255,0.08)", border: "1px solid rgba(160,120,255,0.3)", color: "#a078ff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                              <FiEdit2 size={12} /> Edit Full Address
+                            </button>
                           </div>
                         )}
                       </div>
-                    </div>
-
-                    {/* Email */}
-                    <div className="flex items-center gap-3 text-sm">
-                      <div className="w-8 h-8 rounded-xl bg-[rgba(160,120,255,0.1)] flex items-center justify-center shrink-0">
-                        <MdEmail size={16} className="text-[#a078ff]" />
-                      </div>
-                      <div>
-                        <FieldLabel>Email</FieldLabel>
-                        <div className="text-[#e8e0ff] font-medium">{user.email}</div>
-                      </div>
-                    </div>
-
-                    <Divider />
-
-                    {/* ── Address row ── */}
-                    <div className="flex items-start gap-3 text-sm">
-                      <div className="w-8 h-8 rounded-xl bg-[rgba(160,120,255,0.1)] flex items-center justify-center shrink-0 mt-0.5">
-                        <RiMapPin2Fill size={16} className="text-[#a078ff]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <FieldLabel>Address</FieldLabel>
-                            <span className="text-[9px] font-bold text-[#a078ff] bg-[rgba(160,120,255,0.12)] px-1.5 py-0.5 rounded-full border border-[rgba(160,120,255,0.25)] -mt-2.5">
-                              {user.address.tag}
-                            </span>
-                          </div>
-                          <button
-                            onClick={openEdit}
-                            className="flex items-center gap-1.5 text-xs font-semibold text-[#a078ff] border border-[rgba(160,120,255,0.3)] px-2.5 py-1 rounded-lg hover:bg-[rgba(160,120,255,0.1)] hover:border-[#a078ff] transition-all -mt-2.5"
-                          >
-                            <FiEdit2 size={12} /> Change
-                          </button>
-                        </div>
-                        <div className="text-[#e8e0ff] font-medium leading-snug">{user.address.line1}</div>
-                        <div className="text-[#e8e0ff] font-medium leading-snug">{user.address.line2}</div>
-                      </div>
-                    </div>
-
+                    )}
                   </div>
-                )}
-
-                {/* ── EDIT mode ── */}
-                {editMode && (
-                  <div className="flex flex-col gap-3.5">
-
-                    {/* Cancel link at top-right */}
-                    <div className="flex justify-end -mt-2 mb-1">
-                      <button
-                        onClick={() => setEditMode(false)}
-                        className="flex items-center gap-1 text-xs text-[#8880aa] hover:text-[#e8e0ff] transition-colors"
-                      >
-                        <FiX size={13} /> Cancel
-                      </button>
-                    </div>
-
-                    {/* Read-only: name */}
-                    <div className="flex items-center gap-3 text-sm opacity-40 select-none pointer-events-none">
-                      <div className="w-8 h-8 rounded-xl bg-[rgba(160,120,255,0.1)] flex items-center justify-center shrink-0">
-                        <FiUser size={15} className="text-[#a078ff]" />
-                      </div>
-                      <div>
-                        <FieldLabel>Name</FieldLabel>
-                        <div className="text-[#e8e0ff] font-medium">{user.name}</div>
-                      </div>
-                    </div>
-
-                    {/* Read-only: primary mobile */}
-                    <div className="flex items-center gap-3 text-sm opacity-40 select-none pointer-events-none">
-                      <div className="w-8 h-8 rounded-xl bg-[rgba(160,120,255,0.1)] flex items-center justify-center shrink-0">
-                        <FiPhone size={15} className="text-[#a078ff]" />
-                      </div>
-                      <div>
-                        <FieldLabel>Mobile</FieldLabel>
-                        <div className="text-[#e8e0ff] font-medium">{user.mobile}</div>
-                      </div>
-                    </div>
-
-                    {/* Alternative mobile — editable */}
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <FiPhone size={12} className="text-[#a078ff]" />
-                        <span className="text-[10px] text-[#8880aa] uppercase tracking-widest">
-                          Alternative Mobile
-                        </span>
-                      </div>
-                      <TextInput
-                        type="tel"
-                        value={draft.altMobile}
-                        onChange={(e) => setField("altMobile", e.target.value)}
-                        placeholder="Enter 10-digit alternative number"
-                      />
-                    </div>
-
-                    {/* Read-only: email */}
-                    <div className="flex items-center gap-3 text-sm opacity-40 select-none pointer-events-none">
-                      <div className="w-8 h-8 rounded-xl bg-[rgba(160,120,255,0.1)] flex items-center justify-center shrink-0">
-                        <MdEmail size={16} className="text-[#a078ff]" />
-                      </div>
-                      <div>
-                        <FieldLabel>Email</FieldLabel>
-                        <div className="text-[#e8e0ff] font-medium">{user.email}</div>
-                      </div>
-                    </div>
-
-                    <Divider />
-
-                    {/* Address tag selector */}
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <FiMapPin size={12} className="text-[#a078ff]" />
-                        <FieldLabel>Address Tag</FieldLabel>
-                      </div>
-                      <div className="flex gap-2 mb-3">
-                        {["HOME", "WORK", "OTHER"].map((t) => (
-                          <button
-                            key={t}
-                            onClick={() => setAddr("tag", t)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all
-                              ${draft.address.tag === t
-                                ? "border-[#a078ff] bg-[rgba(160,120,255,0.13)] text-[#a078ff] shadow-[0_0_8px_rgba(160,120,255,0.2)]"
-                                : "border-[rgba(160,120,255,0.2)] text-[#8880aa] hover:border-[#a078ff] hover:text-[#a078ff]"}`}
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="mb-3">
-                        <FieldLabel>Address Line 1</FieldLabel>
-                        <TextInput
-                          value={draft.address.line1}
-                          onChange={(e) => setAddr("line1", e.target.value)}
-                          placeholder="House / Flat / Block No., Street"
-                        />
-                      </div>
-                      <div>
-                        <FieldLabel>Address Line 2 / City / PIN</FieldLabel>
-                        <TextInput
-                          value={draft.address.line2}
-                          onChange={(e) => setAddr("line2", e.target.value)}
-                          placeholder="Area, City, State, Pincode"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Save button */}
-                    <button
-                      onClick={handleSave}
-                      className="mt-1 w-full py-2.5 rounded-xl bg-gradient-to-br from-[#a078ff] to-[#7c3aed]
-                        text-white text-sm font-bold flex items-center justify-center gap-2
-                        hover:shadow-[0_0_20px_rgba(160,120,255,0.4)] transition-all"
-                    >
-                      <FiCheck size={15} /> Save Address
-                    </button>
-                  </div>
-                )}
-              </Card>
+                </Card>
+              )}
 
               {/* ── Order Items ── */}
-              <Card>
-                <SecLabel>Order Items</SecLabel>
+              {isPageLoading ? <SkeletonCard rows={2} /> : (
+                <Card>
+                  <SecLabel>Order Items</SecLabel>
+                  <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
 
-                <div className="flex gap-4 items-start">
-
-                  {/* Product image — click to zoom */}
-                  <button
-                    onClick={() => setImgPopup(true)}
-                    title="Click to zoom"
-                    className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-[#0E1320]
-                      border border-[rgba(160,120,255,0.18)] flex items-center justify-center
-                      shrink-0 overflow-hidden group
-                      hover:border-[#a078ff] hover:shadow-[0_0_14px_rgba(160,120,255,0.3)]
-                      transition-all duration-300"
-                  >
-                    <img
-                      src={PRODUCT.image}
-                      alt={PRODUCT.name}
-                      className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-[rgba(14,19,32,0.6)] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-                      <FiZoomIn size={22} className="text-[#a078ff]" />
-                    </div>
-                  </button>
-
-                  {/* Product info */}
-                  <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                    <div className="text-sm font-semibold text-[#e8e0ff] leading-snug line-clamp-2"
-                      style={{ fontFamily: "'Poppins', sans-serif" }}>
-                      {PRODUCT.name}
-                    </div>
-
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-yellow-400 text-xs">{"★".repeat(Math.round(PRODUCT.rating))}</span>
-                      <span className="text-xs text-[#8880aa]">{PRODUCT.rating} · ({PRODUCT.ratingCount})</span>
-                      <span className="text-[9px] font-bold text-[#a078ff] bg-[rgba(160,120,255,0.12)] px-1.5 py-0.5 rounded-full border border-[rgba(160,120,255,0.22)] flex items-center gap-0.5">
-                        <BsTagFill size={8} /> {PRODUCT.badge}
-                      </span>
-                    </div>
-
-                    <div className="flex items-baseline gap-2 flex-wrap mt-0.5">
-                      <span className="text-lg font-bold text-[#17ec03]"
-                        style={{ fontFamily: "'Poppins', sans-serif" }}>
-                        {fmt(PRODUCT.price)}
-                      </span>
-                      <span className="text-xs text-[#8880aa] line-through">{fmt(PRODUCT.oldPrice)}</span>
-                      <span className="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                        <MdDiscount size={11} /> ({PRODUCT.discountPct}% OFF)
-                      </span>
-                    </div>
-
-                    <span className="text-[10px] text-[#8880aa] uppercase tracking-widest">Size - XL</span>
-
-                    {/* Qty stepper */}
-                    <div className="flex items-center gap-2.5 mt-1">
-                      <span className="text-[10px] text-[#8880aa] uppercase tracking-widest">Qty</span>
-                      <div className="flex items-center border border-[rgba(160,120,255,0.25)] rounded-xl overflow-hidden">
-                        <button
-                          onClick={() => setQty((q) => Math.max(1, q - 1))}
-                          className="w-8 h-8 flex items-center justify-center text-[#a078ff] hover:bg-[rgba(160,120,255,0.12)] transition-all text-lg font-bold"
-                        >−</button>
-                        <span className="px-3 text-sm font-semibold text-[#e8e0ff] min-w-[28px] text-center">{qty}</span>
-                        <button
-                          onClick={() => setQty((q) => q + 1)}
-                          className="w-8 h-8 flex items-center justify-center text-[#a078ff] hover:bg-[rgba(160,120,255,0.12)] transition-all text-lg font-bold"
-                        >+</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Divider />
-
-                {/* Delivery row */}
-                <div className="flex items-center gap-2.5 text-sm">
-                  <MdDeliveryDining size={22} className="text-[#a078ff] shrink-0" />
-                  <div>
-                    <FieldLabel>Estimated Delivery</FieldLabel>
-                    <div className="text-[#e8e0ff] font-medium">
-                      <span className="text-green-400 font-semibold">{PRODUCT.deliveryDate}</span>
-                      {" — "}
-                      <span className="text-green-400 text-xs font-bold">FREE Delivery</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-            </div>
-            {/* ════════════ END LEFT ════════════ */}
-
-            {/* ════════════ RIGHT ════════════ */}
-            <div className="lg:sticky lg:top-20 flex flex-col gap-4">
-              <Card>
-                <SecLabel>Price Summary</SecLabel>
-                <div className="flex flex-col gap-3 text-sm">
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#8880aa]">MRP{qty > 1 ? ` (×${qty})` : ""}</span>
-                    <span className="text-[#e8e0ff] font-medium">{fmt(PRODUCT.oldPrice * qty)}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#8880aa] flex items-center gap-1">
-                      <MdDiscount size={13} className="text-green-400" />
-                      Discount ({PRODUCT.discountPct}%)
-                    </span>
-                    <span className="text-green-400 font-semibold">− {fmt(saved)}</span>
-                  </div>
-
-                  {/* Delivery & Fees expandable */}
-                  <div>
+                    {/* Product image */}
                     <button
-                      onClick={() => setFeesOpen((p) => !p)}
-                      className="flex justify-between items-center w-full text-[#8880aa] hover:text-[#e8e0ff] transition-colors"
+                      onClick={() => productImage && setImgPopup(true)}
+                      style={{ width: 88, height: 88, borderRadius: 14, background: "#0E1320", border: "1px solid rgba(160,120,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden", cursor: productImage ? "pointer" : "default", transition: "all 0.3s" }}
+                      onMouseEnter={(e) => { if (productImage) { e.currentTarget.style.borderColor = "#a078ff"; e.currentTarget.style.boxShadow = "0 0 14px rgba(160,120,255,0.3)"; }}}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(160,120,255,0.18)"; e.currentTarget.style.boxShadow = "none"; }}
                     >
-                      <span className="flex items-center gap-1.5">
-                        <MdDeliveryDining size={14} />
-                        Delivery &amp; Fees
-                        {feesOpen
-                          ? <FiChevronUp size={13} />
-                          : <FiChevronDown size={13} />}
-                      </span>
-                      <span className="text-green-400 font-semibold">
-                        {delivery === 0 ? "FREE" : fmt(delivery)}
-                      </span>
+                      {productImage
+                        ? <img src={productImage} alt={product?.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#8880aa", fontSize: 10 }}>No Image</div>
+                      }
                     </button>
-                    {feesOpen && (
-                      <div className="mt-2 bg-[#0E1320] border border-[rgba(160,120,255,0.13)] rounded-xl px-3 py-2.5 text-xs text-[#8880aa] leading-relaxed">
-                        <div className="flex justify-between mb-1">
-                          <span>Shipping</span>
-                          <span className="text-green-400">FREE</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Platform fee</span>
-                          <span>₹0</span>
-                        </div>
+
+                    {/* Product info */}
+                    <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e0ff", lineHeight: 1.4, fontFamily: "'Poppins', sans-serif" }}>
+                        {product?.name}
                       </div>
-                    )}
+
+                      {/* Rating row */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ color: "#facc15", fontSize: 12 }}>{"★".repeat(4)}☆</span>
+                        <span style={{ fontSize: 11, color: "#8880aa" }}>4.3 · (2,841)</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#a078ff", background: "rgba(160,120,255,0.12)", padding: "2px 8px", borderRadius: 999, border: "1px solid rgba(160,120,255,0.22)", display: "flex", alignItems: "center", gap: 3 }}>
+                          <BsTagFill size={8} /> Best Seller
+                        </span>
+                      </div>
+
+                      {/* Price row */}
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 18, fontWeight: 700, color: "#17ec03", fontFamily: "'Poppins', sans-serif" }}>{fmt(productPrice)}</span>
+                        {hasDiscount && (
+                          <>
+                            <span style={{ fontSize: 12, color: "#8880aa", textDecoration: "line-through" }}>{fmt(productOldPrice)}</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: "#4ade80", background: "rgba(74,222,128,0.1)", padding: "2px 8px", borderRadius: 999, display: "flex", alignItems: "center", gap: 3 }}>
+                              <MdDiscount size={11} /> {discountPct}% OFF
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Size — from sessionStorage */}
+                      {sessionSize && (
+                        <span style={{ fontSize: 10, color: "#8880aa", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                          Size — {sessionSize}
+                        </span>
+                      )}
+
+                      {/* Qty stepper (max 10) */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+                        <span style={{ fontSize: 10, color: "#8880aa", textTransform: "uppercase", letterSpacing: "0.1em" }}>Qty</span>
+                        <div style={{ display: "flex", alignItems: "center", border: "1px solid rgba(160,120,255,0.25)", borderRadius: 12, overflow: "hidden" }}>
+                          <button
+                            onClick={() => setQty((q) => Math.max(1, q - 1))}
+                            style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", color: qty <= 1 ? "#3a3456" : "#a078ff", background: "transparent", border: "none", cursor: qty <= 1 ? "not-allowed" : "pointer", fontSize: 18, fontWeight: 700 }}
+                          >−</button>
+                          <span style={{ padding: "0 12px", fontSize: 14, fontWeight: 600, color: "#e8e0ff" }}>{qty}</span>
+                          <button
+                            onClick={() => setQty((q) => Math.min(10, q + 1))}
+                            style={{ width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", color: qty >= 10 ? "#3a3456" : "#a078ff", background: "transparent", border: "none", cursor: qty >= 10 ? "not-allowed" : "pointer", fontSize: 18, fontWeight: 700 }}
+                          >+</button>
+                        </div>
+                        {qty >= 10 && (
+                          <span style={{ fontSize: 10, color: "#f87171" }}>Max 10</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <Divider />
 
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#e8e0ff] font-semibold text-base">Total Amount</span>
-                    <span className="cinzel text-xl font-bold text-[#17ec03]">{fmt(total)}</span>
-                  </div>
-
-                  {saved > 0 && (
-                    <div className="flex items-center justify-center gap-1 text-xs text-green-400 bg-green-400/10 rounded-lg py-2">
-                      <FiTag size={11} /> You save {fmt(saved)} on this order!
+                  {/* Delivery row */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14 }}>
+                    <MdDeliveryDining size={22} color="#a078ff" />
+                    <div>
+                      <FieldLabel>Estimated Delivery</FieldLabel>
+                      <div style={{ color: "#e8e0ff", fontWeight: 500 }}>
+                        <span style={{ color: "#4ade80", fontWeight: 700 }}>{product?.delivery || "3–5 Business Days"}</span>
+                        {" — "}
+                        <span style={{ color: deliveryCharge === 0 ? "#4ade80" : "#e8e0ff", fontSize: 12, fontWeight: 700 }}>
+                          {deliveryCharge === 0 ? "FREE Delivery" : `Delivery Charge : ${fmt(deliveryCharge)}`}
+                        </span>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </Card>
+                  </div>
+                </Card>
+              )}
+            </div>
+            {/* ════════ END LEFT ════════ */}
 
-              {/* Continue button — validates alt mobile */}
-              <button
-                onClick={handleContinue}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl
-                  bg-gradient-to-br from-[#FFE51F] to-[#FFD600]
-                  text-[#111827] text-base font-bold tracking-wide
-                  shadow-[0_0_24px_rgba(255,229,31,0.35)]
-                  hover:shadow-[0_0_36px_rgba(255,229,31,0.55)]
-                  hover:-translate-y-[1px] transition-all duration-300"
-                style={{ fontFamily: "'Poppins', sans-serif" }}
-              >
-                <IoIosFlash size={22} /> Continue to Payment
-              </button>
+            {/* ════════ RIGHT ════════ */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+              {isPageLoading ? <SkeletonCard rows={4} /> : (
+                <Card>
+                  <SecLabel>Price Summary</SecLabel>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", fontSize: 14 }}>
+
+                    {/* MRP */}
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ color: "#8880aa" }}>MRP{qty > 1 ? ` (×${qty})` : ""}</span>
+                      <span style={{ color: "#e8e0ff", fontWeight: 500 }}>{fmt(productOldPrice * qty)}</span>
+                    </div>
+
+                    {/* Discount */}
+                    {hasDiscount && (
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ color: "#8880aa", display: "flex", alignItems: "center", gap: 4 }}>
+                          <MdDiscount size={13} color="#4ade80" /> Discount ({discountPct}%)
+                        </span>
+                        <span style={{ color: "#4ade80", fontWeight: 600 }}>− {fmt(savedAmt)}</span>
+                      </div>
+                    )}
+
+                    {/* Delivery & Fees — expandable */}
+                    <div>
+                      <button
+                        onClick={() => setFeesOpen((p) => !p)}
+                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", background: "transparent", border: "none", color: "#8880aa", cursor: "pointer", fontSize: 14 }}
+                      >
+                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <MdDeliveryDining size={14} /> Delivery Charge &amp; Fees {feesOpen ? <FiChevronUp size={13} /> : <FiChevronDown size={13} />}
+                        </span>
+                        <span style={{ color: deliveryCharge === 0 ? "#4ade80" : "#e8e0ff", fontWeight: 600 }}>
+                          {deliveryCharge === 0 ? "FREE" : fmt(deliveryCharge)}
+                        </span>
+                      </button>
+
+                      {feesOpen && (
+                        <div style={{ marginTop: 8, background: "#0E1320", border: "1px solid rgba(160,120,255,0.13)", borderRadius: 12, padding: "0.6rem 0.9rem", fontSize: 12, color: "#8880aa", lineHeight: 2 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>Shipping</span>
+                            <span style={{ color: deliveryCharge === 0 ? "#4ade80" : "#e8e0ff" }}>
+                              {deliveryCharge === 0 ? "FREE" : fmt(deliveryCharge)}
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <span>Platform fee</span>
+                            <span>₹0</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <Divider />
+
+                    {/* Total */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: "#e8e0ff", fontWeight: 600, fontSize: 15 }}>Total Amount</span>
+                      <span className="cinzel" style={{ fontSize: 22, fontWeight: 700, color: "#17ec03" }}>{fmt(total)}</span>
+                    </div>
+
+                    {savedAmt > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, color: "#4ade80", background: "rgba(74,222,128,0.08)", borderRadius: 10, padding: "0.5rem" }}>
+                        <FiTag size={11} /> You save {fmt(savedAmt)} on this order!
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* ── Continue Button ── */}
+              <div ref={continueBtnRef}>
+                {!isPageLoading && (
+                  <button
+                    onClick={handleContinue}
+                    disabled={saving}
+                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "1rem", borderRadius: 18, border: "none", background: saving ? "rgba(255,214,0,0.5)" : "linear-gradient(135deg,#FFE51F,#FFD600)", color: "#111827", fontSize: 15, fontWeight: 700, letterSpacing: "0.03em", boxShadow: "0 0 24px rgba(255,229,31,0.35)", cursor: saving ? "not-allowed" : "pointer", transition: "all 0.3s", fontFamily: "'Poppins', sans-serif" }}
+                    onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.boxShadow = "0 0 36px rgba(255,229,31,0.55)"; e.currentTarget.style.transform = "translateY(-1px)"; }}}
+                    onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 0 24px rgba(255,229,31,0.35)"; e.currentTarget.style.transform = "none"; }}
+                  >
+                    {saving
+                      ? <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: "spin 0.75s linear infinite" }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> Saving…</>
+                      : <><IoIosFlash size={22} /> Continue to Payment</>
+                    }
+                  </button>
+                )}
+              </div>
 
               {/* Trust badges */}
-              <div className="grid grid-cols-3 gap-2 text-center">
-                {[
-                  { icon: <BsShieldLockFill  size={18} className="text-[#a078ff]" />, label: "Secure Payment" },
-                  { icon: <BsArrowReturnLeft size={18} className="text-[#a078ff]" />, label: "Easy Returns"   },
-                  { icon: <BsPatchCheckFill  size={18} className="text-[#a078ff]" />, label: "Verified Seller"},
-                ].map((b, i) => (
-                  <div key={i} className="bg-[#12121a] border border-[rgba(160,120,255,0.10)] rounded-xl py-2.5 flex flex-col items-center gap-1.5">
-                    {b.icon}
-                    <span className="text-[9px] text-[#8880aa] leading-tight">{b.label}</span>
-                  </div>
-                ))}
-              </div>
+              {!isPageLoading && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, textAlign: "center" }}>
+                  {[
+                    { icon: <BsShieldLockFill  size={18} color="#a078ff" />, label: "Secure Payment"  },
+                    { icon: <BsArrowReturnLeft size={18} color="#a078ff" />, label: "Easy Returns"    },
+                    { icon: <BsPatchCheckFill  size={18} color="#a078ff" />, label: "Verified Seller" },
+                  ].map((b, i) => (
+                    <div key={i} style={{ background: "#12121a", border: "1px solid rgba(160,120,255,0.10)", borderRadius: 14, padding: "0.6rem 0.4rem", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                      {b.icon}
+                      <span style={{ fontSize: 9, color: "#8880aa", lineHeight: 1.3 }}>{b.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {/* ════════════ END RIGHT ════════════ */}
+            {/* ════════ END RIGHT ════════ */}
 
           </div>
         </div>
 
-        {/* ── Mobile sticky bottom bar ── */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 py-3 bg-[#0E1320]/95 backdrop-blur border-t border-[rgba(160,120,255,0.12)]">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <div className="text-[10px] text-[#8880aa] uppercase tracking-widest">Total</div>
-              <div className="cinzel text-lg font-bold text-[#17ec03]">{fmt(total)}</div>
-            </div>
-            {saved > 0 && (
-              <div className="flex items-center gap-1 text-xs text-green-400 bg-green-400/10 px-2.5 py-1 rounded-full">
-                <FiTag size={11} /> Save {fmt(saved)}
+        {/* ── Fixed bottom bar (mobile) ── */}
+        <div
+          className="block md:hidden"
+          style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, padding: "0.75rem 1rem", background: "rgba(14,19,32,0.95)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(160,120,255,0.12)", transition: "transform 0.3s ease-in-out", transform: fixedBar ? "translateY(0)" : "translateY(100%)" }}
+        >
+          <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: 10, color: "#8880aa", textTransform: "uppercase", letterSpacing: "0.1em" }}>Total</div>
+                <div className="cinzel" style={{ fontSize: 20, fontWeight: 700, color: "#17ec03" }}>{fmt(total)}</div>
               </div>
-            )}
+              {savedAmt > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#4ade80", background: "rgba(74,222,128,0.1)", padding: "4px 14px", borderRadius: 999 }}>
+                  <FiTag size={11} /> Save {fmt(savedAmt)}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleContinue}
+              disabled={saving}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "0.875rem", borderRadius: 14, border: "none", background: saving ? "rgba(255,214,0,0.5)" : "linear-gradient(135deg,#FFE51F,#FFD600)", color: "#111827", fontSize: 14, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", fontFamily: "'Poppins', sans-serif" }}
+            >
+              {saving
+                ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: "spin 0.75s linear infinite" }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg> Saving…</>
+                : <><IoIosFlash size={20} /> Continue to Payment</>
+              }
+            </button>
           </div>
-          <button
-            onClick={handleContinue}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl
-              bg-gradient-to-br from-[#FFE51F] to-[#FFD600]
-              text-[#111827] text-sm font-bold tracking-wide
-              shadow-[0_0_20px_rgba(255,229,31,0.35)]
-              hover:shadow-[0_0_30px_rgba(255,229,31,0.55)]
-              transition-all duration-300"
-            style={{ fontFamily: "'Poppins', sans-serif" }}
-          >
-            <IoIosFlash size={20} /> Continue to Payment
-          </button>
         </div>
-
       </div>
+
+      {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </>
   );
 }

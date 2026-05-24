@@ -31,8 +31,8 @@ const handleRegister = async (e) => {
     showToast("Creating your account...");
 
     const res = await API.post("/user/register", {
-      firstName: username,   // backend firstName use korche
-      lastName: "user",      // temporary
+      username,   
+         
       email,
       password,
     });

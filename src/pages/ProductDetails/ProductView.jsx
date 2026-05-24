@@ -98,40 +98,63 @@ const AuthToast = ({ visible, onLogin, onDismiss }) => (
   </div>
 );
 
-// ── CTA Buttons ───────────────────────────────────────────────────────────────
-const CTAButtons = ({ compact = false, onCart, onBuy }) => (
-  <div className="flex gap-3 w-full">
-    <button
-      onClick={onCart}
-      className={`flex-1 flex items-center justify-center gap-2 rounded-xl border border-[#8B5CF6] bg-[#111827]/95 backdrop-blur-md text-[#C4B5FD] font-semibold tracking-wide shadow-[0_0_18px_rgba(139,92,246,0.18)] hover:bg-[#1E1B4B] hover:shadow-[0_0_26px_rgba(139,92,246,0.35)] hover:border-[#A78BFA] transition-all duration-300 ${compact ? "py-2 text-sm" : "py-3.5 text-md"}`}
-      style={{ fontFamily: "'Poppins', sans-serif" }}
-    >
-      🛒 Add to Cart
-    </button>
-    <button
-      onClick={onBuy}
-      className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-none bg-gradient-to-br from-[#FFE51F] to-[#FFD600] text-[#111827] font-bold tracking-normal shadow-[0_0_20px_rgba(255,229,31,0.35)] hover:shadow-[0_0_30px_rgba(255,229,31,0.55)] hover:-translate-y-[1px] transition-all duration-300 ${compact ? "py-2 text-sm" : "py-3.5 text-md"}`}
-      style={{ fontFamily: "'Poppins', sans-serif" }}
-    >
-      <IoIosFlash size={20} />
-      Buy Now
-    </button>
+// ── Size Required Toast ───────────────────────────────────────────────────────
+const SizeToast = ({ visible, onDismiss }) => (
+  <div className={`fixed inset-0 z-[60] flex items-end justify-center pb-10 px-4 pointer-events-none transition-all duration-300 ${visible ? "opacity-100" : "opacity-0"}`}>
+    <div className={`pointer-events-auto w-full max-w-sm bg-[#1a1730] border border-[rgba(255,120,80,0.45)] rounded-2xl px-5 py-4 shadow-[0_0_40px_rgba(255,120,80,0.2)] transition-transform duration-300 ${visible ? "translate-y-0" : "translate-y-8"}`}>
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-xl bg-[rgba(255,120,80,0.15)] flex items-center justify-center shrink-0 text-lg">📏</div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-[#ffe0d8] mb-0.5">Please select a size</div>
+          <div className="text-xs text-[#aa8880] leading-relaxed">Choose an available size before adding to cart or buying.</div>
+        </div>
+      </div>
+      <div className="flex gap-2.5 mt-3.5">
+        <button onClick={onDismiss} className="flex-1 py-2 rounded-xl bg-gradient-to-br from-orange-600 to-red-500 text-white text-sm font-bold hover:from-orange-700 hover:to-red-600 transition-all">Got it</button>
+      </div>
+    </div>
   </div>
 );
 
-// ── Image Lightbox — exactly matching the reference screenshot ─────────────────
+// ── CTA Buttons ───────────────────────────────────────────────────────────────
+const CTAButtons = ({ compact = false, onCart, onBuy, sizeError }) => (
+  <div className="flex flex-col gap-2 w-full">
+    {sizeError && (
+      <div
+        className="text-xs text-orange-400 bg-orange-400/10 border border-orange-400/25 rounded-xl px-3 py-2 text-center font-semibold"
+        style={{ animation: "size-shake 0.35s ease" }}
+      >
+        📏 Please select a size first
+      </div>
+    )}
+    <div className="flex gap-3 w-full">
+      <button
+        onClick={onCart}
+        className={`flex-1 flex items-center justify-center gap-2 rounded-xl border border-[#8B5CF6] bg-[#111827]/95 backdrop-blur-md text-[#C4B5FD] font-semibold tracking-wide shadow-[0_0_18px_rgba(139,92,246,0.18)] hover:bg-[#1E1B4B] hover:shadow-[0_0_26px_rgba(139,92,246,0.35)] hover:border-[#A78BFA] transition-all duration-300 ${compact ? "py-2 text-sm" : "py-3.5 text-md"}`}
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        🛒 Add to Cart
+      </button>
+      <button
+        onClick={onBuy}
+        className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-none bg-gradient-to-br from-[#FFE51F] to-[#FFD600] text-[#111827] font-bold tracking-normal shadow-[0_0_20px_rgba(255,229,31,0.35)] hover:shadow-[0_0_30px_rgba(255,229,31,0.55)] hover:-translate-y-[1px] transition-all duration-300 ${compact ? "py-2 text-sm" : "py-3.5 text-md"}`}
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        <IoIosFlash size={20} />
+        Buy Now
+      </button>
+    </div>
+  </div>
+);
+
+// ── Image Lightbox ────────────────────────────────────────────────────────────
 const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => {
-  const [idx, setIdx]             = useState(startIdx);
-  const [visible, setVisible]     = useState(false);
-  const [sliding, setSliding]     = useState(false);
-  const [slideDir, setSlideDir]   = useState(0); // -1 prev  +1 next
+  const [idx, setIdx]           = useState(startIdx);
+  const [visible, setVisible]   = useState(false);
+  const [sliding, setSliding]   = useState(false);
+  const [slideDir, setSlideDir] = useState(0);
 
-  // mount fade-in
-  useEffect(() => {
-    requestAnimationFrame(() => setVisible(true));
-  }, []);
-
-  // lock body scroll
+  useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
@@ -161,158 +184,39 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
     return () => window.removeEventListener("keydown", onKey);
   }, [prev, next, onClose]);
 
-  // Slide transform for the image card
   const cardStyle = {
     transition: "opacity 0.23s ease, transform 0.23s cubic-bezier(.4,0,.2,1)",
     opacity:    sliding ? 0 : 1,
-    transform:  sliding
-      ? `translateX(${slideDir < 0 ? "60px" : "-60px"})`
-      : "translateX(0)",
+    transform:  sliding ? `translateX(${slideDir < 0 ? "60px" : "-60px"})` : "translateX(0)",
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[200]"
-      style={{
-        background: "#000",
-        transition: "opacity 0.2s ease",
-        opacity: visible ? 1 : 0,
-      }}
-    >
-      {/* ── Close button — top-right of screen ── */}
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 z-20 w-11 h-11 rounded-full bg-[rgba(40,40,40,0.95)] flex items-center justify-center text-white hover:bg-[rgba(80,80,80,0.95)] transition-all"
-        style={{ fontSize: 22 }}
-      >
-        ✕
-      </button>
-
-      {/* ── Prev arrow — far left, vertically centered ── */}
+    <div className="fixed inset-0 z-[200]" style={{ background: "#000", transition: "opacity 0.2s ease", opacity: visible ? 1 : 0 }}>
+      <button onClick={onClose} className="absolute top-4 right-4 z-20 w-11 h-11 rounded-full bg-[rgba(40,40,40,0.95)] flex items-center justify-center text-white hover:bg-[rgba(80,80,80,0.95)] transition-all" style={{ fontSize: 22 }}>✕</button>
       {images.length > 1 && (
-        <button
-          onClick={prev}
-          className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[rgba(40,40,40,0.9)] flex items-center justify-center text-white hover:bg-[rgba(80,80,80,0.95)] transition-all text-2xl"
-        >
-          ‹
-        </button>
+        <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[rgba(40,40,40,0.9)] flex items-center justify-center text-white hover:bg-[rgba(80,80,80,0.95)] transition-all text-2xl">‹</button>
       )}
-
-      {/* ── Next arrow — far right, vertically centered ── */}
       {images.length > 1 && (
-        <button
-          onClick={next}
-          className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[rgba(40,40,40,0.9)] flex items-center justify-center text-white hover:bg-[rgba(80,80,80,0.95)] transition-all text-2xl"
-        >
-          ›
-        </button>
+        <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-[rgba(40,40,40,0.9)] flex items-center justify-center text-white hover:bg-[rgba(80,80,80,0.95)] transition-all text-2xl">›</button>
       )}
-
-      {/* ── Centered card — click outside to close ── */}
-      <div
-        className="absolute inset-0 flex items-center justify-center"
-        onClick={onClose}
-      >
-        {/* Card — stop propagation so clicking inside doesn't close */}
-        <div
-          onClick={e => e.stopPropagation()}
-          style={{
-            ...cardStyle,
-            position: "relative",
-            width: "min(420px, 88vw)",
-            borderRadius: 22,
-            overflow: "hidden",
-            background: "#fff",
-            boxShadow: "0 30px 90px rgba(0,0,0,0.85)",
-          }}
-        >
-          {/* Product image — fills card */}
+      <div className="absolute inset-0 flex items-center justify-center" onClick={onClose}>
+        <div onClick={e => e.stopPropagation()} style={{ ...cardStyle, position: "relative", width: "min(420px, 88vw)", borderRadius: 22, overflow: "hidden", background: "#fff", boxShadow: "0 30px 90px rgba(0,0,0,0.85)" }}>
           {imageUrl(images[idx]) ? (
-            <img
-              src={imageUrl(images[idx])}
-              alt={`${productName} — image ${idx + 1}`}
-              draggable={false}
-              style={{
-                width: "100%",
-                display: "block",
-                objectFit: "cover",
-                maxHeight: "78vh",
-              }}
-            />
+            <img src={imageUrl(images[idx])} alt={`${productName} — image ${idx + 1}`} draggable={false} style={{ width: "100%", display: "block", objectFit: "cover", maxHeight: "95vh", minHeight: "95vh" }} />
           ) : (
-            <div style={{ height: 400, display: "flex", alignItems: "center", justifyContent: "center", color: "#999" }}>
-              No Image
-            </div>
+            <div style={{ height: 400, display: "flex", alignItems: "center", justifyContent: "center", color: "#999" }}>No Image</div>
           )}
-
-          {/* ── Gradient overlay at bottom of card ── */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              top: "55%",
-              background: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.72) 100%)",
-              borderRadius: "0 0 22px 22px",
-              pointerEvents: "none",
-            }}
-          />
-
-          {/* ── Product name overlay ── */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              padding: "16px 18px 14px",
-              zIndex: 2,
-            }}
-          >
-            <div
-              style={{
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: 17,
-                marginBottom: 8,
-                fontFamily: "'Poppins', sans-serif",
-                textShadow: "0 1px 6px rgba(0,0,0,0.5)",
-              }}
-            >
-              {productName}
-            </div>
-
-            {/* Dot indicators */}
+          <div style={{ position: "absolute", inset: 0, top: "55%", background: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.72) 100%)", borderRadius: "0 0 22px 22px", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px 18px 14px", zIndex: 2 }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 8, fontFamily: "'Poppins', sans-serif", textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}>{productName}</div>
             {images.length > 1 && (
               <div style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center" }}>
                 {images.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => { if (!sliding) { setIdx(i); } }}
-                    style={{
-                      width:  i === idx ? 22 : 8,
-                      height: 8,
-                      borderRadius: 4,
-                      background: i === idx ? "#7c5cfc" : "rgba(255,255,255,0.45)",
-                      border: "none",
-                      padding: 0,
-                      cursor: "pointer",
-                      transition: "width 0.25s ease, background 0.2s ease",
-                    }}
-                  />
+                  <button key={i} onClick={() => { if (!sliding) setIdx(i); }} style={{ width: i === idx ? 22 : 8, height: 8, borderRadius: 4, background: i === idx ? "#7c5cfc" : "rgba(255,255,255,0.45)", border: "none", padding: 0, cursor: "pointer", transition: "width 0.25s ease, background 0.2s ease" }} />
                 ))}
               </div>
             )}
-
-            {/* Hint */}
-            <div
-              style={{
-                color: "rgba(255,255,255,0.55)",
-                fontSize: 11,
-                fontFamily: "'Raleway', sans-serif",
-              }}
-            >
-              Press ESC or click outside to close
-            </div>
+            <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, fontFamily: "'Raleway', sans-serif" }}>Press ESC or click outside to close</div>
           </div>
         </div>
       </div>
@@ -322,43 +226,31 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
 
 // ── Expand Icon Button ────────────────────────────────────────────────────────
 const ExpandButton = ({ onClick }) => (
-  <button
-    onClick={onClick}
-    title="View full image"
-    style={{
-      position:   "absolute",
-      top:        10,
-      right:      10,
-      zIndex:     20,
-      width:      32,
-      height:     32,
-      borderRadius: 8,
-      background: "rgba(14,19,32,0.82)",
-      border:     "1px solid rgba(160,120,255,0.4)",
-      color:      "#a078ff",
-      display:    "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor:     "pointer",
-      backdropFilter: "blur(6px)",
-      transition: "all 0.18s",
-    }}
+  <button onClick={onClick} title="View full image" style={{ position: "absolute", top: 10, right: 10, zIndex: 20, width: 32, height: 32, borderRadius: 8, background: "rgba(14,19,32,0.82)", border: "1px solid rgba(160,120,255,0.4)", color: "#a078ff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", backdropFilter: "blur(6px)", transition: "all 0.18s" }}
     onMouseEnter={e => { e.currentTarget.style.background = "rgba(160,120,255,0.22)"; e.currentTarget.style.borderColor = "#a078ff"; }}
     onMouseLeave={e => { e.currentTarget.style.background = "rgba(14,19,32,0.82)"; e.currentTarget.style.borderColor = "rgba(160,120,255,0.4)"; }}
   >
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-      <polyline points="15 3 21 3 21 9"/>
-      <polyline points="9 21 3 21 3 15"/>
-      <line x1="21" y1="3" x2="14" y2="10"/>
-      <line x1="3" y1="21" x2="10" y2="14"/>
+      <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+      <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
     </svg>
   </button>
 );
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+/** Returns true if the product has a sizeStock map with at least one size */
+const hasSizes = (product) =>
+  product?.sizeStock && Object.keys(product.sizeStock).length > 0;
+
+/** Returns true if at least one size has stock > 0 */
+const hasAnySizeInStock = (product) =>
+  hasSizes(product) && SIZES.some((s) => (product.sizeStock[s] ?? 0) > 0);
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ProductView() {
-  const navigate       = useNavigate();
-  const { productId }  = useParams();
+  const navigate      = useNavigate();
+  const { productId } = useParams();
 
   const [product,   setProduct]   = useState(null);
   const [loading,   setLoading]   = useState(true);
@@ -367,6 +259,8 @@ export default function ProductView() {
   const [selColor,  setSelColor]  = useState(null);
   const [fixedBar,  setFixedBar]  = useState(false);
   const [authToast, setAuthToast] = useState(false);
+  const [sizeToast, setSizeToast] = useState(false);   // ← new
+  const [sizeError, setSizeError] = useState(false);   // ← inline error flag
   const [lightbox,  setLightbox]  = useState(false);
 
   const productDetailsRef = useRef(null);
@@ -406,21 +300,67 @@ export default function ProductView() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // ── Clear inline size error once user picks a size ──
+  useEffect(() => {
+    if (selSize) setSizeError(false);
+  }, [selSize]);
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Size validation + session storage persistence
+  // ──────────────────────────────────────────────────────────────────────────
+  /**
+   * Validates size selection when needed.
+   * - If the product has sizes AND at least one is in stock → user MUST pick one.
+   * - If no sizes / all out of stock → no size needed; proceed freely.
+   * Returns true if validation passes (OK to proceed), false otherwise.
+   */
+  const validateSize = () => {
+    if (!product) return false;
+    if (hasSizes(product) && hasAnySizeInStock(product) && !selSize) {
+      // Show inline error + toast
+      setSizeError(true);
+      setSizeToast(true);
+      // Scroll size selector into view
+      document.getElementById("size-selector")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return false;
+    }
+    return true;
+  };
+
+  /**
+   * Saves the chosen size (or null) to sessionStorage so the checkout page
+   * can read it via: sessionStorage.getItem("selectedSize")
+   */
+  const persistSize = () => {
+    if (selSize) {
+      sessionStorage.setItem("selectedSize", selSize);
+    } else {
+      sessionStorage.removeItem("selectedSize");
+    }
+  };
+
+  // ── Auth + action guards ──
   const isLoggedIn = () => !!Cookies.get("user");
+
   const handleProtectedAction = (dest) => {
+    if (!validateSize()) return;          // ← size check first
+    persistSize();                        // ← save to sessionStorage
     if (isLoggedIn()) navigate(dest);
     else setAuthToast(true);
   };
-  const handleCart      = () => handleProtectedAction("/product-checkout");
-  const handleBuy       = () => handleProtectedAction("/view-checkout");
+
+  const handleCart = () => handleProtectedAction("/product-checkout");
+  const handleBuy  = () =>
+    handleProtectedAction(`/view-checkout/${encodeURIComponent(productId)}`);
+
   const handleGoToLogin = () => { setAuthToast(false); navigate("/login"); };
 
   const imageUrl = (path) =>
     path ? (path.startsWith("/") ? `${BASE_URL}${path}` : path) : null;
 
-  const images     = product?.images || [];
-  const prev       = () => setImgIdx(i => (i - 1 + images.length) % images.length);
-  const next       = () => setImgIdx(i => (i + 1) % images.length);
+  const images      = product?.images || [];
+  const prev        = () => setImgIdx(i => (i - 1 + images.length) % images.length);
+  const next        = () => setImgIdx(i => (i + 1) % images.length);
   const hasDiscount = product
     ? product.discount > 0 && product.finalPrice && product.finalPrice !== product.price
     : false;
@@ -436,19 +376,26 @@ export default function ProductView() {
         ::-webkit-scrollbar-thumb{background:rgba(160,120,255,0.3);border-radius:3px}
         .cinzel{font-family:'Cinzel',serif}
         @keyframes sk-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+        @keyframes size-shake{
+          0%,100%{transform:translateX(0)}
+          20%{transform:translateX(-6px)}
+          40%{transform:translateX(6px)}
+          60%{transform:translateX(-4px)}
+          80%{transform:translateX(4px)}
+        }
+        .size-btn-error{
+          animation: size-shake 0.35s ease;
+          border-color: rgba(255,120,80,0.7) !important;
+          box-shadow: 0 0 12px rgba(255,120,80,0.25) !important;
+        }
       `}</style>
 
       <AuthToast visible={authToast} onLogin={handleGoToLogin} onDismiss={() => setAuthToast(false)} />
+      <SizeToast visible={sizeToast} onDismiss={() => setSizeToast(false)} />
 
-      {/* ── Lightbox ── */}
+      {/* Lightbox */}
       {lightbox && product && images.length > 0 && (
-        <ImageLightbox
-          images={images}
-          productName={product.name}
-          startIdx={imgIdx}
-          imageUrl={imageUrl}
-          onClose={() => setLightbox(false)}
-        />
+        <ImageLightbox images={images} productName={product.name} startIdx={imgIdx} imageUrl={imageUrl} onClose={() => setLightbox(false)} />
       )}
 
       <div className="min-h-screen bg-[#0E1320] text-[#e8e0ff]" style={{ fontFamily: "'Raleway',sans-serif" }}>
@@ -474,21 +421,12 @@ export default function ProductView() {
               <div className="flex flex-col gap-4">
                 <div className="relative bg-[#12121a] border border-[rgba(160,120,255,0.15)] rounded-2xl overflow-hidden aspect-[4/5] mx-auto lg:w-[70%] w-[100%] flex items-center justify-center shadow-[0_0_40px_rgba(160,120,255,0.07)]">
                   <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_30%_20%,rgba(160,120,255,0.07)_0%,transparent_60%)]" />
-
-                  {/* Expand button — top-right */}
                   <ExpandButton onClick={() => setLightbox(true)} />
-
                   {imageUrl(images[imgIdx]) ? (
-                    <img
-                      src={imageUrl(images[imgIdx])}
-                      alt={product.name}
-                      className="w-full object-contain drop-shadow-[0_8px_32px_rgba(160,120,255,0.22)] cursor-pointer"
-                      onClick={() => setLightbox(true)}
-                    />
+                    <img src={imageUrl(images[imgIdx])} alt={product.name} className="w-full h-full drop-shadow-[0_8px_32px_rgba(160,120,255,0.22)] cursor-pointer" onClick={() => setLightbox(true)} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-[#8880aa] text-sm">No Image</div>
                   )}
-
                   {images.length > 1 && (
                     <>
                       <button onClick={prev} className="absolute left-2.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[rgba(14,19,32,0.78)] backdrop-blur border border-[rgba(160,120,255,0.3)] text-[#a078ff] text-xl flex items-center justify-center z-10 hover:bg-[rgba(160,120,255,0.22)] transition-all">‹</button>
@@ -520,13 +458,23 @@ export default function ProductView() {
                   {product.name}
                 </div>
 
-                {product.sizeStock && (
-                  <>
-                    <div className="text-[11px] tracking-[0.14em] uppercase text-[#8880aa]">Select Size</div>
-                    <div className="flex flex-wrap gap-2">
+                {/* ── Size Selector ── */}
+                {hasSizes(product) && (
+                  <div id="size-selector">
+                    <div className={`text-[11px] tracking-[0.14em] uppercase mb-2.5 flex items-center gap-2 ${sizeError ? "text-orange-400" : "text-[#8880aa]"}`}>
+                      Select Size
+                      {sizeError && (
+                        <span className="text-[10px] text-orange-400 font-bold normal-case tracking-normal bg-orange-400/10 px-2 py-0.5 rounded-full">
+                          ← required
+                        </span>
+                      )}
+                    </div>
+                    <div className={`flex flex-wrap gap-2 ${sizeError ? "size-btn-error" : ""}`} style={{ animation: sizeError ? "size-shake 0.35s ease" : "none" }}>
                       {SIZES.map((s) => {
-                        const qty = product.sizeStock[s] ?? 0;
+                        const qty        = product.sizeStock[s] ?? 0;
                         const outOfStock = qty === 0;
+                        const isSelected = selSize === s;
+                        const isError    = sizeError && !outOfStock && !isSelected;
                         return (
                           <button
                             key={s}
@@ -535,9 +483,11 @@ export default function ProductView() {
                             className={`w-10 h-10 rounded-xl border text-sm font-semibold transition-all flex items-center justify-center relative
                               ${outOfStock
                                 ? "border-[rgba(160,120,255,0.08)] bg-[#0E1320] text-[#3a3456] cursor-not-allowed"
-                                : selSize === s
+                                : isSelected
                                   ? "border-[#a078ff] bg-[rgba(160,120,255,0.13)] text-[#a078ff] shadow-[0_0_10px_rgba(160,120,255,0.22)]"
-                                  : "border-[rgba(160,120,255,0.22)] bg-[#0E1320] text-[#e8e0ff] hover:border-[#a078ff] hover:text-[#a078ff]"
+                                  : isError
+                                    ? "border-orange-400/50 bg-[#0E1320] text-orange-300 hover:border-[#a078ff] hover:text-[#a078ff]"
+                                    : "border-[rgba(160,120,255,0.22)] bg-[#0E1320] text-[#e8e0ff] hover:border-[#a078ff] hover:text-[#a078ff]"
                               }`}
                           >
                             {s}
@@ -550,7 +500,13 @@ export default function ProductView() {
                         );
                       })}
                     </div>
-                  </>
+                    {/* Live selected size badge */}
+                    {selSize && (
+                      <div className="mt-2 text-xs text-[#a078ff] font-semibold">
+                        Selected: <span className="bg-[rgba(160,120,255,0.13)] px-2 py-0.5 rounded-full">{selSize}</span>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {product.color && (
@@ -611,7 +567,7 @@ export default function ProductView() {
                 </div>
 
                 <div ref={productDetailsRef}>
-                  <CTAButtons onCart={handleCart} onBuy={handleBuy} />
+                  <CTAButtons onCart={handleCart} onBuy={handleBuy} sizeError={sizeError} />
                 </div>
 
               </div>
@@ -679,10 +635,10 @@ export default function ProductView() {
         )}
 
         {/* Fixed bottom bar */}
-        <div className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out ${fixedBar ? "translate-y-0" : "translate-y-full"}`}>
+        <div className={`fixed md:hidden bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out ${fixedBar ? "translate-y-0" : "translate-y-full"}`}>
           <div className="px-1 py-3">
             <div className="max-w-6xl mx-auto">
-              <CTAButtons onCart={handleCart} onBuy={handleBuy} />
+              <CTAButtons onCart={handleCart} onBuy={handleBuy} sizeError={sizeError} />
             </div>
           </div>
         </div>
