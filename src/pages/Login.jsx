@@ -51,7 +51,25 @@ if (!email || !password) return showToast("Please fill in all fields.");
   }
 };
 
-  const handleGoogle = () => showToast("Connecting to Google...");
+  const handleGoogle =  async (credentialResponse) => {
+    try {
+
+      const res = await API.post(
+        "/user/google",
+        {
+          credential: credentialResponse.credential,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      console.log(res.data);
+
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0E1320] flex items-center justify-center px-6 py-10">
