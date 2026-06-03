@@ -1,20 +1,66 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiUser, FiHeart, FiShoppingCart, FiMenu, FiX } from "react-icons/fi";
+import Cookies from "js-cookie";
 import appLogo from "../assets/images/appImage/app-logo.png";
+import { API } from "../api";
+import { useRef } from "react";
+// ── Helpers (same pattern as Cart.jsx) ───────────────────────────────────────
+const getStoredEmail = () => {
+  try { const s = localStorage.getItem("user"); if (s) { const p = JSON.parse(s); if (p?.email) return p.email; } } catch (_) {}
+  try { const c = Cookies.get("user"); if (c) { const p = JSON.parse(c); if (p?.email) return p.email; } } catch (_) {}
+  return null;
+};
 
 export default function UserNavbar() {
-  const [cartCount] = useState(3);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [menuOpen, setMenuOpen]   = useState(false);
   const navigate = useNavigate();
+const intervalRef = useRef(null);
+  // Fetch live cart count from DB on mount
+const fetchCartCount = async () => {
+  try {
+    const email = getStoredEmail();
+    if (!email) return;
 
+    const profileRes = await API.post("/user/getProfile", { email });
+    if (!profileRes.data.success) return;
+
+    const customerId = profileRes.data.user?.customerId;
+    if (!customerId) return;
+
+    const cartRes = await API.get(`/cart/getCart/${customerId}`);
+
+    if (cartRes.data.success) {
+      const count =
+        cartRes.data.summary?.totalItems ??
+        cartRes.data.data?.length ??
+        0;
+
+      setCartCount(count);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+useEffect(() => {
+  fetchCartCount();
+
+  intervalRef.current = setInterval(() => {
+    fetchCartCount();
+  }, 2000); // every 2 sec
+
+  return () => {
+    clearInterval(intervalRef.current);
+  };
+}, []);
   return (
     <div className="sticky top-0 z-50 bg-[#0B0F1A] border-b border-white/10">
 
       {/* ── Main bar ── */}
       <div className="flex items-center px-4 md:px-6 py-3 max-w-screen-xl mx-auto gap-3">
 
-        {/* Logo + Brand Text — always visible on all screen sizes */}
+        {/* Logo + Brand */}
         <div
           className="flex items-center gap-2 cursor-pointer shrink-0"
           onClick={() => navigate("/user/dashboard")}
@@ -41,10 +87,10 @@ export default function UserNavbar() {
           />
         </div>
 
-        {/* Right side — My Profile always visible + desktop extras + hamburger */}
+        {/* Right side */}
         <div className="flex items-center gap-3 ml-auto">
 
-          {/* My Profile — always visible on all screen sizes */}
+          {/* My Profile — always visible */}
           <button
             onClick={() => navigate("/user/profile")}
             className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-white rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 shadow-lg hover:shadow-pink-500/40 transition whitespace-nowrap"
@@ -69,9 +115,11 @@ export default function UserNavbar() {
           >
             <FiShoppingCart className="w-5 h-5 shrink-0" />
             Cart
-            <span className="absolute -top-2 -right-3 bg-purple-600 text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
-              {cartCount}
-            </span>
+            {cartCount > 0 && (
+              <span className="absolute -top-2 -right-3 bg-purple-600 text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
           </button>
 
           {/* Hamburger — mobile only */}
@@ -85,7 +133,7 @@ export default function UserNavbar() {
         </div>
       </div>
 
-      {/* ── Mobile drawer — search + wishlist + cart ── */}
+      {/* ── Mobile drawer ── */}
       <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${menuOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}`}>
         <div className="px-4 pb-4 flex flex-col gap-3">
 
@@ -116,9 +164,11 @@ export default function UserNavbar() {
             >
               <FiShoppingCart className="w-5 h-5 shrink-0" />
               Cart
-              <span className="absolute -top-2 -right-3 bg-purple-600 text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
-                {cartCount}
-              </span>
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-3 bg-purple-600 text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
             </button>
           </div>
         </div>

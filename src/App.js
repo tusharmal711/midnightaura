@@ -33,6 +33,13 @@ import ProductView from "./pages/ProductDetails/ProductView";
 import Cookies from "js-cookie";
 import ViewCheckout from "./pages/ProductDetails/ViewCheckout";
 import ViewPayment from "./pages/ProductDetails/ViewPayment";
+import OrderSuccess from "./pages/ProductDetails/OrderSuccess";
+import OrderDetail from "./pages/AdminPanel/OrderDetails";
+import DeliveryBoyPanelLayout from "./pages/DeliveryBoyPanel/DeliveryBoyPanelLayout";
+import DeliveryBoyLayout from "./pages/DeliveryBoyPanel/DeliveryBoyPanelLayout";
+import DeliveryDashboard from "./pages/DeliveryBoyPanel/DeliveyDahboard";
+import ReceivedDeliveries from "./pages/DeliveryBoyPanel/ReceivedDeliveryProduct";
+import DeliveryProductDetails from "./pages/DeliveryBoyPanel/DeliveryProductDetails";
 
 function App() {
   function ConditionalProductViewLayout() {
@@ -119,6 +126,7 @@ function App() {
            <Route path="/view-payment/:productId" element={<ViewPayment />} />
          
          </Route>
+         <Route path="/order-success" element={<OrderSuccess />} />
          {/* product view is ending here */}
 
 
@@ -131,12 +139,21 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="listing" element={<ListingProducts />} />
           <Route path="orders" element={<AdminOrder />} />
+          <Route path="orders/:orderId" element={<OrderDetail />} />
           <Route path="feedback" element={<Feedback />} />
         </Route>
        {/* admin panel routing is ending here */}
 
-       
-       
+       {/* delivery boy panel routing is starting here */}
+       <Route path="/delivery-boy" element={<DeliveryBoyLayout/>}>
+          <Route index element={<DeliveryDashboard />} />
+          <Route path="deliveries" element={<ReceivedDeliveries />} />
+          <Route path="deliveries/:orderId" element={<DeliveryProductDetails />} />
+          {/* <Route path="orders" element={<AdminOrder />} />
+          <Route path="orders/:orderId" element={<OrderDetail />} />
+          <Route path="feedback" element={<Feedback />} /> */}
+        </Route>
+       {/* delivery boy panel routing is ending here */}
 
 
 

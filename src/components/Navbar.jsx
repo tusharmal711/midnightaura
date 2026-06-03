@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import appLogo from "../assets/images/appImage/app-logo.png";
-
+import {FiShoppingCart} from "react-icons/fi";
 export default function Navbar() {
   const [cartCount] = useState(3);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -10,7 +10,9 @@ export default function Navbar() {
   const tooltipTimer = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-
+const [showCartMessage, setShowCartMessage] = useState(false);
+const [showWishListMessage, setShowWishListMessage] = useState(false);
+const [showLoginCartModal, setShowLoginCartModal] = useState(false);
   const isHome = location.pathname === "/";
 
   useEffect(() => {
@@ -29,10 +31,241 @@ export default function Navbar() {
     setShowTooltip(false);
     clearTimeout(tooltipTimer.current);
   };
+const handleCartClick = () => {
+ 
+    setShowCartMessage(true);
 
+    setTimeout(() => {
+      setShowCartMessage(false);
+    }, 3000);
+
+    return;
+  
+ 
+};
+
+const handleWishListClick = () => {
+ 
+    setShowWishListMessage(true);
+
+    setTimeout(() => {
+      setShowWishListMessage(false);
+    }, 3000);
+
+    return;
+  
+ 
+};
   return (
     <div className="sticky top-0 z-50 bg-[#0B0F1A] border-b border-white/10">
+{showCartMessage && (
+  <div
+    className="fixed inset-0 z-[99999] flex items-center justify-center"
+    style={{
+      background: "rgba(0,0,0,0.75)",
+      backdropFilter: "blur(6px)",
+    }}
+  >
+    <div
+      style={{
+        width: "420px",
+        maxWidth: "90%",
+        background:
+          "linear-gradient(180deg,#111827 0%, #0b1020 100%)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: "22px",
+        padding: "28px",
+        boxShadow: "0 20px 60px rgba(0,0,0,.5)",
+        position: "relative",
+      }}
+    >
+      {/* Close Button */}
+      <button
+        onClick={() => setShowCartMessage(false)}
+        style={{
+          position: "absolute",
+          top: 14,
+          right: 14,
+          width: 34,
+          height: 34,
+          borderRadius: "50%",
+          border: "1px solid rgba(255,255,255,.1)",
+          background: "rgba(255,255,255,.04)",
+          color: "#fff",
+          cursor: "pointer",
+          fontSize: "18px",
+        }}
+      >
+        ✕
+      </button>
 
+      {/* Icon */}
+      <div
+        style={{
+          width: 70,
+          height: 70,
+          borderRadius: "50%",
+          margin: "0 auto 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background:
+            "linear-gradient(135deg,#7c3aed,#ec4899)",
+        }}
+      >
+        <FiShoppingCart size={30} color="#fff" />
+      </div>
+
+      <h2
+        style={{
+          color: "#fff",
+          textAlign: "center",
+          fontSize: "24px",
+          fontWeight: 700,
+          marginBottom: "10px",
+        }}
+      >
+        Login Required
+      </h2>
+
+      <p
+        style={{
+          color: "rgba(255,255,255,.7)",
+          textAlign: "center",
+          lineHeight: 1.6,
+          marginBottom: "24px",
+        }}
+      >
+        Please login to access your cart items and continue shopping.
+      </p>
+
+      <button
+        onClick={() => {
+          setShowLoginCartModal(false);
+          navigate("/login");
+        }}
+        style={{
+          width: "100%",
+          padding: "14px",
+          border: "none",
+          borderRadius: "14px",
+          cursor: "pointer",
+          color: "#fff",
+          fontWeight: 700,
+          fontSize: "15px",
+          background:
+            "linear-gradient(90deg,#7c3aed,#ec4899)",
+        }}
+      >
+        Login Now
+      </button>
+    </div>
+  </div>
+)}
+{showWishListMessage && (
+  <div
+    className="fixed inset-0 z-[99999] flex items-center justify-center"
+    style={{
+      background: "rgba(0,0,0,0.75)",
+      backdropFilter: "blur(6px)",
+    }}
+  >
+    <div
+      style={{
+        width: "420px",
+        maxWidth: "90%",
+        background:
+          "linear-gradient(180deg,#111827 0%, #0b1020 100%)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: "22px",
+        padding: "28px",
+        boxShadow: "0 20px 60px rgba(0,0,0,.5)",
+        position: "relative",
+      }}
+    >
+      {/* Close Button */}
+      <button
+        onClick={() => setShowWishListMessage(false)}
+        style={{
+          position: "absolute",
+          top: 14,
+          right: 14,
+          width: 34,
+          height: 34,
+          borderRadius: "50%",
+          border: "1px solid rgba(255,255,255,.1)",
+          background: "rgba(255,255,255,.04)",
+          color: "#fff",
+          cursor: "pointer",
+          fontSize: "18px",
+        }}
+      >
+        ✕
+      </button>
+
+      {/* Icon */}
+      <div
+        style={{
+          width: 70,
+          height: 70,
+          borderRadius: "50%",
+          margin: "0 auto 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background:
+            "linear-gradient(135deg,#7c3aed,#ec4899)",
+        }}
+      >
+        <FiShoppingCart size={30} color="#fff" />
+      </div>
+
+      <h2
+        style={{
+          color: "#fff",
+          textAlign: "center",
+          fontSize: "24px",
+          fontWeight: 700,
+          marginBottom: "10px",
+        }}
+      >
+        Login Required
+      </h2>
+
+      <p
+        style={{
+          color: "rgba(255,255,255,.7)",
+          textAlign: "center",
+          lineHeight: 1.6,
+          marginBottom: "24px",
+        }}
+      >
+        Please login to access your wishlist items and continue shopping.
+      </p>
+
+      <button
+        onClick={() => {
+          setShowLoginCartModal(false);
+          navigate("/login");
+        }}
+        style={{
+          width: "100%",
+          padding: "14px",
+          border: "none",
+          borderRadius: "14px",
+          cursor: "pointer",
+          color: "#fff",
+          fontWeight: 700,
+          fontSize: "15px",
+          background:
+            "linear-gradient(90deg,#7c3aed,#ec4899)",
+        }}
+      >
+        Login Now
+      </button>
+    </div>
+  </div>
+)}
       {/* ── Main bar ── */}
       <div className="flex items-center px-4 md:px-6 py-3 max-w-screen-xl mx-auto gap-3">
 
@@ -105,7 +338,7 @@ export default function Navbar() {
           </div>
 
           {/* Wishlist — desktop only */}
-          <button className="hidden md:flex items-center gap-1.5 text-sm text-white/80 hover:text-pink-400 transition-colors">
+          <button onClick={handleWishListClick} className="hidden md:flex items-center gap-1.5 text-sm text-white/80 hover:text-pink-400 transition-colors">
             <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -114,11 +347,9 @@ export default function Navbar() {
           </button>
 
           {/* Cart — desktop only */}
-          <button className="hidden md:flex relative items-center gap-1.5 text-sm text-white/80 hover:text-purple-400 transition">
-            🛒 Cart
-            <span className="absolute -top-2 -right-3 bg-purple-600 text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
-              {cartCount}
-            </span>
+          <button onClick={handleCartClick} className="hidden md:flex relative items-center gap-1.5 text-sm text-white/80 hover:text-purple-400 transition">
+             <FiShoppingCart className="w-5 h-5 shrink-0" />
+            Cart
           </button>
 
           {/* Hamburger — mobile only */}
@@ -148,7 +379,7 @@ export default function Navbar() {
 
           {/* Wishlist + Cart row */}
           <div className="flex items-center gap-4">
-            <button className="flex items-center gap-1.5 text-sm text-white/80 hover:text-pink-400 transition-colors">
+            <button onClick={handleWishListClick} className="flex items-center gap-1.5 text-sm text-white/80 hover:text-pink-400 transition-colors">
               <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -156,11 +387,9 @@ export default function Navbar() {
               Wishlist
             </button>
 
-            <button className="relative flex items-center gap-1.5 text-sm text-white/80 hover:text-purple-400 transition">
-              🛒 Cart
-              <span className="absolute -top-2 -right-3 bg-purple-600 text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
-                {cartCount}
-              </span>
+            <button  onClick={handleCartClick} className="relative flex items-center gap-1.5 text-sm text-white/80 hover:text-purple-400 transition">
+               <FiShoppingCart className="w-5 h-5 shrink-0" />
+               Cart
             </button>
           </div>
         </div>

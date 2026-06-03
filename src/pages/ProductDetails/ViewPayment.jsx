@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-
+import Cookies from "js-cookie";
 import { IoIosFlash }                               from "react-icons/io";
 import { MdDiscount, MdDeliveryDining }             from "react-icons/md";
 import {
@@ -9,14 +9,14 @@ import {
 } from "react-icons/fi";
 import {
   BsShieldLockFill, BsArrowReturnLeft,
-  BsPatchCheckFill, BsTagFill,
+  BsPatchCheckFill,
 } from "react-icons/bs";
 import { RiSecurePaymentLine } from "react-icons/ri";
 import { useNavigate, useParams } from "react-router-dom";
 import { API } from "../../api";
 import CryptoJS from "crypto-js";
-import gpayLogo    from "../../assets/icons/gpayLogo.png";
-import paytmLogo   from "../../assets/icons/paytmLogo.png";
+import gpayLogo     from "../../assets/icons/gpayLogo.png";
+import paytmLogo    from "../../assets/icons/paytmLogo.png";
 import phonepayLogo from "../../assets/icons/phonepayLogo.png";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ const STEPS      = ["Address", "Order Summary", "Payment"];
 const fmt        = (n) => "₹" + Number(n).toLocaleString("en-IN");
 
 /**
- * Delivery charge rule (same as ViewCheckout):
+ * Delivery charge rule:
  *   finalPrice >= 699  →  FREE (0)
  *   finalPrice <  699  →  7% of finalPrice (rounded)
  */
@@ -64,7 +64,7 @@ const Stepper = ({ current }) => (
 );
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
-const Card     = ({ children, className = "" }) => (
+const Card = ({ children, className = "" }) => (
   <div className={`bg-[#12121a] border border-[rgba(160,120,255,0.13)] rounded-2xl px-5 py-4 ${className}`}>
     {children}
   </div>
@@ -163,64 +163,6 @@ function SkeletonCard({ rows = 3 }) {
   );
 }
 
-// ── Celebration canvas ────────────────────────────────────────────────────────
-function CelebrationCanvas() {
-  const canvasRef = useRef(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx    = canvas.getContext("2d");
-    const parent = canvas.parentElement;
-    const resize = () => { canvas.width = parent.offsetWidth; canvas.height = parent.offsetHeight; };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(parent);
-    const COLORS = ["#a078ff","#FFE51F","#ff6b9d","#00e5ff","#ff9f43","#54a0ff","#ffd32a","#ff4757","#7bed9f"];
-    class Particle {
-      constructor(x, y, burst) {
-        this.x = x; this.y = y; this.burst = burst;
-        const angle = Math.random() * Math.PI * 2;
-        const speed = burst ? 4 + Math.random() * 10 : 1 + Math.random() * 3;
-        this.vx = Math.cos(angle) * speed * (burst ? 1 : 0.5);
-        this.vy = Math.sin(angle) * speed * (burst ? -1 : -0.5) - (burst ? 2 : 1);
-        this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
-        this.size  = burst ? 6 + Math.random() * 8 : 4 + Math.random() * 6;
-        this.life  = 1;
-        this.decay = burst ? 0.012 + Math.random() * 0.018 : 0.008 + Math.random() * 0.012;
-        this.rot   = Math.random() * 360;
-        this.rotV  = (Math.random() - 0.5) * 8;
-        this.shape = Math.random() < 0.5 ? "rect" : "circle";
-        this.gravity = 0.18;
-      }
-      update() { this.vy += this.gravity; this.x += this.vx; this.y += this.vy; this.vx *= 0.98; this.life -= this.decay; this.rot += this.rotV; }
-      draw(ctx) {
-        ctx.save(); ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color;
-        ctx.translate(this.x, this.y); ctx.rotate((this.rot * Math.PI) / 180);
-        if (this.shape === "circle") { ctx.beginPath(); ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2); ctx.fill(); }
-        else { ctx.fillRect(-this.size / 2, -this.size / 3, this.size, this.size * 0.6); }
-        ctx.restore();
-      }
-    }
-    let particles = [], animId;
-    const burst = (x, y, n = 60) => { for (let i = 0; i < n; i++) particles.push(new Particle(x, y, true)); };
-    const loop  = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < 4; i++) particles.push(new Particle(Math.random() * canvas.width, -10, false));
-      particles = particles.filter((p) => p.life > 0);
-      particles.forEach((p) => { p.update(); p.draw(ctx); });
-      animId = requestAnimationFrame(loop);
-    };
-    const cx = canvas.width / 2, cy = canvas.height / 2;
-    setTimeout(() => {
-      burst(cx, cy, 80); burst(cx - 80, cy + 40, 40); burst(cx + 80, cy + 40, 40);
-      setTimeout(() => burst(cx, cy - 30, 50), 300);
-      setTimeout(() => { burst(cx - 60, cy, 30); burst(cx + 60, cy, 30); }, 500);
-    }, 200);
-    loop();
-    return () => { cancelAnimationFrame(animId); ro.disconnect(); };
-  }, []);
-  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />;
-}
-
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ViewPayment() {
   const navigate      = useNavigate();
@@ -239,7 +181,7 @@ export default function ViewPayment() {
   const [onlineMode, setOnlineMode] = useState("card");
   const [feesOpen,   setFeesOpen]   = useState(false);
   const [placing,    setPlacing]    = useState(false);
-  const [success,    setSuccess]    = useState(false);
+  const [orderErr,   setOrderErr]   = useState("");
 
   // Card fields
   const [cardNum,  setCardNum]  = useState("");
@@ -247,7 +189,7 @@ export default function ViewPayment() {
   const [cardExp,  setCardExp]  = useState("");
   const [cardCvv,  setCardCvv]  = useState("");
   const [cardErr,  setCardErr]  = useState({});
-
+  const [customerId, setCustomerId] = useState(null);
   // UPI field
   const [upiId,  setUpiId]  = useState("");
   const [upiErr, setUpiErr] = useState(false);
@@ -260,7 +202,6 @@ export default function ViewPayment() {
     const check = () => {
       if (!payBtnRef.current) return;
       const r = payBtnRef.current.getBoundingClientRect();
-      // show fixed bar only when the real button has scrolled out of view
       setFixedBar(r.bottom < 0 || r.top > window.innerHeight);
     };
     check();
@@ -268,10 +209,44 @@ export default function ViewPayment() {
     return () => window.removeEventListener("scroll", check);
   }, [productLoad]);
 
+  const getStoredEmail = () => {
+    try {
+      const fromStorage = localStorage.getItem("user");
+      if (fromStorage) {
+        const parsed = JSON.parse(fromStorage);
+        if (parsed?.email) return parsed.email;
+      }
+    } catch (_) {}
+    try {
+      const fromCookie = Cookies.get("user");
+      if (fromCookie) {
+        const parsed = JSON.parse(fromCookie);
+        if (parsed?.email) return parsed.email;
+      }
+    } catch (_) {}
+    return null;
+  };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const email = getStoredEmail();
+        if (!email) return;
+        const res = await API.post("/user/getProfile", { email });
+        if (res.data.success) {
+          setCustomerId(res.data.user?.customerId || null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user profile", err);
+      }
+    };
+    fetchUser();
+  }, []);
+
   // ── Fetch product ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!productId) { setProductLoad(false); return; }
-    const fetch = async () => {
+    const fetchProduct = async () => {
       setProductLoad(true);
       try {
         const decodedId  = decodeURIComponent(productId);
@@ -285,7 +260,7 @@ export default function ViewPayment() {
         setProductLoad(false);
       }
     };
-    fetch();
+    fetchProduct();
   }, [productId]);
 
   // ── Derived price values ──────────────────────────────────────────────────
@@ -295,10 +270,10 @@ export default function ViewPayment() {
   const discountPct    = product?.discount ?? 0;
   const deliveryCharge = calcDelivery(unitPrice);
 
-  const subtotal  = unitPrice    * sessionQty;
-  const mrpTotal  = unitOldPrice * sessionQty;
-  const savedAmt  = (unitOldPrice - unitPrice) * sessionQty;
-  const total     = subtotal + deliveryCharge;
+  const subtotal = unitPrice    * sessionQty;
+  const mrpTotal = unitOldPrice * sessionQty;
+  const savedAmt = (unitOldPrice - unitPrice) * sessionQty;
+  const total    = subtotal + deliveryCharge;
 
   // ── Image URL helper ──────────────────────────────────────────────────────
   const imageUrl = (path) =>
@@ -328,47 +303,76 @@ export default function ViewPayment() {
     return ok;
   };
 
-  const handlePay = () => {
+  // ── Place order ───────────────────────────────────────────────────────────
+  const handlePay = async () => {
+    setOrderErr("");
+
+    // Validate payment fields first
     if (mode === "online") {
       if (onlineMode === "card" && !validateCard()) return;
       if (onlineMode === "upi"  && !validateUpi())  return;
     }
+
     setPlacing(true);
-    setTimeout(() => { setPlacing(false); setSuccess(true); }, 1800);
+
+    try {
+      const decodedId  = decodeURIComponent(productId);
+      const bytes      = CryptoJS.AES.decrypt(decodedId, SECRET_KEY);
+      const originalId = bytes.toString(CryptoJS.enc.Utf8);
+
+      const payMethodMap = { offline: "COD", card: "CARD", upi: "UPI" };
+      const payMethod    = mode === "offline" ? "COD" : payMethodMap[onlineMode];
+
+      const payload = {
+        productId:      originalId,
+        customerId:     customerId,
+        productPrice:   unitPrice,
+        deliveryCharge: deliveryCharge,
+        totalPrice:     total,
+        size:           sessionSize,
+        quantity:       sessionQty,
+        payMethod,
+      };
+
+      const res = await API.post("/productBuy/placeOrder", payload);
+
+      if (res.data.success) {
+        // ── Redirect to the dedicated success page ──
+        navigate("/order-success");
+      } else {
+        setOrderErr(res.data.message || "Failed to place order. Please try again.");
+      }
+    } catch (err) {
+      setOrderErr(err.response?.data?.message || "Something went wrong. Please try again.");
+    } finally {
+      setPlacing(false);
+    }
   };
 
-  // ── Success screen ────────────────────────────────────────────────────────
-  if (success) {
-    return (
+  // ── Error banner ──────────────────────────────────────────────────────────
+  const ErrorBanner = () =>
+    orderErr ? (
+      <div className="flex items-center gap-2 mb-3 bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2.5 text-xs text-red-400">
+        <FiX size={13} className="shrink-0" />
+        {orderErr}
+      </div>
+    ) : null;
+
+  // ── Pay button label ──────────────────────────────────────────────────────
+  const PayButtonContent = ({ small = false }) =>
+    placing ? (
       <>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
-        <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <style>{`* { box-sizing: border-box; } body { margin: 0; } @keyframes pulse-glow { 0%,100%{box-shadow:0 0 20px rgba(160,120,255,0.4)} 50%{box-shadow:0 0 50px rgba(160,120,255,0.8)} }`}</style>
-        <div className="min-h-screen bg-[#0E1320] flex items-center justify-center px-4 relative overflow-hidden" style={{ fontFamily: "'Raleway', sans-serif" }}>
-          <CelebrationCanvas />
-          <div className="text-center flex flex-col items-center gap-4 max-w-xs relative z-10">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#a078ff] to-[#7c3aed] flex items-center justify-center"
-              style={{ animation: "pulse-glow 1.4s ease-in-out infinite", boxShadow: "0 0 40px rgba(160,120,255,0.5)" }}>
-              <FiCheck size={36} className="text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-[#e8e0ff]" style={{ fontFamily: "'Cinzel', serif" }}>Order Placed!</h2>
-            <p className="text-sm text-[#8880aa] leading-relaxed">
-              Your order has been successfully placed.<br />
-              You'll receive a confirmation shortly.
-            </p>
-            <button
-              onClick={() => navigate("/user/dashboard")}
-              className="mt-2 px-8 py-3 rounded-xl bg-gradient-to-br from-[#FFE51F] to-[#FFD600] text-[#111827] text-sm font-bold flex items-center gap-2"
-              style={{ fontFamily: "'Poppins', sans-serif", boxShadow: "0 0 20px rgba(255,229,31,0.35)" }}
-            >
-              <FiShoppingBag size={16} /> Continue Shopping
-            </button>
-          </div>
-        </div>
+        <svg className={`spin-slow ${small ? "w-4 h-4" : "w-5 h-5"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+        </svg>
+        Processing…
+      </>
+    ) : (
+      <>
+        <IoIosFlash size={small ? 18 : 22} />
+        {mode === "offline" ? `Confirm Order · ${fmt(total)}` : `Pay ${fmt(total)}`}
       </>
     );
-  }
 
   // ── Main render ───────────────────────────────────────────────────────────
   return (
@@ -533,22 +537,17 @@ export default function ViewPayment() {
                 <Card>
                   <SecLabel>Order Item</SecLabel>
                   <div className="flex gap-3 items-start">
-                    {/* Product image */}
                     <div className="w-14 h-14 rounded-xl bg-[#0E1320] border border-[rgba(160,120,255,0.18)] flex items-center justify-center shrink-0 overflow-hidden">
                       {productImage
                         ? <img src={productImage} alt={product?.name} className="w-full h-full object-cover" />
                         : <div className="text-[#8880aa] text-[9px]">No img</div>
                       }
                     </div>
-
-                    {/* Product details */}
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-[#e8e0ff] leading-snug line-clamp-2"
                         style={{ fontFamily: "'Poppins', sans-serif" }}>
                         {product?.name}
                       </div>
-
-                      {/* Price row */}
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                         <span className="text-base font-bold text-[#17ec03]">{fmt(unitPrice)}</span>
                         {hasDiscount && (
@@ -560,8 +559,6 @@ export default function ViewPayment() {
                           </>
                         )}
                       </div>
-
-                      {/* Size + Qty row */}
                       <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                         {sessionSize && (
                           <span className="text-[10px] text-[#8880aa] uppercase tracking-widest">
@@ -587,13 +584,11 @@ export default function ViewPayment() {
                   <SecLabel>Price Summary</SecLabel>
                   <div className="flex flex-col gap-3 text-sm">
 
-                    {/* MRP */}
                     <div className="flex justify-between items-center">
                       <span className="text-[#8880aa]">MRP{sessionQty > 1 ? ` (×${sessionQty})` : ""}</span>
                       <span className="text-[#e8e0ff] font-medium">{fmt(mrpTotal)}</span>
                     </div>
 
-                    {/* Discount */}
                     {hasDiscount && (
                       <div className="flex justify-between items-center">
                         <span className="text-[#8880aa] flex items-center gap-1">
@@ -604,7 +599,6 @@ export default function ViewPayment() {
                       </div>
                     )}
 
-                    {/* Qty line */}
                     {sessionQty > 1 && (
                       <div className="flex justify-between items-center">
                         <span className="text-[#8880aa]">Quantity</span>
@@ -612,7 +606,6 @@ export default function ViewPayment() {
                       </div>
                     )}
 
-                    {/* Delivery & Fees expandable */}
                     <div>
                       <button
                         onClick={() => setFeesOpen((p) => !p)}
@@ -645,7 +638,6 @@ export default function ViewPayment() {
 
                     <Divider />
 
-                    {/* Total */}
                     <div className="flex justify-between items-center">
                       <span className="text-[#e8e0ff] font-semibold text-base">Total Amount</span>
                       <span className="cinzel text-xl font-bold text-[#17ec03]">{fmt(total)}</span>
@@ -660,35 +652,26 @@ export default function ViewPayment() {
                 </Card>
               )}
 
-              {/* ── Pay / Confirm button (desktop + in-flow mobile) ── */}
+              {/* ── Pay button + error ── */}
               <div ref={payBtnRef}>
                 {!productLoad && (
-                  <button
-                    onClick={handlePay}
-                    disabled={placing}
-                    className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl
-                      bg-gradient-to-br from-[#FFE51F] to-[#FFD600]
-                      text-[#111827] text-base font-bold tracking-wide
-                      shadow-[0_0_24px_rgba(255,229,31,0.35)]
-                      hover:shadow-[0_0_36px_rgba(255,229,31,0.55)]
-                      hover:-translate-y-[1px] transition-all duration-300
-                      disabled:opacity-70 disabled:cursor-wait disabled:translate-y-0`}
-                    style={{ fontFamily: "'Poppins', sans-serif" }}
-                  >
-                    {placing ? (
-                      <>
-                        <svg className="spin-slow w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                        </svg>
-                        Processing…
-                      </>
-                    ) : (
-                      <>
-                        <IoIosFlash size={22} />
-                        {mode === "offline" ? `Confirm Order · ${fmt(total)}` : `Pay ${fmt(total)}`}
-                      </>
-                    )}
-                  </button>
+                  <>
+                    <ErrorBanner />
+                    <button
+                      onClick={handlePay}
+                      disabled={placing}
+                      className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl
+                        bg-gradient-to-br from-[#FFE51F] to-[#FFD600]
+                        text-[#111827] text-base font-bold tracking-wide
+                        shadow-[0_0_24px_rgba(255,229,31,0.35)]
+                        hover:shadow-[0_0_36px_rgba(255,229,31,0.55)]
+                        hover:-translate-y-[1px] transition-all duration-300
+                        disabled:opacity-70 disabled:cursor-wait disabled:translate-y-0`}
+                      style={{ fontFamily: "'Poppins', sans-serif" }}
+                    >
+                      <PayButtonContent />
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -713,7 +696,7 @@ export default function ViewPayment() {
           </div>
         </div>
 
-        {/* ── Mobile sticky bottom bar — only shows when real button scrolls out ── */}
+        {/* ── Mobile sticky bottom bar ── */}
         <div
           className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 py-3
             bg-[#0E1320]/95 backdrop-blur border-t border-[rgba(160,120,255,0.12)]
@@ -731,6 +714,7 @@ export default function ViewPayment() {
               </div>
             )}
           </div>
+          <ErrorBanner />
           <button
             onClick={handlePay}
             disabled={placing}
@@ -742,9 +726,7 @@ export default function ViewPayment() {
               transition-all duration-300 disabled:opacity-70 disabled:cursor-wait"
             style={{ fontFamily: "'Poppins', sans-serif" }}
           >
-            {placing ? "Processing…" : (
-              <><IoIosFlash size={20} /> {mode === "offline" ? `Confirm Order · ${fmt(total)}` : `Pay ${fmt(total)}`}</>
-            )}
+            <PayButtonContent small />
           </button>
         </div>
 
