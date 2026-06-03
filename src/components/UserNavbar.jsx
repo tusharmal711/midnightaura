@@ -61,26 +61,32 @@ useEffect(() => {
       <div className="flex items-center px-4 md:px-6 py-3 max-w-screen-xl mx-auto gap-3">
 
         {/* Logo + Brand */}
-        <div
-          className="flex items-center gap-2 cursor-pointer shrink-0"
-          onClick={() => navigate("/user/dashboard")}
-        >
-          <img src={appLogo} alt="app-logo" className="h-9 w-auto" />
-          <span
-  style={{
-    fontFamily: "'Poppins', sans-serif",
-    fontWeight: 900,
-    background:
-      "linear-gradient(90deg,#ff0000 0%,#ff5e00 40%,#ff9d00 70%,#ffd000 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    letterSpacing: "-0.04em",
-  }}
-  className="text-[18px] md:text-[24px] lowercase"
+       <div
+  className="flex items-center gap-2 cursor-pointer shrink-0"
+  onClick={() => navigate("/")}
 >
-  medocart
-</span>
-        </div>
+  <img
+    src={appLogo}
+    alt="app-logo"
+    className="h-12 md:h-10 w-auto"
+  />
+
+  <span
+    style={{
+      fontFamily: "'Poppins', sans-serif",
+      fontWeight: 900,
+      background:
+        "linear-gradient(90deg,#ff0000 0%,#ff5e00 40%,#ff9d00 70%,#ffd000 100%)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      letterSpacing: "-0.06em",
+      lineHeight: "1",
+    }}
+    className="text-[24px] sm:text-[28px] md:text-[24px]"
+  >
+    medocart
+  </span>
+</div>
 
         {/* Search — desktop only */}
         <div className="hidden md:flex flex-1 mx-4 relative">
