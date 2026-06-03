@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiUser, FiHeart, FiShoppingCart, FiMenu, FiX } from "react-icons/fi";
 import Cookies from "js-cookie";
-import appLogo from "../assets/images/appImage/app-logo.png";
+import appLogo from "../assets/images/appImage/medo-logo.png";
 import { API } from "../api";
 import { useRef } from "react";
 // ── Helpers (same pattern as Cart.jsx) ───────────────────────────────────────
@@ -66,14 +66,20 @@ useEffect(() => {
           onClick={() => navigate("/user/dashboard")}
         >
           <img src={appLogo} alt="app-logo" className="h-9 w-auto" />
-          <div className="flex flex-col leading-none">
-            <span className="text-[9px] md:text-[11px] tracking-[0.28em] text-yellow-400 font-semibold">
-              MIDNIGHT
-            </span>
-            <span className="text-[9px] md:text-[11px] tracking-[0.28em] text-yellow-400 font-semibold">
-              — AURA —
-            </span>
-          </div>
+          <span
+  style={{
+    fontFamily: "'Poppins', sans-serif",
+    fontWeight: 900,
+    background:
+      "linear-gradient(90deg,#ff0000 0%,#ff5e00 40%,#ff9d00 70%,#ffd000 100%)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    letterSpacing: "-0.04em",
+  }}
+  className="text-[18px] md:text-[24px] lowercase"
+>
+  medocart
+</span>
         </div>
 
         {/* Search — desktop only */}
