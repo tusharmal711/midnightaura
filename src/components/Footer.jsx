@@ -1,4 +1,4 @@
-import appLogo from "../assets/images/appImage/medo-logo.png";
+import appLogo from "../assets/images/appImage/chomoktomok-logo.png";
 export default function Footer() {
   return (
     <footer className="bg-[#080c14] border-t border-white/5 ">
@@ -8,20 +8,21 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
                 <img src={appLogo} alt="app-logo" className="h-10 w-auto "/>
-<span
-  style={{
-    fontFamily: "'Poppins', sans-serif",
-    fontWeight: 900,
-    background:
-      "linear-gradient(90deg,#ff0000 0%,#ff5e00 40%,#ff9d00 70%,#ffd000 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    letterSpacing: "-0.04em",
-  }}
-  className="text-[18px] md:text-[24px] lowercase"
->
-  medocart
-</span>            </div>
+ <span
+    style={{
+      fontFamily: "'Poppins', sans-serif",
+      fontWeight: 900,
+      background:
+        "linear-gradient(90deg,#ff0000 0%,#ff5e00 40%,#ff9d00 70%,#ffd000 100%)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      letterSpacing: "-0.06em",
+      lineHeight: "1",
+    }}
+    className="text-[24px] sm:text-[26px] md:text-[22px]"
+  >
+    চমক টমক
+  </span>         </div>
             <p className="text-white/30 text-xs leading-relaxed">Premium streetwear for every aura. Stand out. Be bold. Be you.</p>
           </div>
 
