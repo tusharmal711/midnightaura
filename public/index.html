@@ -2,49 +2,163 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" sizes="192x192" href="%PUBLIC_URL%/Images/chomoktomok-app.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
-   <link
-  href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap"
-  rel="stylesheet"
-/>
-    <title>ChomokTomok - Custom T-Shirts, Hoodies & Fashion Store</title>
 
-<meta
-  name="description"
-  content="Shop premium custom T-shirts, hoodies, oversized wear, earrings and fashion accessories at Medocart."
-/>
+    <!-- ===================== PRIMARY META ===================== -->
+    <title>ChomokTomok – Custom T-Shirts, Hoodies &amp; Fashion Store</title>
+    <meta
+      name="description"
+      content="Shop premium custom T-shirts, hoodies, oversized wear, earrings and fashion accessories at ChomokTomok. Free shipping available. Trendy styles, great quality."
+    />
+    <meta
+      name="keywords"
+      content="custom tshirt, hoodie, oversized tshirt, fashion store, chomoktomok, online shopping, earrings, fashion accessories"
+    />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="ChomokTomok" />
+    <link rel="canonical" href="https://chomoktomok.com/" />
 
-<meta
-  name="keywords"
-  content="custom tshirt, hoodie, fashion store, oversized tshirt, medocart, online shopping"
-/>
+    <!-- ===================== OPEN GRAPH ===================== -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ChomokTomok" />
+    <meta property="og:title" content="ChomokTomok – Custom T-Shirts, Hoodies &amp; Fashion Store" />
+    <meta
+      property="og:description"
+      content="Shop premium custom T-shirts, hoodies, oversized wear and fashion accessories at ChomokTomok. Trendy styles, great quality."
+    />
+    <meta property="og:image" content="https://chomoktomok.com/Images/chomoktomok-og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="ChomokTomok Fashion Store" />
+    <meta property="og:url" content="https://chomoktomok.com/" />
+    <meta property="og:locale" content="en_US" />
 
-<meta name="robots" content="index, follow" />
+    <!-- ===================== TWITTER CARD ===================== -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@chomoktomok" />
+    <meta name="twitter:title" content="ChomokTomok – Custom T-Shirts, Hoodies &amp; Fashion Store" />
+    <meta
+      name="twitter:description"
+      content="Shop premium custom T-shirts, hoodies, oversized wear and fashion accessories at ChomokTomok."
+    />
+    <meta name="twitter:image" content="https://chomoktomok.com/Images/chomoktomok-og.png" />
+    <meta name="twitter:image:alt" content="ChomokTomok Fashion Store" />
 
+    <!-- ===================== ICONS & MANIFEST ===================== -->
+    <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/Images/chomoktomok-app.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/Images/chomoktomok-apple-touch.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
-<meta property="og:title" content="ChomokTomok Fashion Store" />
-<meta property="og:description" content="Premium Fashion & Custom T-Shirts" />
-<meta property="og:image" content="https://chomoktomok.com/Images/chomoktomok-app.png" />
-<meta property="og:url" content="https://chomoktomok.com" />
+    <!-- Sitemap hint for crawlers -->
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
+    <!-- ===================== FONTS ===================== -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&display=swap"
+      rel="stylesheet"
+    />
 
+    <!-- ===================== STRUCTURED DATA ===================== -->
 
-<script type="application/ld+json">
-{
- "@context":"https://schema.org",
- "@type":"Store",
- "name":"ChomokTomok",
- "url":"https://chomoktomok.com/"
-}
-</script>
+    <!-- 1. ClothingStore -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ClothingStore",
+      "name": "ChomokTomok",
+      "url": "https://chomoktomok.com/",
+      "logo": "https://chomoktomok.com/Images/chomoktomok-app.png",
+      "image": "https://chomoktomok.com/Images/chomoktomok-og.png",
+      "description": "Premium custom T-shirts, hoodies, oversized wear, earrings and fashion accessories.",
+      "sameAs": [
+        "https://www.facebook.com/chomoktomok",
+        "https://www.instagram.com/chomoktomok"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer service",
+        "availableLanguage": ["English", "Bengali"]
+      }
+    }
+    </script>
 
+    <!-- 2. WebSite with SearchAction (enables Sitelinks search box) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "ChomokTomok",
+      "url": "https://chomoktomok.com/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://chomoktomok.com/search?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- 3. ItemList — signals Login, Register, Products, Cart as key sitelinks -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "name": "ChomokTomok Quick Links",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Login",
+          "url": "https://chomoktomok.com/login"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Register",
+          "url": "https://chomoktomok.com/register"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Products",
+          "url": "https://chomoktomok.com/products"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "Cart",
+          "url": "https://chomoktomok.com/cart"
+        }
+      ]
+    }
+    </script>
+
+    <!-- 4. BreadcrumbList -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://chomoktomok.com/"
+        }
+      ]
+    }
+    </script>
 
   </head>
   <body>
-   
+
+    <noscript>Please enable JavaScript to shop at ChomokTomok.</noscript>
     <div id="root"></div>
-   
+
   </body>
 </html>
