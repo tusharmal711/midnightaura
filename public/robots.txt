@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.chomoktomok.com/sitemap.xml
+Sitemap: https://chomoktomok.com/sitemap.xml
