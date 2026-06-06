@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FiUser, FiHeart, FiShoppingCart, FiMenu, FiX, FiSearch } from "react-icons/fi";
 import Cookies from "js-cookie";
 import appLogo from "../assets/images/appImage/chomoktomok-logo.png";
@@ -12,11 +12,25 @@ const getStoredEmail = () => {
   return null;
 };
 
+// ── Categories list (mirrors CategoryLayout) ─────────────────────────────────
+const categories = [
+  { label: "For You",           path: "/user/dashboard" },
+  { label: "Men",               path: "/user/dashboard/categories/men" },
+  { label: "Women",             path: "/user/dashboard/categories/women" },
+  { label: "Kids",              path: "/user/dashboard/categories/kids" },
+  { label: "Earrings",          path: "/user/dashboard/categories/earrings" },
+  { label: "Necklaces",         path: "/user/dashboard/categories/necklaces" },
+  { label: "Oversized",         path: "/user/dashboard/categories/oversized" },
+  { label: "Hoodies",           path: "/user/dashboard/categories/hoodies" },
+  { label: "Customize T-shirt", path: "/user/dashboard/categories/customize", special: true },
+];
+
 export default function UserNavbar() {
   const [cartCount, setCartCount]   = useState(0);
   const [menuOpen, setMenuOpen]     = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const navigate                    = useNavigate();
+  const location                    = useLocation();
   const intervalRef                 = useRef(null);
   const searchInputRef              = useRef(null);
 
@@ -68,12 +82,13 @@ export default function UserNavbar() {
       {/* ── Main bar ── */}
       <div className="flex items-center px-4 md:px-6 py-3 max-w-screen-xl mx-auto gap-3">
 
-        {/* Logo + Brand — always visible */}
+        {/* Logo + Brand */}
         <div
           className="flex items-center gap-2 cursor-pointer shrink-0"
           onClick={() => navigate("/")}
         >
-          <img src={appLogo} alt="app-logo" className="h-12 md:h-10 w-auto" />
+          {/* Smaller logo on mobile (h-8), normal on md+ (h-10) */}
+          <img src={appLogo} alt="app-logo" className="h-10 md:h-10 w-auto" />
           <span
             className="hidden sm:block text-[24px] sm:text-[26px] md:text-[22px]"
             style={{
@@ -90,7 +105,7 @@ export default function UserNavbar() {
           </span>
         </div>
 
-        {/* Search — desktop always visible, full width */}
+        {/* Search — desktop */}
         <div className="hidden md:flex flex-1 mx-4 relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -101,10 +116,10 @@ export default function UserNavbar() {
           />
         </div>
 
-        {/* Right side — profile + search icon (mobile) + hamburger */}
+        {/* Right side */}
         <div className="flex items-center gap-3 ml-auto" data-search-zone>
 
-          {/* Expanding search input — mobile only, grows leftward from search icon */}
+          {/* Expanding search input — mobile only */}
           <div
             className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
               searchOpen ? "w-44 opacity-100" : "w-0 opacity-0"
@@ -117,7 +132,7 @@ export default function UserNavbar() {
             />
           </div>
 
-          {/* Search icon — mobile only, sits left of profile button */}
+          {/* Search icon — mobile only */}
           <button
             className="md:hidden flex items-center justify-center text-white/70 hover:text-white transition-colors shrink-0"
             aria-label="Toggle search"
@@ -126,7 +141,7 @@ export default function UserNavbar() {
             {searchOpen ? <FiX size={20} /> : <FiSearch size={20} />}
           </button>
 
-          {/* My Profile — always visible */}
+          {/* My Profile */}
           <button
             onClick={() => navigate("/user/profile")}
             className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-white rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 shadow-lg hover:shadow-pink-500/40 transition whitespace-nowrap shrink-0"
@@ -171,27 +186,58 @@ export default function UserNavbar() {
 
       {/* ── Mobile drawer ── */}
       {menuOpen && (
-        <div className="md:hidden px-4 pt-3 pb-4 border-t border-white/10 flex items-center gap-6">
-          <button
-            onClick={() => { navigate("/wishlist"); setMenuOpen(false); }}
-            className="flex items-center gap-2 text-sm text-white/80 hover:text-pink-400 transition-colors"
-          >
-            <FiHeart className="w-5 h-5 shrink-0" />
-            Wishlist
-          </button>
+        <div className="md:hidden border-t border-white/10">
 
-          <button
-            onClick={() => { navigate("/user/profile/cart"); setMenuOpen(false); }}
-            className="flex items-center gap-2 text-sm text-white/80 hover:text-purple-400 transition relative"
-          >
-            <FiShoppingCart className="w-5 h-5 shrink-0" />
-            Cart
-            {cartCount > 0 && (
-              <span className="absolute -top-2 left-3 bg-purple-600 text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
-                {cartCount > 99 ? "99+" : cartCount}
-              </span>
-            )}
-          </button>
+          {/* Wishlist + Cart row */}
+          <div className="flex items-center gap-6 px-4 pt-3 pb-3">
+            <button
+              onClick={() => { navigate("/wishlist"); setMenuOpen(false); }}
+              className="flex items-center gap-2 text-sm text-white/80 hover:text-pink-400 transition-colors"
+            >
+              <FiHeart className="w-5 h-5 shrink-0" />
+              Wishlist
+            </button>
+
+            <button
+              onClick={() => { navigate("/user/profile/cart"); setMenuOpen(false); }}
+              className="flex items-center gap-2 text-sm text-white/80 hover:text-purple-400 transition relative"
+            >
+              <FiShoppingCart className="w-5 h-5 shrink-0" />
+              Cart
+              {cartCount > 0 && (
+                <span className="absolute -top-2 left-3 bg-purple-600 text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="mx-4 border-t border-white/10" />
+
+          {/* Categories — text only, no icons */}
+          <div className="px-4 pt-3 pb-4 flex flex-col gap-1">
+            {categories.map((cat, i) => {
+              const isActive = location.pathname === cat.path;
+              return (
+                <button
+                  key={i}
+                  onClick={() => { navigate(cat.path); setMenuOpen(false); }}
+                  className={`
+                    text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                    ${cat.special
+                      ? "text-emerald-400 hover:bg-emerald-500/10"
+                      : isActive
+                        ? "text-white bg-purple-700/50"
+                        : "text-white/70 hover:text-white hover:bg-white/5"
+                    }
+                  `}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
