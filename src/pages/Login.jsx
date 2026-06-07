@@ -3,53 +3,99 @@ import { FiEye, FiEyeOff } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { API } from "../api";
 import Cookies from "js-cookie";
+import { getToken, onMessage } from "firebase/messaging";
+import { messaging } from "../config/firebase";
+
+const VAPID_KEY = "BHNa2kymQm9Gqeppv52AG9vRyZYYs5XxiJxsQx3kfrPzsYqUyvr9AhptExV59XpkAhK1nYlaP0pINs_FBLogACs"; // Firebase Console → Cloud Messaging → Web Push certificates
+
+// ── FCM registration utility ──────────────────────────────────────────────────
+export const registerFCMToken = async (email) => {
+  try {
+    if (!("Notification" in window))    return; // browser doesn't support
+    if (!("serviceWorker" in navigator)) return;
+
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") return;
+
+    const registration = await navigator.serviceWorker.register(
+      "/firebase-messaging-sw.js"
+    );
+
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    });
+     console.log("Token : ",token);
+    if (!token) return;
+
+    // JWT cookie is already set at this point — backend can verify user
+    await API.post("/user/saveFcmToken", { fcmToken: token , email });
+    console.log("FCM token saved");
+
+    // Handle foreground notifications (when tab is open)
+    onMessage(messaging, (payload) => {
+      if (Notification.permission === "granted") {
+        new Notification(payload.notification.title, {
+          body: payload.notification.body,
+          icon: "/logo.png",
+        });
+      }
+    });
+  } catch (error) {
+    // Non-fatal — login still succeeds even if FCM fails
+    console.warn("FCM registration failed:", error.message);
+  }
+};
+
+// ── Login Component ───────────────────────────────────────────────────────────
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email,        setEmail]        = useState("");
+  const [password,     setPassword]     = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [toast, setToast] = useState("");
+  const [toast,        setToast]        = useState("");
+  const [loading,      setLoading]      = useState(false);
+
+  const navigate = useNavigate();
 
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2800);
   };
 
-  
-const navigate=useNavigate();
+  const handleLogin = async (e) => {
+    e.preventDefault();
 
-const handleLogin = async (e) => {
-  e.preventDefault();
+    if (!email || !password)      return showToast("Please fill in all fields.");
+    if (!email.includes("@"))     return showToast("Enter a valid email address.");
+    if (password.length < 6)      return showToast("Password must be at least 6 characters.");
 
-if (!email || !password) return showToast("Please fill in all fields.");
-    if (!email.includes("@")) return showToast("Enter a valid email address.");
-    if (password.length < 6) return showToast("Password must be at least 6 characters.");
+    setLoading(true);
+    try {
+      const res = await API.post("/user/login", { email, password });
 
-  try {
-    showToast("Logging in...");
+      if (res.data.success) {
+        // 1. Store user info
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        Cookies.set("user", JSON.stringify(res.data.user), {
+          expires:  7,
+          secure:   true,
+          sameSite: "Strict",
+        });
 
-    const res = await API.post("/user/login", {
-      email,
-      password,
-    });
+        showToast("Login successful 🎉");
 
-    if (res.data.success) {
-      showToast("Login successful 🎉");
+        // 2. Register FCM token right after login (non-blocking)
+        registerFCMToken(email);
 
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      Cookies.set("user", JSON.stringify(res.data.user), {
-  expires: 7,
-  secure: true,
-  sameSite: "Strict",
-});
-      navigate("/user/dashboard");
-      // setTimeout(() => {
-      //   window.location.href = "/";
-      // }, 1500);
+        // 3. Navigate
+        navigate("/user/dashboard");
+      }
+    } catch (err) {
+      showToast(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    showToast(err.response?.data?.message || "Login failed");
-  }
-};
+  };
 
   const handleGoogle = () => showToast("Connecting to Google...");
 
@@ -82,7 +128,6 @@ if (!email || !password) return showToast("Please fill in all fields.");
             onClick={handleGoogle}
             className="w-full flex items-center justify-center gap-2.5 py-2.5 rounded-xl border border-white/10 bg-white/[0.04] text-white/85 text-sm font-semibold hover:bg-white/[0.08] hover:border-white/20 transition-all mb-5"
           >
-            {/* same svg */}
             <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -126,8 +171,6 @@ if (!email || !password) return showToast("Please fill in all fields.");
                 placeholder="••••••••"
                 className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3.5 py-2.5 pr-11 text-sm text-white placeholder-white/20 outline-none focus:border-purple-600 focus:bg-purple-600/[0.08] focus:ring-2 focus:ring-purple-600/20 transition-all"
               />
-
-              {/* 👁 React Icon */}
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
@@ -148,9 +191,13 @@ if (!email || !password) return showToast("Please fill in all fields.");
           {/* Submit */}
           <button
             onClick={handleLogin}
-            className="w-full py-3 rounded-xl bg-gradient-to-br from-purple-600 to-purple-500 text-white font-bold text-[15px] tracking-wide hover:shadow-[0_4px_20px_rgba(124,58,237,0.4)] hover:from-purple-700 hover:to-purple-600 active:scale-[0.98] transition-all mb-5"
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-gradient-to-br from-purple-600 to-purple-500 text-white font-bold text-[15px] tracking-wide hover:shadow-[0_4px_20px_rgba(124,58,237,0.4)] hover:from-purple-700 hover:to-purple-600 active:scale-[0.98] transition-all mb-5 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Sign In
+            {loading && (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            )}
+            {loading ? "Signing in…" : "Sign In"}
           </button>
 
           {/* Register */}

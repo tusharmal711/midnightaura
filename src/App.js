@@ -42,10 +42,14 @@ import ReceivedDeliveries from "./pages/DeliveryBoyPanel/ReceivedDeliveryProduct
 import DeliveryProductDetails from "./pages/DeliveryBoyPanel/DeliveryProductDetails";
 
 function App() {
+
+ 
   function ConditionalProductViewLayout() {
-  const isLoggedIn = !!Cookies.get("user");
+    const isLoggedIn = !!Cookies.get("user");
   return isLoggedIn ? <UserDashboardLayout /> : <MainLayout />;
 }
+
+
   return (
     <BrowserRouter>
     <ScrollToTop />  

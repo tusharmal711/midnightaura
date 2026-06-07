@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { API } from "../../api";
 import appLogo from "../../assets/images/appImage/app-logo.png";
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const BASE_URL = "http://localhost:8008";
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+const BASE_URL = "https://www.chomoktomok.com";
 const getImageUrl = (img) => {
   if (!img) return "";
   if (img.startsWith("http")) return img;
@@ -23,22 +24,51 @@ const fmtDate = (d) =>
       })
     : "—";
 
-const fmtDateShort = (d) =>
-  d
-    ? new Date(d).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
-    : "—";
-
 const PAY_METHOD_LABEL = {
   COD: "Cash on Delivery",
   CARD: "Card",
   UPI: "UPI",
 };
 
-// ─── Status config ────────────────────────────────────────────────────────────
+// ─── Notification helper ───────────────────────────────────────────────────────
+// Calls POST /user/sendNotification with customerId + message based on new state.
+// Fires-and-forgets — errors are logged but never surface to the user.
+const NOTIFICATION_CONTENT = {
+  SHIPPED: {
+    title: "📦 Your order has been shipped!",
+    body: "Great news! Your order is on its way. Our delivery partner will contact you soon.",
+  },
+  CONFIRMED: {
+    title: "✅ Order Confirmed",
+    body: "Your order has been confirmed and is being prepared.",
+  },
+  CANCELLED: {
+    title: "❌ Order Cancelled",
+    body: "Unfortunately your order has been cancelled. Contact support for assistance.",
+  },
+  DELIVERED: {
+    title: "🎉 Order Delivered!",
+    body: "Your order has been delivered successfully. We hope you love it!",
+  },
+};
+
+async function sendOrderNotification(customerId, newState, orderId) {
+  const content = NOTIFICATION_CONTENT[newState];
+  
+  if (!content || !customerId) return;
+
+  try {
+    await API.post("/user/sendNotification", {
+      customerId,
+      title: content.title,
+      body: `Order #${orderId} — ${content.body}`,
+    });
+  } catch (err) {
+    console.warn("sendOrderNotification failed (non-critical):", err?.message);
+  }
+}
+
+// ─── Status config ─────────────────────────────────────────────────────────────
 const ORDER_STATUS_STYLES = {
   PLACED:    { bg: "rgba(139,92,246,0.12)", color: "#c4b5fd", border: "rgba(139,92,246,0.35)", dot: "#a78bfa" },
   CONFIRMED: { bg: "rgba(59,130,246,0.12)", color: "#93c5fd", border: "rgba(59,130,246,0.35)", dot: "#60a5fa" },
@@ -69,7 +99,7 @@ function StatusBadge({ status, styles }) {
   );
 }
 
-// ─── Section Card ─────────────────────────────────────────────────────────────
+// ─── Section Card ──────────────────────────────────────────────────────────────
 function SectionCard({ title, icon, children, style }) {
   return (
     <div style={{
@@ -93,7 +123,7 @@ function SectionCard({ title, icon, children, style }) {
   );
 }
 
-// ─── Info Row ─────────────────────────────────────────────────────────────────
+// ─── Info Row ──────────────────────────────────────────────────────────────────
 function InfoRow({ label, value, accent, mono }) {
   return (
     <div style={{
@@ -114,7 +144,7 @@ function InfoRow({ label, value, accent, mono }) {
   );
 }
 
-// ─── Cancel Reason Modal ──────────────────────────────────────────────────────
+// ─── Cancel Reason Modal ───────────────────────────────────────────────────────
 const CANCEL_REASONS = [
   "Out of stock",
   "Customer requested cancellation",
@@ -179,7 +209,7 @@ function CancelModal({ order, onConfirm, onClose, loading }) {
   );
 }
 
-// ─── Print Bill ───────────────────────────────────────────────────────────────
+// ─── Print Bill ────────────────────────────────────────────────────────────────
 function printBill(order) {
   const { product, customer, deliveryAddress } = order;
 
@@ -201,15 +231,10 @@ function printBill(order) {
   const total      = Number(order.totalPrice || (finalPrice * qty + delivery));
 
   const payMethodDisplay = PAY_METHOD_LABEL[order.payMethod] || order.payMethod || order.paymentMode || "—";
-  const showPaymentStatus = order.payMethod === "CARD" || order.payMethod === "UPI";
 
   const orderDateFormatted = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
     : "—";
-
-  const orderTimeFormatted = order.createdAt
-    ? new Date(order.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
-    : "";
 
   const qrData = JSON.stringify({
     orderId: order.orderId,
@@ -227,247 +252,66 @@ function printBill(order) {
 <head>
 <meta charset="UTF-8">
 <title>Invoice</title>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
-
 <style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
-body{
-  font-family:Arial,sans-serif;
-  background:#fff;
-  color:#111;
-}
-
-.page{
-  width:900px;
-  margin:auto;
-  padding:30px;
-  background:#fff;
-}
-
-.line{
-  border-top:1px solid #d7d7d7;
-  margin:25px 0;
-}
-
-/* HEADER */
-
-.header{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-}
-
-.brand{
-  display:flex;
-  align-items:center;
-  gap:14px;
-}
-
-.brand img{
-  width:60px;
-  height:60px;
-}
-
-.brand-name{
-  font-size:34px;
-  font-weight:700;
-  letter-spacing:1px;
-}
-
-.brand-sub{
-  font-size:13px;
-  letter-spacing:6px;
-  color:#777;
-  margin-top:6px;
-}
-
-.order-side{
-  display:flex;
-  align-items:flex-start;
-  gap:25px;
-}
-
-.order-info{
-  text-align:right;
-}
-
-.order-label{
-  font-size:14px;
-  color:#555;
-  margin-bottom:8px;
-}
-
-.order-id{
-  font-size:28px;
-  font-weight:700;
-}
-
-.order-date{
-  margin-top:8px;
-  color:#444;
-  font-size:14px;
-}
-
-.qr-box{
-  width:110px;
-  height:110px;
-}
-
-/* CUSTOMER */
-
-.info-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:60px;
-}
-
-.section-title{
-  font-size:14px;
-  font-weight:700;
-  margin-bottom:18px;
-}
-
-.info-text{
-  font-size:15px;
-  line-height:2;
-  color:#222;
-}
-
-/* STRIP */
-
-.info-strip{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:30px;
-}
-
-.strip-title{
-  font-size:14px;
-  font-weight:700;
-  margin-bottom:14px;
-}
-
-.strip-value{
-  font-size:15px;
-  line-height:1.8;
-}
-
-/* TABLE */
-
-.table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-.table th{
-  text-align:left;
-  padding:14px 10px;
-  border-bottom:1px solid #ccc;
-  font-size:14px;
-}
-
-.table td{
-  padding:18px 10px;
-  border-bottom:1px solid #eee;
-  font-size:15px;
-}
-
-.right{
-  text-align:right;
-}
-
-.total-row td{
-  font-weight:700;
-  font-size:18px;
-}
-
-/* BARCODE */
-
-.barcode-section{
-  text-align:center;
-  margin-top:25px;
-}
-
-#billBarcode{
-  width:230px;
-  height:45px;
-}
-
-.barcode-id{
-  margin-top:8px;
-  font-size:14px;
-}
-
-/* FOOTER */
-
-.footer{
-  text-align:center;
-  margin-top:35px;
-}
-
-.footer h3{
-  font-size:18px;
-  margin-bottom:10px;
-}
-
-.footer p{
-  color:#444;
-  line-height:1.8;
-}
-
+*{ margin:0; padding:0; box-sizing:border-box; }
+body{ font-family:Arial,sans-serif; background:#fff; color:#111; }
+.page{ width:900px; margin:auto; padding:30px; background:#fff; }
+.line{ border-top:1px solid #d7d7d7; margin:25px 0; }
+.header{ display:flex; justify-content:space-between; align-items:flex-start; }
+.brand{ display:flex; align-items:center; gap:14px; }
+.brand img{ width:60px; height:60px; }
+.brand-name{ font-size:34px; font-weight:700; letter-spacing:1px; }
+.brand-sub{ font-size:13px; letter-spacing:6px; color:#777; margin-top:6px; }
+.order-side{ display:flex; align-items:flex-start; gap:25px; }
+.order-info{ text-align:right; }
+.order-label{ font-size:14px; color:#555; margin-bottom:8px; }
+.order-id{ font-size:28px; font-weight:700; }
+.order-date{ margin-top:8px; color:#444; font-size:14px; }
+.qr-box{ width:110px; height:110px; }
+.info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:60px; }
+.section-title{ font-size:14px; font-weight:700; margin-bottom:18px; }
+.info-text{ font-size:15px; line-height:2; color:#222; }
+.info-strip{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:30px; }
+.strip-title{ font-size:14px; font-weight:700; margin-bottom:14px; }
+.strip-value{ font-size:15px; line-height:1.8; }
+.table{ width:100%; border-collapse:collapse; }
+.table th{ text-align:left; padding:14px 10px; border-bottom:1px solid #ccc; font-size:14px; }
+.table td{ padding:18px 10px; border-bottom:1px solid #eee; font-size:15px; }
+.right{ text-align:right; }
+.total-row td{ font-weight:700; font-size:18px; }
+.barcode-section{ text-align:center; margin-top:25px; }
+#billBarcode{ width:230px; height:45px; }
+.barcode-id{ margin-top:8px; font-size:14px; }
+.footer{ text-align:center; margin-top:35px; }
+.footer h3{ font-size:18px; margin-bottom:10px; }
+.footer p{ color:#444; line-height:1.8; }
 </style>
 </head>
-
 <body>
-
 <div class="page">
-
-<!-- HEADER -->
-
 <div class="header">
-
   <div class="brand">
-
-   <img src="${appLogo}" />
-
+    <img src="${appLogo}" />
     <div>
       <div class="brand-name">MIDNIGHT AURA</div>
       <div class="brand-sub">PREMIUM FASHION</div>
     </div>
-
   </div>
-
   <div class="order-side">
-
     <div class="order-info">
       <div class="order-label">ORDER ID</div>
       <div class="order-id">#${order.orderId}</div>
       <div class="order-date">${orderDateFormatted}</div>
     </div>
-
     <div id="billQrCode" class="qr-box"></div>
-
   </div>
-
 </div>
-
 <div class="line"></div>
-
-<!-- CUSTOMER -->
-
 <div class="info-grid">
-
   <div>
-
     <div class="section-title">CUSTOMER</div>
-
     <div class="info-text">
       <b>${customer?.username || ""}</b><br>
       ID: ${customer?.customerId || ""}<br>
@@ -475,37 +319,22 @@ body{
       ${customer?.phone || ""}<br>
       Alt: ${customer?.altPhone || ""}
     </div>
-
   </div>
-
   <div>
-
     <div class="section-title">DELIVERY ADDRESS</div>
-
-    <div class="info-text">
-      ${addrParts.join(", ")}
-    </div>
-
+    <div class="info-text">${addrParts.join(", ")}</div>
   </div>
-
 </div>
-
 <div class="line"></div>
-
-<!-- STRIP -->
-
 <div class="info-strip">
-
   <div>
     <div class="strip-title">ORDER DATE</div>
     <div class="strip-value">${orderDateFormatted}</div>
   </div>
-
   <div>
     <div class="strip-title">PAYMENT METHOD</div>
     <div class="strip-value">${payMethodDisplay}</div>
   </div>
-
   <div>
     <div class="strip-title">PRODUCT DETAILS</div>
     <div class="strip-value">
@@ -514,119 +343,78 @@ body{
       Qty: ${qty}
     </div>
   </div>
-
 </div>
-
 <div class="line"></div>
-
-<!-- TABLE -->
-
 <table class="table">
-
 <tr>
   <th>DESCRIPTION</th>
   <th class="right">QTY</th>
   <th class="right">UNIT PRICE</th>
   <th class="right">AMOUNT</th>
 </tr>
-
 <tr>
   <td>${product?.productName}</td>
   <td class="right">${qty}</td>
   <td class="right">₹${fmt(price)}</td>
   <td class="right">₹${fmt(price)}</td>
 </tr>
-
 <tr>
   <td>Discount (${discount}%)</td>
   <td class="right">-</td>
   <td class="right">-</td>
-  <td class="right">- ₹${fmt((price-finalPrice)*qty)}</td>
+  <td class="right">- ₹${fmt((price - finalPrice) * qty)}</td>
 </tr>
-
 <tr>
   <td>Subtotal</td>
   <td class="right">${qty}</td>
   <td class="right">₹${fmt(finalPrice)}</td>
   <td class="right">₹${fmt(finalPrice)}</td>
 </tr>
-
 <tr>
   <td>Delivery Charges</td>
   <td class="right">-</td>
   <td class="right">-</td>
-  <td class="right">${delivery === 0 ? "FREE" : "₹"+fmt(delivery)}</td>
+  <td class="right">${delivery === 0 ? "FREE" : "₹" + fmt(delivery)}</td>
 </tr>
-
 <tr>
   <td>Platform Charges</td>
   <td class="right">-</td>
   <td class="right">-</td>
   <td class="right">₹0</td>
 </tr>
-
 <tr class="total-row">
   <td>TOTAL AMOUNT PAYABLE</td>
   <td></td>
   <td></td>
   <td class="right">₹${fmt(total)}</td>
 </tr>
-
 </table>
-
-<!-- BARCODE -->
-
 <div class="barcode-section">
-
   <svg id="billBarcode"></svg>
-
-  <div class="barcode-id">
-    SHIP:${order.orderId}
-  </div>
-
+  <div class="barcode-id">SHIP:${order.orderId}</div>
 </div>
-
 <div class="line" style="border-style:dashed"></div>
-
-<!-- FOOTER -->
-
 <div class="footer">
-
   <h3>Thank you for shopping with us! ✨</h3>
-
-  <p>
-    This is a computer-generated invoice.<br>
-    No signature required.
-  </p>
-
+  <p>This is a computer-generated invoice.<br>No signature required.</p>
 </div>
-
 </div>
-
 <script>
-
 new QRCode(document.getElementById("billQrCode"),{
   text:${JSON.stringify(qrData)},
   width:110,
   height:110
 });
-
 JsBarcode("#billBarcode", "${barcodeData}", {
   format:"CODE128",
   width:1.5,
   height:40,
   displayValue:false
 });
-
-setTimeout(()=>{
-  window.print();
-},500);
-
+setTimeout(()=>{ window.print(); },500);
 <\/script>
-
 </body>
-</html>
-`;
+</html>`;
 
   const win = window.open("", "_blank");
   win.document.write(html);
@@ -634,7 +422,7 @@ setTimeout(()=>{
   win.focus();
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
+// ─── Skeleton ──────────────────────────────────────────────────────────────────
 function Skeleton({ w, h, radius = 8 }) {
   return (
     <div style={{
@@ -646,26 +434,34 @@ function Skeleton({ w, h, radius = 8 }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function OrderDetail() {
   const { orderId } = useParams();
   const navigate    = useNavigate();
 
-  const [order,       setOrder]       = useState(null);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null);
-  const [showCancel,  setShowCancel]  = useState(false);
-  const [cancelLoad,  setCancelLoad]  = useState(false);
-  const [actionLoad,  setActionLoad]  = useState(false);
-  const [toast,       setToast]       = useState(null);
-  const [imgIdx,      setImgIdx]      = useState(0);
-  const [lightbox,    setLightbox]    = useState(false);
-  const toastRef     = useRef(null);
+  const [order,      setOrder]      = useState(null);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState(null);
+  const [showCancel, setShowCancel] = useState(false);
+  const [cancelLoad, setCancelLoad] = useState(false);
+  const [actionLoad, setActionLoad] = useState(false);
+  const [toast,      setToast]      = useState(null);
+  const [imgIdx,     setImgIdx]     = useState(0);
+  const [lightbox,   setLightbox]   = useState(false);
+  const toastRef    = useRef(null);
 
-  // ── Barcode keyboard scan listener ─────────────────────────────────────────
+  // ── Barcode keyboard scan listener ──────────────────────────────────────────
   const scanBufferRef = useRef("");
   const scanTimerRef  = useRef(null);
 
+  const showToast = useCallback((msg, type = "success") => {
+    setToast({ msg, type });
+    clearTimeout(toastRef.current);
+    toastRef.current = setTimeout(() => setToast(null), 3200);
+  }, []);
+
+  // ── Ship order ───────────────────────────────────────────────────────────────
+  // After a successful SHIPPED status update, fires a push notification to the customer.
   const handleShip = useCallback(async (sourceOrder) => {
     const target = sourceOrder || order;
     if (!target) return;
@@ -675,6 +471,13 @@ export default function OrderDetail() {
       if (res.data.success) {
         setOrder((prev) => ({ ...prev, orderState: "SHIPPED" }));
         showToast("Order marked as Shipped ✓");
+
+        // ── Send push notification to customer ──
+        await sendOrderNotification(
+          target.customer?.customerId,
+          "SHIPPED",
+          target.orderId
+        );
       }
     } catch (err) {
       console.error("ship error", err);
@@ -682,8 +485,9 @@ export default function OrderDetail() {
     } finally {
       setActionLoad(false);
     }
-  }, [order]); // eslint-disable-line
+  }, [order, showToast]);
 
+  // ── Barcode scanner effect ───────────────────────────────────────────────────
   useEffect(() => {
     const onKeyDown = (e) => {
       const tag = document.activeElement?.tagName?.toLowerCase();
@@ -715,14 +519,9 @@ export default function OrderDetail() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleShip]);
+  }, [handleShip, showToast]);
 
-  const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    clearTimeout(toastRef.current);
-    toastRef.current = setTimeout(() => setToast(null), 3200);
-  };
-
+  // ── Fetch order ──────────────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -738,6 +537,8 @@ export default function OrderDetail() {
     })();
   }, [orderId]);
 
+  // ── Cancel shipment (revert to CONFIRMED) ────────────────────────────────────
+  // Notifies the customer that the order is confirmed again.
   const handleCancelShip = useCallback(async () => {
     if (!order) return;
     setActionLoad(true);
@@ -746,6 +547,13 @@ export default function OrderDetail() {
       if (res.data.success) {
         setOrder((prev) => ({ ...prev, orderState: "CONFIRMED" }));
         showToast("Shipment cancelled — reverted to Confirmed");
+
+        // ── Send push notification to customer ──
+        await sendOrderNotification(
+          order.customer?.customerId,
+          "CONFIRMED",
+          order.orderId
+        );
       }
     } catch (err) {
       console.error("cancelShip error", err);
@@ -753,17 +561,31 @@ export default function OrderDetail() {
     } finally {
       setActionLoad(false);
     }
-  }, [order]);
+  }, [order, showToast]);
 
+  // ── Cancel order ─────────────────────────────────────────────────────────────
+  // Notifies the customer that the order has been cancelled.
   const handleCancelConfirm = useCallback(async (reason) => {
     if (!order) return;
     setCancelLoad(true);
     try {
       const res = await API.put(`/productBuy/updateOrderStatus/${order.orderId}`, { orderState: "CANCELLED", reason });
       if (res.data.success) {
-        setOrder((prev) => ({ ...prev, orderState: "CANCELLED", cancellationReason: reason, cancelledAt: new Date() }));
+        setOrder((prev) => ({
+          ...prev,
+          orderState: "CANCELLED",
+          cancellationReason: reason,
+          cancelledAt: new Date(),
+        }));
         setShowCancel(false);
         showToast("Order cancelled");
+
+        // ── Send push notification to customer ──
+        await sendOrderNotification(
+          order.customer?.customerId,
+          "CANCELLED",
+          order.orderId
+        );
       }
     } catch (err) {
       console.error("cancel error", err);
@@ -771,16 +593,15 @@ export default function OrderDetail() {
     } finally {
       setCancelLoad(false);
     }
-  }, [order]);
+  }, [order, showToast]);
 
+  // ── Derived state ────────────────────────────────────────────────────────────
   const images      = order?.product?.productImages ?? [];
   const isConfirmed = order?.orderState === "CONFIRMED";
   const isShipped   = order?.orderState === "SHIPPED";
   const isPlaced    = order?.orderState === "PLACED";
   const isDone      = ["DELIVERED", "CANCELLED"].includes(order?.orderState);
   const canCancel   = order?.orderState === "CONFIRMED";
-
-  // ── Print Bill is hidden when orderState is PLACED ──
   const showPrintBill = order && !isPlaced;
 
   const price      = Number(order?.product?.price || 0);
@@ -817,12 +638,15 @@ export default function OrderDetail() {
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         .od-section { animation: fadeIn 0.3s ease both; }
-        .od-img-thumb { cursor:pointer; transition:all 0.15s; border:2px solid transparent; border-radius:10px; overflow:hidden; }
+        .od-img-thumb {
+          cursor:pointer; transition:all 0.15s;
+          border:2px solid transparent; border-radius:10px; overflow:hidden;
+        }
         .od-img-thumb:hover { transform:scale(1.04); }
         .od-img-thumb.active { border-color: rgba(139,92,246,0.7); }
       `}</style>
 
-      {/* Toast */}
+      {/* ── Toast ── */}
       {toast && (
         <div style={{
           position: "fixed", bottom: 28, right: 28, zIndex: 99999,
@@ -839,7 +663,7 @@ export default function OrderDetail() {
         </div>
       )}
 
-      {/* Lightbox */}
+      {/* ── Lightbox ── */}
       {lightbox && images.length > 0 && (
         <div
           onClick={() => setLightbox(false)}
@@ -864,23 +688,31 @@ export default function OrderDetail() {
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); setImgIdx(i => (i - 1 + images.length) % images.length); }}
-                style={{ position:"fixed", left:18, top:"50%", transform:"translateY(-50%)", width:46, height:46, borderRadius:"50%", background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.18)", color:"#fff", fontSize:22, cursor:"pointer", zIndex:99999, display:"flex", alignItems:"center", justifyContent:"center" }}
+                style={{ position: "fixed", left: 18, top: "50%", transform: "translateY(-50%)", width: 46, height: 46, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", color: "#fff", fontSize: 22, cursor: "pointer", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center" }}
               >‹</button>
               <button
                 onClick={(e) => { e.stopPropagation(); setImgIdx(i => (i + 1) % images.length); }}
-                style={{ position:"fixed", right:18, top:"50%", transform:"translateY(-50%)", width:46, height:46, borderRadius:"50%", background:"rgba(255,255,255,0.1)", border:"1px solid rgba(255,255,255,0.18)", color:"#fff", fontSize:22, cursor:"pointer", zIndex:99999, display:"flex", alignItems:"center", justifyContent:"center" }}
+                style={{ position: "fixed", right: 18, top: "50%", transform: "translateY(-50%)", width: 46, height: 46, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", color: "#fff", fontSize: 22, cursor: "pointer", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center" }}
               >›</button>
             </>
           )}
-          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth:"min(500px,88vw)", maxHeight:"88vh", borderRadius:20, overflow:"hidden", boxShadow:"0 60px 160px rgba(0,0,0,0.95)" }}>
-            <img src={getImageUrl(images[imgIdx])} alt="" style={{ width:"100%", height:"100%", objectFit:"contain", maxHeight:"88vh", display:"block" }} />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "min(500px,88vw)", maxHeight: "88vh", borderRadius: 20, overflow: "hidden", boxShadow: "0 60px 160px rgba(0,0,0,0.95)" }}
+          >
+            <img src={getImageUrl(images[imgIdx])} alt="" style={{ width: "100%", height: "100%", objectFit: "contain", maxHeight: "88vh", display: "block" }} />
           </div>
         </div>
       )}
 
-      {/* Cancel Modal */}
+      {/* ── Cancel Modal ── */}
       {showCancel && order && (
-        <CancelModal order={order} onConfirm={handleCancelConfirm} onClose={() => setShowCancel(false)} loading={cancelLoad} />
+        <CancelModal
+          order={order}
+          onConfirm={handleCancelConfirm}
+          onClose={() => setShowCancel(false)}
+          loading={cancelLoad}
+        />
       )}
 
       <div>
@@ -898,9 +730,12 @@ export default function OrderDetail() {
             onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
             onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M19 12H5M12 5l-7 7 7 7"/>
+            </svg>
             Back to Orders
           </button>
+
           <div style={{ flex: 1 }}>
             <h1 style={{ color: "#fff", fontSize: 20, fontWeight: 900, margin: 0, letterSpacing: "-0.3px" }}>
               Order <span style={{ color: "#a78bfa", fontFamily: "monospace" }}>#{orderId}</span>
@@ -914,7 +749,6 @@ export default function OrderDetail() {
 
           {!loading && order && (
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {/* Print Bill: hidden when orderState is PLACED */}
               {showPrintBill && (
                 <button
                   onClick={() => printBill(order)}
@@ -928,7 +762,9 @@ export default function OrderDetail() {
                   onMouseEnter={e => e.currentTarget.style.background = "rgba(59,130,246,0.25)"}
                   onMouseLeave={e => e.currentTarget.style.background = "rgba(59,130,246,0.15)"}
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>
+                  </svg>
                   Print Bill
                 </button>
               )}
@@ -946,7 +782,9 @@ export default function OrderDetail() {
                   onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.22)"}
                   onMouseLeave={e => e.currentTarget.style.background = "rgba(239,68,68,0.12)"}
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
                   Cancel Order
                 </button>
               )}
@@ -975,19 +813,19 @@ export default function OrderDetail() {
         {!loading && order && (
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
 
-            {/* ── 1. Order Details ── */}
+            {/* 1. Order Details */}
             <SectionCard title="Order Details" icon="📋" className="od-section">
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 0 }}>
                 <div>
-                  <InfoRow label="Order ID"       value={`#${order.orderId}`}  mono accent="#a78bfa" />
+                  <InfoRow label="Order ID"       value={`#${order.orderId}`} mono accent="#a78bfa" />
                   <InfoRow label="Order State"    value={<StatusBadge status={order.orderState}    styles={ORDER_STATUS_STYLES} />} />
                   <InfoRow label="Payment Status" value={<StatusBadge status={order.paymentStatus} styles={PAY_STATUS_STYLES} />} />
                   <InfoRow label="Payment Method" value={PAY_METHOD_LABEL[order.payMethod] || order.paymentMode || "—"} />
                 </div>
                 <div style={{ paddingLeft: 20 }}>
-                  <InfoRow label="Placed On"  value={fmtDate(order.createdAt)} />
-                  <InfoRow label="Size"       value={order.size?.toUpperCase() || "—"} accent="#c4b5fd" />
-                  <InfoRow label="Quantity"   value={order.quantity ?? "—"} accent="#fbbf24" />
+                  <InfoRow label="Placed On" value={fmtDate(order.createdAt)} />
+                  <InfoRow label="Size"      value={order.size?.toUpperCase() || "—"} accent="#c4b5fd" />
+                  <InfoRow label="Quantity"  value={order.quantity ?? "—"} accent="#fbbf24" />
                   {order.cancellationReason && (
                     <InfoRow label="Cancel Reason" value={order.cancellationReason} accent="#fca5a5" />
                   )}
@@ -998,14 +836,14 @@ export default function OrderDetail() {
               </div>
             </SectionCard>
 
-            {/* ── 2. Customer Details ── */}
+            {/* 2. Customer Details */}
             <SectionCard title="Customer Details" icon="👤" className="od-section">
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 0 }}>
                 <div>
-                  <InfoRow label="Customer ID"     value={order.customer?.customerId}   mono accent="#a78bfa" />
-                  <InfoRow label="Username"         value={order.customer?.username}      accent="#fff" />
+                  <InfoRow label="Customer ID"     value={order.customer?.customerId}  mono accent="#a78bfa" />
+                  <InfoRow label="Username"         value={order.customer?.username}     accent="#fff" />
                   <InfoRow label="Email"            value={order.customer?.email} />
-                  <InfoRow label="Mobile"           value={order.customer?.phone || "—"} accent="#fbbf24" />
+                  <InfoRow label="Mobile"           value={order.customer?.phone   || "—"} accent="#fbbf24" />
                   <InfoRow label="Alternate Mobile" value={order.customer?.altPhone || "—"} />
                   {order.customer?.gender && (
                     <InfoRow label="Gender" value={order.customer.gender} />
@@ -1016,10 +854,7 @@ export default function OrderDetail() {
                     Delivery Address
                   </p>
                   {addrParts.length > 0 ? (
-                    <div style={{
-                      background: "rgba(255,255,255,0.04)", borderRadius: 12,
-                      border: "1px solid rgba(255,255,255,0.07)", padding: "12px 14px",
-                    }}>
+                    <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.07)", padding: "12px 14px" }}>
                       <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 13, lineHeight: 1.7, margin: 0 }}>
                         {addrParts.join(", ")}
                       </p>
@@ -1028,6 +863,7 @@ export default function OrderDetail() {
                     <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>No address on file</p>
                   )}
 
+                  {/* Ship button — fires notification on success */}
                   {isConfirmed && (
                     <button
                       onClick={() => handleShip()}
@@ -1041,7 +877,7 @@ export default function OrderDetail() {
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                         transition: "all 0.15s", boxShadow: "0 4px 20px rgba(6,182,212,0.12)",
                       }}
-                      onMouseEnter={e => { if(!actionLoad) e.currentTarget.style.background = "linear-gradient(135deg,rgba(6,182,212,0.35),rgba(6,182,212,0.2))"; }}
+                      onMouseEnter={e => { if (!actionLoad) e.currentTarget.style.background = "linear-gradient(135deg,rgba(6,182,212,0.35),rgba(6,182,212,0.2))"; }}
                       onMouseLeave={e => { e.currentTarget.style.background = actionLoad ? "rgba(6,182,212,0.1)" : "linear-gradient(135deg,rgba(6,182,212,0.25),rgba(6,182,212,0.12))"; }}
                     >
                       {actionLoad ? (
@@ -1054,7 +890,8 @@ export default function OrderDetail() {
                       ) : (
                         <>
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                            <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                            <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/>
+                            <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
                           </svg>
                           Ship to Delivery Boy
                         </>
@@ -1062,6 +899,7 @@ export default function OrderDetail() {
                     </button>
                   )}
 
+                  {/* Cancel shipment button — fires notification on success */}
                   {isShipped && (
                     <button
                       onClick={handleCancelShip}
@@ -1075,12 +913,14 @@ export default function OrderDetail() {
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                         transition: "all 0.15s",
                       }}
-                      onMouseEnter={e => { if(!actionLoad) e.currentTarget.style.background = "rgba(239,68,68,0.22)"; }}
+                      onMouseEnter={e => { if (!actionLoad) e.currentTarget.style.background = "rgba(239,68,68,0.22)"; }}
                       onMouseLeave={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
                     >
                       {actionLoad ? "Updating…" : (
                         <>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                          </svg>
                           Cancel Shipment (→ Confirmed)
                         </>
                       )}
@@ -1102,7 +942,7 @@ export default function OrderDetail() {
               </div>
             </SectionCard>
 
-            {/* ── 3. Product Details ── */}
+            {/* 3. Product Details */}
             <SectionCard title="Product Details" icon="🛍️" className="od-section">
               <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                 {images.length > 0 && (
@@ -1199,7 +1039,9 @@ export default function OrderDetail() {
 
                   <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 14, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
                     <div style={{ padding: "8px 14px", background: "rgba(255,255,255,0.02)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                      <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", margin: 0 }}>Pricing Breakdown</p>
+                      <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", margin: 0 }}>
+                        Pricing Breakdown
+                      </p>
                     </div>
                     <div style={{ padding: "6px 14px" }}>
                       <InfoRow label="MRP / Unit Price"     value={`₹${fmt(price)}`} />
