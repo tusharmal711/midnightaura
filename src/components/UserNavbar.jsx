@@ -89,20 +89,7 @@ export default function UserNavbar() {
         >
           {/* Smaller logo on mobile (h-8), normal on md+ (h-10) */}
           <img src={appLogo} alt="app-logo" className="h-10 md:h-10 w-auto" />
-          <span
-            className="hidden sm:block text-[24px] sm:text-[26px] md:text-[22px]"
-            style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: 900,
-              background: "linear-gradient(90deg,#ff0000 0%,#ff5e00 40%,#ff9d00 70%,#ffd000 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              letterSpacing: "-0.06em",
-              lineHeight: "1",
-            }}
-          >
-            চমক টমক
-          </span>
+        
         </div>
 
         {/* Search — desktop */}
