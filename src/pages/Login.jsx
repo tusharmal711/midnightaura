@@ -5,7 +5,7 @@ import { API } from "../api";
 import Cookies from "js-cookie";
 import { getToken, onMessage } from "firebase/messaging";
 import { messaging } from "../config/firebase";
-
+import appLogo from "../assets/images/appImage/app-logo.png";
 const VAPID_KEY = "BHNa2kymQm9Gqeppv52AG9vRyZYYs5XxiJxsQx3kfrPzsYqUyvr9AhptExV59XpkAhK1nYlaP0pINs_FBLogACs"; // Firebase Console → Cloud Messaging → Web Push certificates
 
 // ── FCM registration utility ──────────────────────────────────────────────────
@@ -37,7 +37,7 @@ export const registerFCMToken = async (email) => {
       if (Notification.permission === "granted") {
         new Notification(payload.notification.title, {
           body: payload.notification.body,
-          icon: "/logo.png",
+          icon: appLogo,
         });
       }
     });
