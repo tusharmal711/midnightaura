@@ -54,7 +54,7 @@ const NOTIFICATION_CONTENT = {
 
 async function sendOrderNotification(customerId, newState, orderId) {
   const content = NOTIFICATION_CONTENT[newState];
-  
+
   if (!content || !customerId) return;
 
   try {
