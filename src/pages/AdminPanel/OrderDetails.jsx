@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { API } from "../../api";
 import appLogo from "../../assets/images/appImage/app-logo.png";
-
+import { FaBoxOpen } from "react-icons/fa";
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 const BASE_URL = "https://www.chomoktomok.com";
 const getImageUrl = (img) => {
@@ -35,7 +35,12 @@ const PAY_METHOD_LABEL = {
 // Fires-and-forgets — errors are logged but never surface to the user.
 const NOTIFICATION_CONTENT = {
   SHIPPED: {
-    title: "📦 Your order has been shipped!",
+ 
+    title: (
+  <>
+    <FaBoxOpen /> Your order has been shipped!
+  </>
+),
     body: "Great news! Your order is on its way. Our delivery partner will contact you soon.",
   },
   CONFIRMED: {
