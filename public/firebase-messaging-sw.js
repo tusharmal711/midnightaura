@@ -13,8 +13,24 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  self.registration.showNotification(payload.notification.title, {
-    body: payload.notification.body,
-    icon: "/Images/chomoktomok-app.png",
-  });
+  console.log("Received background message", payload);
+
+  self.registration.showNotification(
+    payload.notification.title,
+    {
+      body: payload.notification.body,
+      icon: "https://www.chomoktomok.com/Images/chomoktomok-app.png",
+      badge: "https://www.chomoktomok.com/Images/chomoktomok-app.png",
+      vibrate: [200,100,200],
+      requireInteraction: true
+    }
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  event.waitUntil(
+    clients.openWindow("https://www.chomoktomok.com")
+  );
 });
