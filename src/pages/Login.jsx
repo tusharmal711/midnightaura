@@ -5,7 +5,7 @@ import { API } from "../api";
 import Cookies from "js-cookie";
 import { getToken, onMessage } from "firebase/messaging";
 import { messaging } from "../config/firebase";
-import appLogo from "../assets/images/appImage/app-logo.png";
+import appLogo from "../assets/images/appImage/chomoktomok-logo.png";
 const VAPID_KEY = "BHNa2kymQm9Gqeppv52AG9vRyZYYs5XxiJxsQx3kfrPzsYqUyvr9AhptExV59XpkAhK1nYlaP0pINs_FBLogACs"; // Firebase Console → Cloud Messaging → Web Push certificates
 
 // ── FCM registration utility ──────────────────────────────────────────────────
