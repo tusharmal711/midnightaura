@@ -15,6 +15,19 @@ const SECRET_KEY = "midnightaura_secret_key";
 const BASE_URL   = "http://localhost:8008";
 const SIZES      = ["S", "M", "L", "XL", "XXL"];
 
+// ── Get stored email (mirrors ProductCard exactly) ────────────────────────────
+const getStoredEmail = () => {
+  try {
+    const s = localStorage.getItem("user");
+    if (s) { const p = JSON.parse(s); if (p?.email) return p.email; }
+  } catch (_) {}
+  try {
+    const c = Cookies.get("user");
+    if (c) { const p = JSON.parse(c); if (p?.email) return p.email; }
+  } catch (_) {}
+  return null;
+};
+
 // ── Stars ─────────────────────────────────────────────────────────────────────
 const Stars = ({ n }) =>
   [1, 2, 3, 4, 5].map((s) => (
@@ -66,16 +79,55 @@ function ProductViewSkeleton() {
   );
 }
 
+// ── Toast Notification (matches ProductCard) ──────────────────────────────────
+const Toast = ({ message, type }) => {
+  const colors = {
+    success: { bg: "rgba(34,197,94,0.15)",  border: "rgba(34,197,94,0.35)",  text: "#4ade80",  icon: "M5 13l4 4L19 7" },
+    error:   { bg: "rgba(239,68,68,0.15)",  border: "rgba(239,68,68,0.35)",  text: "#f87171",  icon: "M18 6L6 18M6 6l12 12" },
+    info:    { bg: "rgba(139,92,246,0.15)", border: "rgba(139,92,246,0.35)", text: "#c4b5fd",  icon: "M13 16h-1v-4h-1m1-4h.01" },
+  };
+  const c = colors[type] || colors.info;
+  return (
+    <div style={{
+      position: "fixed", bottom: 90, left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: 999999,
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "12px 18px", borderRadius: 14,
+      background: c.bg, border: `1px solid ${c.border}`,
+      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+      animation: "toast-in 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards",
+      whiteSpace: "nowrap", maxWidth: "90vw",
+    }}>
+      <span style={{
+        width: 24, height: 24, borderRadius: "50%",
+        background: "rgba(255,255,255,0.08)",
+        border: `1px solid ${c.border}`,
+        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c.text} strokeWidth="2.5" strokeLinecap="round">
+          <path d={c.icon} />
+        </svg>
+      </span>
+      <span style={{ fontSize: 13, fontWeight: 600, color: c.text, letterSpacing: "0.01em" }}>
+        {message}
+      </span>
+    </div>
+  );
+};
+
 // ── Auth Toast ────────────────────────────────────────────────────────────────
 const AuthToast = ({ visible, onLogin, onDismiss }) => (
   <div style={{
     position: "fixed", inset: 0, zIndex: 60,
     display: "flex", alignItems: "flex-end", justifyContent: "center",
     paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
-    pointerEvents: "none", transition: "opacity 0.3s", opacity: visible ? 1 : 0,
+    pointerEvents: visible ? "auto" : "none",
+    transition: "opacity 0.3s", opacity: visible ? 1 : 0,
   }}>
     <div style={{
-      pointerEvents: "auto", width: "100%", maxWidth: 384,
+      width: "100%", maxWidth: 384,
       background: "#1a1730", border: "1px solid rgba(160,120,255,0.35)",
       borderRadius: 16, padding: "16px 20px", boxShadow: "0 0 40px rgba(160,120,255,0.25)",
       transform: visible ? "translateY(0)" : "translateY(32px)", transition: "transform 0.3s",
@@ -101,10 +153,11 @@ const SizeToast = ({ visible, onDismiss }) => (
     position: "fixed", inset: 0, zIndex: 60,
     display: "flex", alignItems: "flex-end", justifyContent: "center",
     paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
-    pointerEvents: "none", opacity: visible ? 1 : 0, transition: "opacity 0.3s",
+    pointerEvents: visible ? "auto" : "none",
+    opacity: visible ? 1 : 0, transition: "opacity 0.3s",
   }}>
     <div style={{
-      pointerEvents: "auto", width: "100%", maxWidth: 384,
+      width: "100%", maxWidth: 384,
       background: "#1a1730", border: "1px solid rgba(255,120,80,0.45)",
       borderRadius: 16, padding: "16px 20px", boxShadow: "0 0 40px rgba(255,120,80,0.2)",
       transform: visible ? "translateY(0)" : "translateY(32px)", transition: "transform 0.3s",
@@ -126,7 +179,7 @@ const SizeToast = ({ visible, onDismiss }) => (
 );
 
 // ── CTA Buttons ───────────────────────────────────────────────────────────────
-const CTAButtons = ({ compact = false, onCart, onBuy, sizeError }) => (
+const CTAButtons = ({ compact = false, onCart, onBuy, sizeError, cartLoading, cartAdded }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
     {sizeError && (
       <div style={{
@@ -138,18 +191,71 @@ const CTAButtons = ({ compact = false, onCart, onBuy, sizeError }) => (
         Please select a size first
       </div>
     )}
-    <div className="flex gap-3 w-full items-stretch">
+    <div style={{ display: "flex", gap: 12, width: "100%", alignItems: "stretch" }}>
+      {/* Add to Cart */}
       <button
         onClick={onCart}
-        className={`flex-1 min-h-[56px] h-[56px] flex items-center justify-center gap-2 rounded-xl border border-[#8B5CF6] bg-[#111827]/95 backdrop-blur-md text-[#C4B5FD] font-semibold tracking-wide shadow-[0_0_18px_rgba(139,92,246,0.18)] hover:bg-[#1E1B4B] hover:shadow-[0_0_26px_rgba(139,92,246,0.35)] hover:border-[#A78BFA] transition-all duration-300 ${compact ? "text-sm" : "text-md"}`}
-        style={{ fontFamily: "'Poppins', sans-serif" }}
+        disabled={cartLoading}
+        style={{
+          flex: 1,
+          minHeight: 56, height: 56,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          borderRadius: 12,
+          border: cartAdded ? "1px solid #4ade80" : "1px solid #8B5CF6",
+          background: cartAdded ? "rgba(74,222,128,0.15)" : "rgba(17,24,39,0.95)",
+          backdropFilter: "blur(8px)",
+          color: cartAdded ? "#4ade80" : "#C4B5FD",
+          fontFamily: "'Poppins', sans-serif",
+          fontWeight: 600,
+          fontSize: compact ? 14 : 15,
+          letterSpacing: "0.02em",
+          cursor: cartLoading ? "wait" : "pointer",
+          boxShadow: "0 0 18px rgba(139,92,246,0.18)",
+          transition: "all 0.3s",
+          WebkitTapHighlightColor: "transparent",
+          touchAction: "manipulation",
+        }}
       >
-        <FaCartShopping size={20}/> Add to Cart
+        {cartLoading ? (
+          <>
+            <svg style={{ animation: "spin 0.8s linear infinite", flexShrink: 0 }} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+            Adding…
+          </>
+        ) : cartAdded ? (
+          <>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+            Added!
+          </>
+        ) : (
+          <>
+            <FaCartShopping size={18} /> Add to Cart
+          </>
+        )}
       </button>
+      {/* Buy Now */}
       <button
         onClick={onBuy}
-        className={`flex-1 min-h-[56px] h-[56px] flex items-center justify-center gap-2 rounded-xl border-none bg-gradient-to-br from-[#FFE51F] to-[#FFD600] text-[#111827] font-bold shadow-[0_0_20px_rgba(255,229,31,0.35)] hover:shadow-[0_0_30px_rgba(255,229,31,0.55)] hover:-translate-y-[1px] transition-all duration-300 ${compact ? "text-sm" : "text-md"}`}
-        style={{ fontFamily: "'Poppins', sans-serif" }}
+        style={{
+          flex: 1,
+          minHeight: 56, height: 56,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          borderRadius: 12,
+          border: "none",
+          background: "linear-gradient(135deg,#FFE51F,#FFD600)",
+          color: "#111827",
+          fontFamily: "'Poppins', sans-serif",
+          fontWeight: 700,
+          fontSize: compact ? 14 : 15,
+          cursor: "pointer",
+          boxShadow: "0 0 20px rgba(255,229,31,0.35)",
+          transition: "all 0.3s",
+          WebkitTapHighlightColor: "transparent",
+          touchAction: "manipulation",
+        }}
       >
         <IoIosFlash size={20} />
         Buy Now
@@ -266,7 +372,9 @@ const CustomerImageLightbox = ({ images, startIdx, onClose }) => {
   );
 };
 
-// ── Product Image Lightbox ────────────────────────────────────────────────────
+// ── Product Image Lightbox (FIXED for mobile) ─────────────────────────────────
+// On mobile: image fills 100% width, height is auto (natural ratio), extra space is black.
+// On desktop: original behaviour (cover in a tall card).
 const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => {
   const [idx, setIdx]           = useState(startIdx);
   const [visible, setVisible]   = useState(false);
@@ -303,15 +411,79 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
   const isMobile = window.innerWidth <= 768;
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "#000", opacity: visible ? 1 : 0, transition: "opacity 0.2s ease" }}>
-      <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, zIndex: 20, width: 44, height: 44, borderRadius: "50%", background: "rgba(40,40,40,0.95)", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-      {images.length > 1 && (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 999999,
+        background: "#000",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        opacity: visible ? 1 : 0, transition: "opacity 0.2s ease",
+      }}
+      onClick={onClose}
+    >
+      {/* Close */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        style={{ position: "absolute", top: 16, right: 16, zIndex: 20, width: 44, height: 44, borderRadius: "50%", background: "rgba(40,40,40,0.95)", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+      >✕</button>
+
+      {/* Desktop prev/next arrows */}
+      {!isMobile && images.length > 1 && (
         <>
-          <button onClick={prev} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", zIndex: 20, width: 48, height: 48, borderRadius: "50%", background: "rgba(40,40,40,0.9)", border: "none", color: "#fff", fontSize: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
-          <button onClick={next} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 20, width: 48, height: 48, borderRadius: "50%", background: "rgba(40,40,40,0.9)", border: "none", color: "#fff", fontSize: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+          <button onClick={(e) => { e.stopPropagation(); prev(); }} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", zIndex: 20, width: 48, height: 48, borderRadius: "50%", background: "rgba(40,40,40,0.9)", border: "none", color: "#fff", fontSize: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+          <button onClick={(e) => { e.stopPropagation(); next(); }} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", zIndex: 20, width: 48, height: 48, borderRadius: "50%", background: "rgba(40,40,40,0.9)", border: "none", color: "#fff", fontSize: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
         </>
       )}
-      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
+
+      {isMobile ? (
+        /* ── MOBILE: full width, natural height, centred vertically ── */
+        <div
+          onClick={e => e.stopPropagation()}
+          onTouchStart={e => { touchStartX.current = e.changedTouches[0].screenX; }}
+          onTouchEnd={e => {
+            const diff = touchStartX.current - e.changedTouches[0].screenX;
+            if (diff > 50) next(); if (diff < -50) prev();
+          }}
+          style={{
+            width: "100vw",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            opacity: sliding ? 0 : 1,
+            transform: sliding ? `translateX(${slideDir < 0 ? "60px" : "-60px"})` : "translateX(0)",
+            transition: "opacity 0.23s ease, transform 0.23s ease",
+            touchAction: "pan-y pinch-zoom",
+          }}
+        >
+          {imageUrl(images[idx]) ? (
+            <img
+              src={imageUrl(images[idx])}
+              alt={`${productName} — ${idx + 1}`}
+              draggable={false}
+              style={{
+                width: "100%",
+                height: "auto",        /* natural aspect ratio */
+                maxHeight: "100vh",    /* never overflow screen */
+                objectFit: "contain",  /* letterbox if needed */
+                display: "block",
+                userSelect: "none",
+              }}
+            />
+          ) : (
+            <div style={{ color: "#999", padding: 32 }}>No Image</div>
+          )}
+
+          {/* Dots + label */}
+          <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            {images.length > 1 && (
+              <div style={{ display: "flex", gap: 6 }}>
+                {images.map((_, i) => (
+                  <button key={i} onClick={() => !sliding && setIdx(i)} style={{ width: i === idx ? 22 : 8, height: 8, borderRadius: 4, padding: 0, border: "none", cursor: "pointer", background: i === idx ? "#7c5cfc" : "rgba(255,255,255,0.45)", transition: "width 0.25s ease" }} />
+                ))}
+              </div>
+            )}
+            <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11 }}>Swipe left/right to navigate</div>
+          </div>
+        </div>
+      ) : (
+        /* ── DESKTOP: original tall card style ── */
         <div
           onTouchStart={e => { touchStartX.current = e.changedTouches[0].screenX; }}
           onTouchEnd={e => {
@@ -321,12 +493,12 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
           onClick={e => e.stopPropagation()}
           style={{
             position: "relative",
-            width: isMobile ? "100vw" : "min(500px, 88vw)",
-            height: isMobile ? "100vh" : "95vh",
+            width: "min(500px, 88vw)",
+            height: "95vh",
             maxWidth: "100vw", maxHeight: "100vh",
-            borderRadius: isMobile ? 0 : 22,
+            borderRadius: 22,
             overflow: "hidden", background: "#000",
-            boxShadow: isMobile ? "none" : "0 30px 90px rgba(0,0,0,0.85)",
+            boxShadow: "0 30px 90px rgba(0,0,0,0.85)",
             opacity: sliding ? 0 : 1,
             transform: sliding ? `translateX(${slideDir < 0 ? "60px" : "-60px"})` : "translateX(0)",
             transition: "opacity 0.23s ease, transform 0.23s ease",
@@ -342,8 +514,8 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
             <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#999" }}>No Image</div>
           )}
           <div style={{ position: "absolute", inset: 0, top: "55%", background: "linear-gradient(to bottom,transparent,rgba(0,0,0,0.82))", pointerEvents: "none" }} />
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: isMobile ? "70px 18px 28px" : "16px 18px 14px", zIndex: 2 }}>
-            <div style={{ color: "#fff", fontWeight: 700, fontSize: isMobile ? 20 : 17, marginBottom: 8 }}>{productName}</div>
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px 18px 14px", zIndex: 2 }}>
+            <div style={{ color: "#fff", fontWeight: 700, fontSize: 17, marginBottom: 8 }}>{productName}</div>
             {images.length > 1 && (
               <div style={{ display: "flex", gap: 6, marginBottom: 8, justifyContent: "center" }}>
                 {images.map((_, i) => (
@@ -354,7 +526,7 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
             <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, textAlign: "center" }}>Swipe left/right to navigate</div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
@@ -441,9 +613,16 @@ export default function ProductView() {
   const [showAllReviews,      setShowAllReviews]      = useState(false);
   const [expandedReview,      setExpandedReview]      = useState(null);
 
+  // ── Cart state (mirrors ProductCard) ────────────────────────────────────────
+  const [customerId,   setCustomerId]   = useState(null);
+  const [cartLoading,  setCartLoading]  = useState(false);
+  const [cartAdded,    setCartAdded]    = useState(false);
+  const [toast,        setToast]        = useState(null);
+  const toastTimer = useRef(null);
+
   // ── Feedback state ──────────────────────────────────────────────
   const [feedbackLoading,     setFeedbackLoading]     = useState(false);
-  const [feedbackLoaded,      setFeedbackLoaded]      = useState(false); // true after first fetch completes
+  const [feedbackLoaded,      setFeedbackLoaded]      = useState(false);
   const [avgRating,           setAvgRating]           = useState(0);
   const [totalCount,          setTotalCount]          = useState(0);
   const [ratingCounts,        setRatingCounts]        = useState({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 });
@@ -474,6 +653,74 @@ export default function ProductView() {
     } catch { return null; }
   }, [productId]);
 
+  // ── Show toast helper ─────────────────────────────────────────────────────
+  const showToast = (message, type = "info", duration = 2800) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ message, type });
+    toastTimer.current = setTimeout(() => setToast(null), duration);
+  };
+
+  // ── Fetch customerId (mirrors ProductCard) ───────────────────────────────
+  useEffect(() => {
+    const fetchCustomerId = async () => {
+      try {
+        const email = getStoredEmail();
+        if (!email) return;
+        const res = await API.post("/user/getProfile", { email });
+        if (res.data.success) {
+          setCustomerId(res.data.user?.customerId || null);
+        }
+      } catch (err) {
+        console.error("[ProductView] fetchCustomerId error:", err);
+      }
+    };
+    fetchCustomerId();
+  }, []);
+
+  // ── Add to Cart (same API call as ProductCard, no size picker popup) ──────
+  const addToCart = async () => {
+    if (!customerId) {
+      showToast("Please log in to add items to cart", "error");
+      return;
+    }
+
+    // Validate size if product has sizes
+    if (hasSizes(product) && hasAnySizeInStock(product) && !selSize) {
+      setSizeError(true);
+      setSizeToast(true);
+      document.getElementById("size-selector")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    setCartLoading(true);
+    try {
+      const originalId = getDecryptedId();
+      const res = await API.post("/cart/addToCart", {
+        customerId,
+        productId: originalId,
+        ...(selSize ? { size: selSize } : {}),
+      });
+
+      if (res.data.success) {
+        setCartAdded(true);
+        showToast(
+          selSize
+            ? `${product?.name} (${selSize}) added to cart!`
+            : `${product?.name} added to cart!`,
+          "success"
+        );
+        setTimeout(() => setCartAdded(false), 1500);
+      } else {
+        showToast(res.data.message || "Could not add to cart", "error");
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to add to cart. Try again.";
+      showToast(msg, "error");
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
   // ── Fetch product ───────────────────────────────────────────────
   useEffect(() => {
     if (!productId) return;
@@ -497,8 +744,6 @@ export default function ProductView() {
   }, [productId, getDecryptedId]);
 
   // ── Fetch feedback once product is loaded ───────────────────────
-  // Uses the decrypted MongoDB _id — same value that submitFeedback
-  // receives when the feedback form posts productId from the URL.
   useEffect(() => {
     if (!productId) return;
     fetchFeedback(1, true);
@@ -594,15 +839,19 @@ export default function ProductView() {
 
   const isLoggedIn = () => !!Cookies.get("user");
 
-  const handleProtectedAction = (dest) => {
+  // Buy Now — still navigates (no change)
+  const handleBuy = () => {
     if (!validateSize()) return;
     persistSize();
-    if (isLoggedIn()) navigate(dest);
+    if (isLoggedIn()) navigate(`/view-checkout/${encodeURIComponent(productId)}`);
     else setAuthToast(true);
   };
 
-  const handleCart      = () => handleProtectedAction("/product-checkout");
-  const handleBuy       = () => handleProtectedAction(`/view-checkout/${encodeURIComponent(productId)}`);
+  // Cart — calls addToCart directly (no navigation, no size picker popup)
+  const handleCart = () => {
+    addToCart();
+  };
+
   const handleGoToLogin = () => { setAuthToast(false); navigate("/login"); };
 
   const imageUrl = (path) => path ? (path.startsWith("/") ? `${BASE_URL}${path}` : path) : null;
@@ -621,9 +870,6 @@ export default function ProductView() {
   });
 
   const displayedStars = avgRating > 0 ? starString(avgRating) : "☆☆☆☆☆";
-
-  // ── Derived flags — used to show/hide review section ──────────
-  // Only show the reviews section after loading completes AND there is actual data.
   const hasAnyFeedback = feedbackLoaded && totalCount > 0;
 
   return (
@@ -638,12 +884,17 @@ export default function ProductView() {
         .cinzel{font-family:'Cinzel',serif}
         @keyframes sk-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
         @keyframes size-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+        @keyframes toast-in{0%{opacity:0;transform:translateX(-50%) translateY(16px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         .reviews-scroll-wrap::-webkit-scrollbar{display:none}
         .reviews-scroll-wrap{scrollbar-width:none;-ms-overflow-style:none}
         .cust-img-thumb:hover{opacity:1!important;transform:scale(1.04);}
         .related-scroll::-webkit-scrollbar{height:0;display:none}
         .related-scroll{-ms-overflow-style:none;scrollbar-width:none;}
       `}</style>
+
+      {/* Toast notification */}
+      {toast && <Toast message={toast.message} type={toast.type} />}
 
       <AuthToast visible={authToast} onLogin={handleGoToLogin} onDismiss={() => setAuthToast(false)} />
       <SizeToast visible={sizeToast} onDismiss={() => setSizeToast(false)} />
@@ -817,7 +1068,13 @@ export default function ProductView() {
                 </div>
 
                 <div ref={productDetailsRef}>
-                  <CTAButtons onCart={handleCart} onBuy={handleBuy} sizeError={sizeError} />
+                  <CTAButtons
+                    onCart={handleCart}
+                    onBuy={handleBuy}
+                    sizeError={sizeError}
+                    cartLoading={cartLoading}
+                    cartAdded={cartAdded}
+                  />
                 </div>
               </div>
             </div>
@@ -837,17 +1094,12 @@ export default function ProductView() {
               </div>
             )}
 
-            {/* ════════════════════════════════════════════════════
-                CUSTOMER REVIEWS — only rendered when there IS data
-                While loading: show skeletons.
-                After load with no data: render nothing at all.
-            ════════════════════════════════════════════════════ */}
+            {/* ── Customer Reviews ── */}
             {(feedbackLoading || hasAnyFeedback) && (
               <div style={{ marginTop: 56 }}>
                 <div className="cinzel" style={{ fontSize: 18, fontWeight: 700, color: "#e8e0ff", marginBottom: 4 }}>Customer Reviews</div>
                 <div style={{ fontSize: 13, color: "#8880aa", marginBottom: 24 }}>Verified purchases from Midnight Aura shoppers</div>
 
-                {/* ── Customer image strip — only if there are image reviews ── */}
                 {(feedbackLoading || imageFeedback.length > 0) && (
                   <div style={{ marginBottom: 28 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "#a078ff", marginBottom: 12 }}>
@@ -915,7 +1167,7 @@ export default function ProductView() {
                   </div>
                 )}
 
-                {/* ── Rating summary ── */}
+                {/* Rating summary */}
                 <div style={{
                   display: "flex", alignItems: "center", gap: 32,
                   background: "#12121a", border: "1px solid rgba(160,120,255,0.13)",
@@ -956,7 +1208,6 @@ export default function ProductView() {
                   )}
                 </div>
 
-                {/* ── Comment Reviews — only if there are comment reviews ── */}
                 {(feedbackLoading || commentFeedback.length > 0) && (
                   <>
                     <div style={{ position: "relative" }}>
@@ -1026,7 +1277,6 @@ export default function ProductView() {
                       </div>
                     </div>
 
-                    {/* Load More / Show All — desktop */}
                     {!feedbackLoading && commentFeedback.length > 0 && (
                       <div style={{ display: window.innerWidth <= 768 ? "none" : "flex", justifyContent: "flex-end", marginTop: 16, gap: 10 }}>
                         {showAllReviews && feedbackPage < feedbackTotalPages && (
@@ -1098,15 +1348,35 @@ export default function ProductView() {
           </div>
         )}
 
-        {/* ── Fixed bottom CTA bar (mobile) ── */}
+        {/* ── Fixed bottom CTA bar (mobile) ──
+            KEY FIXES:
+            1. zIndex bumped to 9999 so nothing overlaps it
+            2. pointerEvents always "auto" when visible
+            3. touchAction: "manipulation" on buttons for instant tap response
+            4. No backdrop-filter on the wrapper (can block touches on some Android WebViews)
+        ── */}
         <div style={{
-          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+          position: "fixed",
+          bottom: 0, left: 0, right: 0,
+          zIndex: 9999,
           transition: "transform 0.3s ease",
           transform: fixedBar ? "translateY(0)" : "translateY(100%)",
           display: window.innerWidth <= 768 ? "block" : "none",
+          pointerEvents: fixedBar ? "auto" : "none",
         }}>
-          <div style={{ padding: "12px 16px 16px", background: "linear-gradient(to top,rgba(14,19,32,0.98),rgba(14,19,32,0.85))", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(160,120,255,0.15)" }}>
-            <CTAButtons compact onCart={handleCart} onBuy={handleBuy} sizeError={sizeError} />
+          <div style={{
+            padding: "12px 16px 20px",
+            background: "rgba(14,19,32,0.98)",
+            borderTop: "1px solid rgba(160,120,255,0.15)",
+          }}>
+            <CTAButtons
+              compact
+              onCart={handleCart}
+              onBuy={handleBuy}
+              sizeError={sizeError}
+              cartLoading={cartLoading}
+              cartAdded={cartAdded}
+            />
           </div>
         </div>
 

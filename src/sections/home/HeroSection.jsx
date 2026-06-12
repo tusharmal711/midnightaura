@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import heroFirstImage from "../../assets/images/appImage/hero-first.png";
 import ads from "../../assets/images/appImage/ads.png";
+
 const slides = [
   {
     id: 0,
@@ -11,7 +12,7 @@ const slides = [
     sub: "Premium Streetwear for Every Aura.\nStand Out. Be Bold. Be You.",
     accent: ["#b44fff", "#ff6b35"],
     badge: "UP TO 30% OFF",
-    cta: "buy",                          // → BUY NOW
+    cta: "buy",
   },
   {
     id: 1,
@@ -21,11 +22,11 @@ const slides = [
     sub: "Crafted for the streets.\nWorn by legends.",
     accent: ["#00c6ff", "#0072ff"],
     badge: "FREE SHIPPING",
-    cta: "customize",                    // → CUSTOMIZE T-SHIRT
+    cta: "customize",
   },
   {
     id: 2,
-    image:ads,
+    image: ads,
     tag: "LIMITED",
     title: ["BREAK THE", "MOLD"],
     sub: "Limited edition drops every week.\nDon't sleep on it.",
@@ -87,13 +88,16 @@ export default function HeroSection() {
 
   const s = slides[current];
   const p = prev !== null ? slides[prev] : null;
-
   const isBuy = s.cta === "buy";
 
   return (
-    <div className="px-4 pt-4 pb-2 max-w-screen-xl mx-auto">
+    /*
+      MOBILE  (< md): w-full, no padding, no rounded corners → full-bleed, no side clipping.
+      DESKTOP (≥ md): original px-4 pt-4 pb-2 max-w-screen-xl mx-auto + rounded-2xl — unchanged.
+    */
+    <div className="w-full md:px-4 md:pt-4 md:pb-2 md:max-w-screen-xl md:mx-auto">
       <div
-        className="relative rounded-2xl overflow-hidden select-none"
+        className="relative overflow-hidden select-none md:rounded-2xl"
         style={{ minHeight: 400 }}
       >
         {/* Outgoing slide */}
@@ -180,8 +184,6 @@ export default function HeroSection() {
             <p className="mt-4 text-white/60 text-sm leading-relaxed whitespace-pre-line">{s.sub}</p>
 
             <div className="flex flex-wrap items-center gap-3 mt-6">
-
-              {/* CTA button — changes per slide, animates in with contentIn */}
               {isBuy ? (
                 <button
                   onClick={() => navigate("/shop", { state: { slideId: s.id, tag: s.tag } })}
