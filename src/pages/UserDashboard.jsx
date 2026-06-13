@@ -13,7 +13,7 @@ export default function UserDashboard() {
       <HeroSection />
       <Features />
  <ProductSection title="🔥 Trending Now" link="/user/dashboard/categories/trending" />
-<ProductSection title="✨ New Arrivals" link="/user/dashboard/categories/new" />
+<ProductSection title="✨ New Arrivals" link="/user/dashboard/categories/new-arrivals" />
 <ProductSection title="Men" link="/user/dashboard/categories/men" />
 <ProductSection title="Kids" link="/user/dashboard/categories/kids" />
 <ProductSection title="Earrings" link="/user/dashboard/categories/earrings" />

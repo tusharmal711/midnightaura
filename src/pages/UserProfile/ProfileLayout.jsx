@@ -18,8 +18,8 @@ import { API } from "../../api";
 
 const NAV_ITEMS = [
   { label: "Profile Info", to: "", end: true },
-  { label: "Orders", to: "orders" },
-  { label: "Cart", to: "cart" },
+  { label: "Orders",       to: "orders" },
+  { label: "Cart",         to: "cart" },
 ];
 
 // ── Icons ─────────────────────────────────────────────
@@ -29,7 +29,6 @@ const ProfileIcon = () => (
     <circle cx="12" cy="7" r="4" />
   </svg>
 );
-
 const OrderIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
@@ -37,7 +36,6 @@ const OrderIcon = () => (
     <path d="M16 10a4 4 0 0 1-8 0" />
   </svg>
 );
-
 const CartIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="9" cy="21" r="1" />
@@ -45,7 +43,6 @@ const CartIcon = () => (
     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
   </svg>
 );
-
 const LogoutIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -56,6 +53,23 @@ const LogoutIcon = () => (
 
 const NAV_ICONS = [ProfileIcon, OrderIcon, CartIcon];
 
+// ── Helpers ────────────────────────────────────────────
+const getStoredUser = () => {
+  try {
+    const raw = localStorage.getItem("user") || Cookies.get("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) { return null; }
+};
+
+const getStoredEmail = () => getStoredUser()?.email ?? null;
+
+// accessToken was stored at login time inside the user object
+const getAccessToken = () => getStoredUser()?.accessToken ?? null;
+
+const getStoredFcmToken = () => {
+  try { return localStorage.getItem("fcmToken") || null; } catch (_) { return null; }
+};
+
 // ── Main Component ───────────────────────────────────
 export default function ProfileLayout() {
 
@@ -65,27 +79,14 @@ export default function ProfileLayout() {
   const navRefs       = useRef([]);
   const mobileNavRefs = useRef([]);
 
-  const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, height: 0, opacity: 0 });
+  const [indicatorStyle,  setIndicatorStyle]  = useState({ top: 0, height: 0, opacity: 0 });
   const [mobileIndicator, setMobileIndicator] = useState({ left: 0, width: 0, opacity: 0 });
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+  const [loggingOut,      setLoggingOut]      = useState(false);
 
-  // ── Dynamic User Data ──────────────────────────────
-  const [userName,    setUserName]    = useState("User");
-  const [customerId,  setCustomerId]  = useState("User");
+  const [userName,     setUserName]     = useState("User");
+  const [customerId,   setCustomerId]   = useState("User");
   const [userInitials, setUserInitials] = useState("U");
-
-  // ── Get email from storage ─────────────────────────
-  const getStoredEmail = () => {
-    try {
-      const fromStorage = localStorage.getItem("user");
-      if (fromStorage) { const parsed = JSON.parse(fromStorage); if (parsed?.email) return parsed.email; }
-    } catch (_) {}
-    try {
-      const fromCookie = Cookies.get("user");
-      if (fromCookie) { const parsed = JSON.parse(fromCookie); if (parsed?.email) return parsed.email; }
-    } catch (_) {}
-    return null;
-  };
 
   // ── Fetch User Profile ─────────────────────────────
   const fetchUser = async () => {
@@ -94,8 +95,8 @@ export default function ProfileLayout() {
       if (!email) return;
       const res = await API.post("/user/getProfile", { email });
       if (res.data.success) {
-        const username   = res.data.user?.username   || "User";
-        const cId        = res.data.user?.customerId || "None";
+        const username = res.data.user?.username   || "User";
+        const cId      = res.data.user?.customerId || "None";
         setUserName(username);
         setCustomerId(cId);
         setUserInitials(
@@ -119,14 +120,12 @@ export default function ProfileLayout() {
     return 0;
   };
 
-  // ── Desktop Indicator ──────────────────────────────
   useEffect(() => {
     const idx = getActiveIndex();
     const el  = navRefs.current[idx];
     if (el) setIndicatorStyle({ top: el.offsetTop + 4, height: el.offsetHeight - 8, opacity: 1 });
   }, [location.pathname]);
 
-  // ── Mobile Bottom-Tab Indicator ────────────────────
   useEffect(() => {
     const idx = getActiveIndex();
     const el  = mobileNavRefs.current[idx];
@@ -135,9 +134,31 @@ export default function ProfileLayout() {
 
   // ── Logout ─────────────────────────────────────────
   const handleLogout = async () => {
-    localStorage.removeItem("user");
-    Cookies.remove("user");
-    navigate("/");
+    setLoggingOut(true);
+    try {
+      const fcmToken   = getStoredFcmToken();
+      const accessToken = getAccessToken();
+
+      if (fcmToken) {
+        // Backend removeFcmToken uses req.user (JWT middleware),
+        // so we pass the token in the Authorization header.
+        await API.post(
+          "/user/removeFcmToken",
+          { fcmToken , customerId},
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        localStorage.removeItem("fcmToken");
+        console.log("FCM token removed from server");
+      }
+    } catch (error) {
+      // Non-fatal — always proceed with local logout
+      console.error("FCM token removal failed:", error.response?.data?.message || error.message);
+    } finally {
+      localStorage.removeItem("user");
+      Cookies.remove("user");
+      setLoggingOut(false);
+      navigate("/");
+    }
   };
 
   return (
@@ -146,12 +167,10 @@ export default function ProfileLayout() {
       {/* ── Desktop Layout ───────────────────────── */}
       <div className="hidden md:flex max-w-6xl mx-auto px-4 py-10 gap-6 items-start">
 
-        {/* Sidebar */}
         <aside
           className="w-60 lg:w-64 rounded-2xl overflow-hidden shrink-0 sticky top-10"
           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(16px)" }}
         >
-          {/* User Header */}
           <div
             className="px-5 py-5"
             style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", background: "linear-gradient(135deg, rgba(139,92,246,0.15), rgba(234,179,8,0.08))" }}
@@ -167,17 +186,15 @@ export default function ProfileLayout() {
             <p className="text-sm" style={{ color: "#fff" }}>Id : {customerId}</p>
           </div>
 
-          {/* Navigation */}
           <nav className="relative py-3 px-3">
-            {/* Active Indicator */}
             <span
               className="absolute left-3 right-3 rounded-xl pointer-events-none"
               style={{
-                top: indicatorStyle.top,
-                height: indicatorStyle.height,
+                top:        indicatorStyle.top,
+                height:     indicatorStyle.height,
                 background: "linear-gradient(135deg, rgba(139,92,246,0.22), rgba(124,58,237,0.12))",
-                border: "1px solid rgba(139,92,246,0.35)",
-                opacity: indicatorStyle.opacity,
+                border:     "1px solid rgba(139,92,246,0.35)",
+                opacity:    indicatorStyle.opacity,
                 transition: "top 0.3s cubic-bezier(0.4,0,0.2,1), height 0.3s",
                 zIndex: 0,
               }}
@@ -213,7 +230,6 @@ export default function ProfileLayout() {
           </nav>
         </aside>
 
-        {/* Main Content */}
         <main
           className="flex-1 rounded-2xl p-6 lg:p-8 min-h-[500px]"
           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(16px)" }}
@@ -225,7 +241,6 @@ export default function ProfileLayout() {
       {/* ── Mobile Layout ───────────────────────── */}
       <div className="md:hidden flex flex-col min-h-screen">
 
-        {/* Mobile Header */}
         <div
           className="px-4 pt-6 pb-4 flex items-center gap-3"
           style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.12), rgba(234,179,8,0.06))", borderBottom: "1px solid rgba(255,255,255,0.07)" }}
@@ -236,13 +251,11 @@ export default function ProfileLayout() {
           >
             {userInitials}
           </div>
-
           <div>
             <p className="text-xs uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.38)" }}>Hello,</p>
             <p className="text-sm font-bold" style={{ color: "#fff" }}>{userName}</p>
             <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>Id : {customerId}</p>
           </div>
-
           <button
             onClick={() => setShowLogoutPopup(true)}
             className="ml-auto px-3 py-1.5 rounded-full text-xs font-medium"
@@ -252,7 +265,6 @@ export default function ProfileLayout() {
           </button>
         </div>
 
-        {/* Mobile Content — extra bottom padding so content clears the tab bar */}
         <main className="flex-1 px-4 py-5 pb-28">
           <div
             className="rounded-2xl p-5 min-h-[400px]"
@@ -262,21 +274,19 @@ export default function ProfileLayout() {
           </div>
         </main>
 
-        {/* ── Mobile Fixed Bottom Tab Bar ── */}
         <nav
           className="fixed bottom-0 left-0 right-0 z-40 flex items-center px-1 py-1.5"
           style={{ background: "rgba(13,18,32,0.97)", borderTop: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(24px)" }}
         >
-          {/* Sliding indicator */}
           <span
             className="absolute bottom-1.5 rounded-xl pointer-events-none"
             style={{
-              left: mobileIndicator.left,
-              width: mobileIndicator.width,
-              height: "calc(100% - 12px)",
+              left:       mobileIndicator.left,
+              width:      mobileIndicator.width,
+              height:     "calc(100% - 12px)",
               background: "linear-gradient(135deg, rgba(139,92,246,0.2), rgba(124,58,237,0.10))",
-              border: "1px solid rgba(139,92,246,0.3)",
-              opacity: mobileIndicator.opacity,
+              border:     "1px solid rgba(139,92,246,0.3)",
+              opacity:    mobileIndicator.opacity,
               transition: "left 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s",
               zIndex: 0,
             }}
@@ -315,7 +325,7 @@ export default function ProfileLayout() {
         <div
           className="fixed inset-0 flex items-center justify-center z-50 px-4"
           style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }}
-          onClick={() => setShowLogoutPopup(false)}
+          onClick={() => !loggingOut && setShowLogoutPopup(false)}
         >
           <div
             className="w-full max-w-sm rounded-2xl p-7 text-center"
@@ -335,22 +345,51 @@ export default function ProfileLayout() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowLogoutPopup(false)}
+                disabled={loggingOut}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}
+                style={{
+                  background: "rgba(255,255,255,0.07)",
+                  border:     "1px solid rgba(255,255,255,0.1)",
+                  color:      loggingOut ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.7)",
+                  cursor:     loggingOut ? "not-allowed" : "pointer",
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleLogout}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-                style={{ background: "linear-gradient(135deg, #dc2626, #b91c1c)", color: "#fff", boxShadow: "0 4px 16px rgba(220,38,38,0.35)" }}
+                disabled={loggingOut}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                style={{
+                  background: loggingOut ? "rgba(220,38,38,0.4)" : "linear-gradient(135deg, #dc2626, #b91c1c)",
+                  color:      "#fff",
+                  boxShadow:  loggingOut ? "none" : "0 4px 16px rgba(220,38,38,0.35)",
+                  cursor:     loggingOut ? "not-allowed" : "pointer",
+                }}
               >
-                Yes, Logout
+                {loggingOut ? (
+                  <>
+                    <svg
+                      width="14" height="14" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" strokeWidth="2.5"
+                      style={{ animation: "pl-spin 0.75s linear infinite" }}
+                    >
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                    Logging out…
+                  </>
+                ) : (
+                  "Yes, Logout"
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes pl-spin { to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }
