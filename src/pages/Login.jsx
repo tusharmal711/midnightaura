@@ -6,12 +6,13 @@ import Cookies from "js-cookie";
 import { getToken, onMessage } from "firebase/messaging";
 import { messaging } from "../config/firebase";
 import appLogo from "../assets/images/appImage/chomoktomok-logo.png";
-const VAPID_KEY = "BHNa2kymQm9Gqeppv52AG9vRyZYYs5XxiJxsQx3kfrPzsYqUyvr9AhptExV59XpkAhK1nYlaP0pINs_FBLogACs"; // Firebase Console → Cloud Messaging → Web Push certificates
+
+const VAPID_KEY = "BHNa2kymQm9Gqeppv52AG9vRyZYYs5XxiJxsQx3kfrPzsYqUyvr9AhptExV59XpkAhK1nYlaP0pINs_FBLogACs";
 
 // ── FCM registration utility ──────────────────────────────────────────────────
 export const registerFCMToken = async (email) => {
   try {
-    if (!("Notification" in window))    return; // browser doesn't support
+    if (!("Notification" in window))     return;
     if (!("serviceWorker" in navigator)) return;
 
     const permission = await Notification.requestPermission();
@@ -25,14 +26,17 @@ export const registerFCMToken = async (email) => {
       vapidKey: VAPID_KEY,
       serviceWorkerRegistration: registration,
     });
-     console.log("Token : ",token);
+    console.log("Token:", token);
     if (!token) return;
 
-    // JWT cookie is already set at this point — backend can verify user
-    await API.post("/user/saveFcmToken", { fcmToken: token , email });
-    console.log("FCM token saved");
+    // ── Save token to server ──────────────────────────────────────
+    await API.post("/user/saveFcmToken", { fcmToken: token, email });
+    console.log("FCM token saved to server");
 
-    // Handle foreground notifications (when tab is open)
+    // ── Store locally so ProfileLayout can remove it on logout ────
+    localStorage.setItem("fcmToken", token);
+
+    // Handle foreground notifications
     onMessage(messaging, (payload) => {
       if (Notification.permission === "granted") {
         new Notification(payload.notification.title, {
@@ -42,7 +46,6 @@ export const registerFCMToken = async (email) => {
       }
     });
   } catch (error) {
-    // Non-fatal — login still succeeds even if FCM fails
     console.warn("FCM registration failed:", error.message);
   }
 };
@@ -65,18 +68,22 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    if (!email || !password)      return showToast("Please fill in all fields.");
-    if (!email.includes("@"))     return showToast("Enter a valid email address.");
-    if (password.length < 6)      return showToast("Password must be at least 6 characters.");
+    if (!email || !password)  return showToast("Please fill in all fields.");
+    if (!email.includes("@")) return showToast("Enter a valid email address.");
+    if (password.length < 6)  return showToast("Password must be at least 6 characters.");
 
     setLoading(true);
     try {
       const res = await API.post("/user/login", { email, password });
 
       if (res.data.success) {
-        // 1. Store user info
-        localStorage.setItem("user", JSON.stringify(res.data.user));
-        Cookies.set("user", JSON.stringify(res.data.user), {
+        // 1. Store user info (including accessToken for authenticated calls)
+        const userData = {
+          ...res.data.user,
+          accessToken: res.data.accessToken,
+        };
+        localStorage.setItem("user", JSON.stringify(userData));
+        Cookies.set("user", JSON.stringify(userData), {
           expires:  7,
           secure:   true,
           sameSite: "Strict",
@@ -84,7 +91,7 @@ export default function Login() {
 
         showToast("Login successful 🎉");
 
-        // 2. Register FCM token right after login (non-blocking)
+        // 2. Register FCM token — also stores it in localStorage
         registerFCMToken(email);
 
         // 3. Navigate

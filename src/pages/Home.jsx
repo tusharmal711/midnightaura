@@ -14,7 +14,7 @@ export default function Home() {
       <HeroSection />
       <Features />
       <ProductSection title="🔥 Trending Now" link="/categories/trending" />
-<ProductSection title="✨ New Arrivals" link="/categories/new" />
+<ProductSection title="✨ New Arrivals" link="/categories/new-arrivals" />
 <ProductSection title="Men" link="/categories/men" />
 <ProductSection title="Kids" link="/categories/kids" />
 <ProductSection title="Earrings" link="/categories/earrings" />

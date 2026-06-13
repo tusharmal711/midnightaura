@@ -1,8 +1,8 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import MainLayout from "./layouts/MainLayout";
-import  AuthLayout from "./layouts/AuthLayout";
+import AuthLayout from "./layouts/AuthLayout";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import UserDashboardLayout from "./layouts/UserDashboardLayout";
@@ -18,7 +18,6 @@ import ListingProducts from "./pages/AdminPanel/ListingProducts";
 import AdminOrder from "./pages/AdminPanel/AdminOrder";
 import Feedback from "./pages/AdminPanel/FeedBack";
 import Women from "./pages/Categories/Women";
-import CategoryLayout from "./components/Categories";
 import Earrings from "./pages/Categories/Earrings";
 import Hoodies from "./pages/Categories/Hoodies";
 import Kids from "./pages/Categories/Kids";
@@ -29,139 +28,135 @@ import UserCategories from "./components/UserCategories";
 import UserDashboardProfileLayout from "./layouts/UserDashboardProfileLayout";
 import ScrollToTop from "./components/ScrollToTop";
 import ProductView from "./pages/ProductDetails/ProductView";
-// import Dashboard from "./pages/Dashboard";
 import Cookies from "js-cookie";
 import ViewCheckout from "./pages/ProductDetails/ViewCheckout";
 import ViewPayment from "./pages/ProductDetails/ViewPayment";
 import OrderSuccess from "./pages/ProductDetails/OrderSuccess";
 import OrderDetail from "./pages/AdminPanel/OrderDetails";
-import DeliveryBoyPanelLayout from "./pages/DeliveryBoyPanel/DeliveryBoyPanelLayout";
 import DeliveryBoyLayout from "./pages/DeliveryBoyPanel/DeliveryBoyPanelLayout";
 import DeliveryDashboard from "./pages/DeliveryBoyPanel/DeliveyDahboard";
 import ReceivedDeliveries from "./pages/DeliveryBoyPanel/ReceivedDeliveryProduct";
 import DeliveryProductDetails from "./pages/DeliveryBoyPanel/DeliveryProductDetails";
+import NewArrivals from "./pages/Categories/NewArrivals";
+import NotFound from "./pages/NotFound";
 
-function App() {
+// ── Guards ────────────────────────────────────────────────────────────────────
 
- 
-  function ConditionalProductViewLayout() {
-    const isLoggedIn = !!Cookies.get("user");
+/**
+ * Redirects logged-in users away from the guest home to their dashboard.
+ */
+function PublicOnlyRoute({ children }) {
+  const isLoggedIn = !!Cookies.get("user");
+  return isLoggedIn ? <Navigate to="/user/dashboard" replace /> : children;
+}
+
+/**
+ * Blocks unauthenticated users and sends them to /login.
+ */
+function PrivateRoute({ children }) {
+  const isLoggedIn = !!Cookies.get("user");
+  return isLoggedIn ? children : <Navigate to="/login" replace />;
+}
+
+/**
+ * Picks the right layout for product / checkout views.
+ */
+function ConditionalProductViewLayout() {
+  const isLoggedIn = !!Cookies.get("user");
   return isLoggedIn ? <UserDashboardLayout /> : <MainLayout />;
 }
 
+// ── App ───────────────────────────────────────────────────────────────────────
 
+function App() {
   return (
     <BrowserRouter>
-    <ScrollToTop />  
+      <ScrollToTop />
       <Routes>
 
-       
-        {/* home page routing is starting from here */}
-        <Route element={<MainLayout />}>
-        <Route path="/" element={<Categories />}>
-         <Route index element={<Home />} />
-         <Route path="categories/women" element={<Women />} />
-          <Route path="categories/earrings" element={<Earrings />} />
-          <Route path="categories/hoodies" element={<Hoodies />} />
-          <Route path="categories/kids" element={<Kids />} />
-          <Route path="categories/necklaces" element={<Necklaces />} />
-           <Route path="categories/oversized" element={<Oversized />} />
-            <Route path="categories/men" element={<Men />} />
+        {/* ── Public / Guest routes ───────────────────────────────────────── */}
+        <Route
+          element={
+            <PublicOnlyRoute>
+              <MainLayout />
+            </PublicOnlyRoute>
+          }
+        >
+          <Route path="/" element={<Categories />}>
+            <Route index element={<Home />} />
+            <Route path="categories/women"        element={<Women />} />
+            <Route path="categories/earrings"     element={<Earrings />} />
+            <Route path="categories/hoodies"      element={<Hoodies />} />
+            <Route path="categories/kids"         element={<Kids />} />
+            <Route path="categories/necklaces"    element={<Necklaces />} />
+            <Route path="categories/oversized"    element={<Oversized />} />
+            <Route path="categories/men"          element={<Men />} />
+            <Route path="categories/new-arrivals" element={<NewArrivals />} />
+          </Route>
+        </Route>
 
-       </Route>
-      </Route>
-
-
-
-
-
-
-        {/* auth page (login , registration) routing is starting here */}
+        {/* ── Auth routes ─────────────────────────────────────────────────── */}
         <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login"           element={<Login />} />
+          <Route path="/register"        element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-        
         </Route>
 
-
-
-
-      {/* user dashboard routing is starting from here */}
-       <Route element={<UserDashboardLayout />}>
-
-         <Route path="/user/dashboard" element={<UserCategories />}>
-         <Route index element={<UserDashboard />} />
-         <Route path="categories/women" element={<Women />} />
-          <Route path="categories/earrings" element={<Earrings />} />
-          <Route path="categories/hoodies" element={<Hoodies />} />
-          <Route path="categories/kids" element={<Kids />} />
-          <Route path="categories/necklaces" element={<Necklaces />} />
-           <Route path="categories/oversized" element={<Oversized />} />
-            <Route path="categories/men" element={<Men />} />
-       </Route>
-
-
-
-
-          
-         {/* profile section */}
-         <Route element={<UserDashboardProfileLayout />}>
-         
-          <Route path="/user/profile" element={<ProfileLayout />}>
-          <Route index element={<ProfileDetails />} />
-          <Route path="orders" element={<Order />} />
-          <Route path="cart" element={<Cart />} />
+        {/* ── Protected: User Dashboard ───────────────────────────────────── */}
+        <Route
+          element={
+            <PrivateRoute>
+              <UserDashboardLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route path="/user/dashboard" element={<UserCategories />}>
+            <Route index element={<UserDashboard />} />
+            <Route path="categories/women"        element={<Women />} />
+            <Route path="categories/earrings"     element={<Earrings />} />
+            <Route path="categories/hoodies"      element={<Hoodies />} />
+            <Route path="categories/kids"         element={<Kids />} />
+            <Route path="categories/necklaces"    element={<Necklaces />} />
+            <Route path="categories/oversized"    element={<Oversized />} />
+            <Route path="categories/men"          element={<Men />} />
+            <Route path="categories/new-arrivals" element={<NewArrivals />} />
           </Route>
+
+          <Route element={<UserDashboardProfileLayout />}>
+            <Route path="/user/profile" element={<ProfileLayout />}>
+              <Route index element={<ProfileDetails />} />
+              <Route path="orders" element={<Order />} />
+              <Route path="cart"   element={<Cart />} />
+            </Route>
           </Route>
-          
-        
         </Route>
 
-        {/* user dashboard routing is ending here */}
-
-
-
-
-        {/* product view is starting from here */}
-         <Route element={<ConditionalProductViewLayout  />}>
-          <Route path="/product-view/:productId" element={<ProductView />} />
+        {/* ── Product / Checkout views ─────────────────────────────────────── */}
+        <Route element={<ConditionalProductViewLayout />}>
+          <Route path="/product-view/:productId"  element={<ProductView />} />
           <Route path="/view-checkout/:productId" element={<ViewCheckout />} />
-           <Route path="/view-payment/:productId" element={<ViewPayment />} />
-         
-         </Route>
-         <Route path="/order-success" element={<OrderSuccess />} />
-         {/* product view is ending here */}
+          <Route path="/view-payment/:productId"  element={<ViewPayment />} />
+        </Route>
+        <Route path="/order-success" element={<OrderSuccess />} />
 
-
-
-
-
-      
-       {/* admin panel routing is starting here */}
-       <Route path="/admin" element={<AdminPanelLayout />}>
+        {/* ── Admin panel ─────────────────────────────────────────────────── */}
+        <Route path="/admin" element={<AdminPanelLayout />}>
           <Route index element={<AdminDashboard />} />
-          <Route path="listing" element={<ListingProducts />} />
-          <Route path="orders" element={<AdminOrder />} />
+          <Route path="listing"         element={<ListingProducts />} />
+          <Route path="orders"          element={<AdminOrder />} />
           <Route path="orders/:orderId" element={<OrderDetail />} />
-          <Route path="feedback" element={<Feedback />} />
+          <Route path="feedback"        element={<Feedback />} />
         </Route>
-       {/* admin panel routing is ending here */}
 
-       {/* delivery boy panel routing is starting here */}
-       <Route path="/delivery-boy" element={<DeliveryBoyLayout/>}>
+        {/* ── Delivery boy panel ──────────────────────────────────────────── */}
+        <Route path="/delivery-boy" element={<DeliveryBoyLayout />}>
           <Route index element={<DeliveryDashboard />} />
-          <Route path="deliveries" element={<ReceivedDeliveries />} />
+          <Route path="deliveries"          element={<ReceivedDeliveries />} />
           <Route path="deliveries/:orderId" element={<DeliveryProductDetails />} />
-          {/* <Route path="orders" element={<AdminOrder />} />
-          <Route path="orders/:orderId" element={<OrderDetail />} />
-          <Route path="feedback" element={<Feedback />} /> */}
         </Route>
-       {/* delivery boy panel routing is ending here */}
 
-
-
-
+        {/* ── 404 catch-all ───────────────────────────────────────────────── */}
+        <Route path="*" element={<NotFound />} />
 
       </Routes>
     </BrowserRouter>
