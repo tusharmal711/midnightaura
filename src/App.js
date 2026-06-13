@@ -39,6 +39,7 @@ import ReceivedDeliveries from "./pages/DeliveryBoyPanel/ReceivedDeliveryProduct
 import DeliveryProductDetails from "./pages/DeliveryBoyPanel/DeliveryProductDetails";
 import NewArrivals from "./pages/Categories/NewArrivals";
 import NotFound from "./pages/NotFound";
+import NetworkStatus from "./pages/NetworkStatus";
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,7 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+     
       <Routes>
 
         {/* ── Public / Guest routes ───────────────────────────────────────── */}
