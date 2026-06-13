@@ -5,6 +5,7 @@ import UserNavbar from "../components/UserNavbar";
 import { useEffect } from "react";
 import { onMessage } from "firebase/messaging";
 import { messaging } from "../config/firebase";
+import NetworkStatus from "../pages/NetworkStatus";
 
 function UserDashboardLayout() {
 
@@ -25,6 +26,7 @@ function UserDashboardLayout() {
 
   return (
     <>
+    <NetworkStatus />
       <UserNavbar />
       <Outlet />
       <Footer />
