@@ -16,6 +16,7 @@ export default function Home() {
       <ProductSection title="🔥 Trending Now" link="/categories/trending" />
 <ProductSection title="✨ New Arrivals" link="/categories/new-arrivals" />
 <ProductSection title="Men" link="/categories/men" />
+<ProductSection title="Women" link="/categories/women" />
 <ProductSection title="Kids" link="/categories/kids" />
 <ProductSection title="Earrings" link="/categories/earrings" />
 <ProductSection title="Necklaces" link="/categories/necklaces" />

@@ -3,6 +3,7 @@ import Categories from "../components/Categories";
 import HeroSection from "../sections/home/HeroSection";
 import Features from "../sections/home/Features";
 import ProductSection from "../components/ProductSection";
+import SpinnerDiscount from "../components/SpinnerDiscount";
 
 
 export default function UserDashboard() {
@@ -12,9 +13,11 @@ export default function UserDashboard() {
 
       <HeroSection />
       <Features />
+      <SpinnerDiscount />
  <ProductSection title="🔥 Trending Now" link="/user/dashboard/categories/trending" />
 <ProductSection title="✨ New Arrivals" link="/user/dashboard/categories/new-arrivals" />
 <ProductSection title="Men" link="/user/dashboard/categories/men" />
+<ProductSection title="Women" link="/user/dashboard/categories/women" />
 <ProductSection title="Kids" link="/user/dashboard/categories/kids" />
 <ProductSection title="Earrings" link="/user/dashboard/categories/earrings" />
 <ProductSection title="Necklaces" link="/user/dashboard/categories/necklaces" />
