@@ -135,7 +135,7 @@ export default function SpinnerDiscount() {
     return () => window.removeEventListener("resize", fn);
   }, []);
 
-  const WS = isMobile ? 290 : 310;
+  const WS = isMobile ? 280 : 310;
   const cx = WS / 2;
   const cy = WS / 2;
   const R  = WS / 2 - 14;
