@@ -221,7 +221,7 @@ export default function SpinnerDiscount() {
             Weekly Spin
           </span>
           <h2 style={{ color: "#fff", fontSize: "clamp(1.3rem, 3.5vw, 1.9rem)", fontWeight: 700, margin: "0 0 6px", lineHeight: 1.2 }}>
-            Spin &amp; Win a Discount
+            Spin &amp; Win a Discount Voucher
           </h2>
           <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, margin: 0 }}>
             One free spin per week. Up to 50% off your order.
