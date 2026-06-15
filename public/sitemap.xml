@@ -7,6 +7,7 @@
   <!-- Homepage — highest priority -->
   <url>
     <loc>https://chomoktomok.com/</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -14,28 +15,9 @@
   <!-- Product listing — very important for e-commerce SEO -->
   <url>
     <loc>https://chomoktomok.com/products</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
-  </url>
-
-  <!-- Auth pages — shown as Google Sitelinks -->
-  <url>
-    <loc>https://chomoktomok.com/login</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
-    <loc>https://chomoktomok.com/register</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <!-- Cart — lower priority, not useful for new visitors -->
-  <url>
-    <loc>https://chomoktomok.com/cart</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
   </url>
 
 </urlset>
