@@ -8,7 +8,7 @@ import { messaging } from "../config/firebase";
 import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import appLogo from "../assets/images/appImage/chomoktomok-logo.png";
-
+import { Helmet } from "react-helmet-async";
 const VAPID_KEY =
   "BHNa2kymQm9Gqeppv52AG9vRyZYYs5XxiJxsQx3kfrPzsYqUyvr9AhptExV59XpkAhK1nYlaP0pINs_FBLogACs";
 
@@ -151,7 +151,17 @@ export default function Login() {
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#0E1320] flex items-center justify-center px-6 py-10">
-
+     <Helmet>
+      <title>Login – ChomokTomok</title>
+      <meta
+        name="description"
+        content="Sign in to your ChomokTomok account to shop premium custom T-shirts, hoodies, and fashion accessories."
+      />
+      <link rel="canonical" href="https://chomoktomok.com/login" />
+      <meta property="og:title" content="Login – ChomokTomok" />
+      <meta property="og:url" content="https://chomoktomok.com/login" />
+      <meta name="robots" content="noindex, follow" />
+    </Helmet>
       {/* Toast */}
       {toast.msg && (
         <div
