@@ -177,7 +177,7 @@ export default function Footer() {
 
           {/* ── Bottom bar ── */}
           <div className="border-t border-white/5 pt-5 text-center">
-            <p className="text-white/20 text-xs">© 2026 Midnight Aura. All rights reserved.</p>
+            <p className="text-white/20 text-xs">© 2026 ChomokTomok. All rights reserved.</p>
           </div>
         </div>
       </footer>
