@@ -219,31 +219,11 @@ const SizeToast = ({ visible, onDismiss }) => (
 const SharePopup = ({ visible, onClose, product, shareUrl }) => {
   const [copied, setCopied] = useState(false);
   const mobile = isMobileDevice();
-  const [translateY, setTranslateY] = useState(0);
-const startY = useRef(0);
-     const handleSheetTouchStart = (e) => {
-  startY.current = e.touches[0].clientY;
-};
-
-const handleSheetTouchMove = (e) => {
-  const diff = e.touches[0].clientY - startY.current;
-
-  if (diff > 0) {
-    setTranslateY(diff);
-  }
-};
-
-const handleSheetTouchEnd = () => {
-  if (translateY > 120) {
-    onClose();
-  }
-
-  setTranslateY(0);
-};
+     
   // Build the share text with the product page URL (encrypted, same as navigation)
   // — no raw image URL is included here anymore.
   const shareText = product
-    ? `🛍️ Check out *${product.name}* on Chomok Tomok!\n💰 ₹${product.finalPrice || product.price}\n\n${shareUrl}`
+    ? `🛍️ Check out *${product.name}* on ChomokTomok!\n💰 ₹${product.finalPrice || product.price}\n\n${shareUrl}`
     : shareUrl;
 
   const shareTextEncoded = encodeURIComponent(shareText);
@@ -286,7 +266,7 @@ const handleSheetTouchEnd = () => {
     if (!navigator.share) return;
     try {
       await navigator.share({
-        title: product?.name || "Chomok Tomok",
+        title: product?.name || "Midnight Aura",
         text: shareText,
         url: shareUrl,
       });
@@ -358,25 +338,13 @@ const handleSheetTouchEnd = () => {
       />
 
       {/* Sheet */}
-      {/* Sheet */}
-<div
-  onTouchStart={handleSheetTouchStart}
-  onTouchMove={handleSheetTouchMove}
-  onTouchEnd={handleSheetTouchEnd}
-  style={{
-    position: "fixed",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10001,
-    display: "flex",
-    justifyContent: "center",
-    transform: `translateY(${translateY}px)`,
-    transition: translateY === 0
-      ? "transform .25s ease"
-      : "none",
-  }}
->
+      <div style={{
+        position: "fixed",
+        bottom: 0, left: 0, right: 0,
+        zIndex: 10001,
+        display: "flex", justifyContent: "center",
+        animation: "slide-up-sheet 0.3s cubic-bezier(0.34,1.3,0.64,1) forwards",
+      }}>
         <div style={{
           width: "100%", maxWidth: 480,
           background: "linear-gradient(160deg,#1a1730 0%,#12121a 100%)",
@@ -1475,7 +1443,7 @@ export default function ProductView() {
             {(feedbackLoading || hasAnyFeedback) && (
               <div style={{ marginTop: 56 }}>
                 <div className="cinzel" style={{ fontSize: 18, fontWeight: 700, color: "#e8e0ff", marginBottom: 4 }}>Customer Reviews</div>
-                <div style={{ fontSize: 13, color: "#8880aa", marginBottom: 24 }}>Verified purchases from ChomokTomok shoppers</div>
+                <div style={{ fontSize: 13, color: "#8880aa", marginBottom: 24 }}>Verified purchases from Midnight Aura shoppers</div>
 
                 {(feedbackLoading || imageFeedback.length > 0) && (
                   <div style={{ marginBottom: 28 }}>
