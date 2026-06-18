@@ -7,7 +7,9 @@ import Cookies from "js-cookie";
 import { PiTShirtFill } from "react-icons/pi";
 import { API } from "../../api";
 import CryptoJS from "crypto-js";
-import { FaCartShopping } from "react-icons/fa6";
+import { FaCartShopping, FaWhatsapp, FaFacebook, FaInstagram } from "react-icons/fa6";
+import { IoShareSocialOutline } from "react-icons/io5";
+import { MdContentCopy } from "react-icons/md";
 import ProductCard from "../../components/ProductCard";
 import { FaCamera } from "react-icons/fa";
 
@@ -15,7 +17,7 @@ const SECRET_KEY = "midnightaura_secret_key";
 const BASE_URL   = "http://localhost:8008";
 const SIZES      = ["S", "M", "L", "XL", "XXL"];
 
-// ── Get stored email (mirrors ProductCard exactly) ────────────────────────────
+// ── Get stored email ──────────────────────────────────────────────────────────
 const getStoredEmail = () => {
   try {
     const s = localStorage.getItem("user");
@@ -79,7 +81,7 @@ function ProductViewSkeleton() {
   );
 }
 
-// ── Toast Notification (matches ProductCard) ──────────────────────────────────
+// ── Toast Notification ────────────────────────────────────────────────────────
 const Toast = ({ message, type }) => {
   const colors = {
     success: { bg: "rgba(34,197,94,0.15)",  border: "rgba(34,197,94,0.35)",  text: "#4ade80",  icon: "M5 13l4 4L19 7" },
@@ -177,6 +179,209 @@ const SizeToast = ({ visible, onDismiss }) => (
     </div>
   </div>
 );
+
+// ── Share Popup ───────────────────────────────────────────────────────────────
+const SharePopup = ({ visible, onClose, product, shareUrl, imageUrl }) => {
+  const [copied, setCopied] = useState(false);
+
+  const productImage = product?.images?.[0]
+    ? (product.images[0].startsWith("/") ? `${BASE_URL}${product.images[0]}` : product.images[0])
+    : null;
+
+  const shareText = product
+    ? `🛍️ Check out *${product.name}* on Midnight Aura!\n💰 ₹${product.finalPrice || product.price}\n\n${shareUrl}`
+    : shareUrl;
+
+  const shareTextEncoded = encodeURIComponent(shareText);
+  const urlEncoded       = encodeURIComponent(shareUrl);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = shareUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const shareOptions = [
+    {
+      label: "WhatsApp",
+      icon: <FaWhatsapp size={22} />,
+      color: "#25D366",
+      bg: "rgba(37,211,102,0.12)",
+      border: "rgba(37,211,102,0.3)",
+      href: `https://wa.me/?text=${shareTextEncoded}`,
+    },
+    {
+      label: "Facebook",
+      icon: <FaFacebook size={22} />,
+      color: "#1877F2",
+      bg: "rgba(24,119,242,0.12)",
+      border: "rgba(24,119,242,0.3)",
+      href: `https://www.facebook.com/sharer/sharer.php?u=${urlEncoded}`,
+    },
+    {
+      label: "Instagram",
+      icon: <FaInstagram size={22} />,
+      color: "#E1306C",
+      bg: "rgba(225,48,108,0.12)",
+      border: "rgba(225,48,108,0.3)",
+      href: `https://www.instagram.com/`,
+      note: "Copy link to share on Instagram",
+    },
+  ];
+
+  if (!visible) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, zIndex: 10000,
+          background: "rgba(0,0,0,0.7)",
+          backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)",
+          animation: "fade-in-bg 0.2s ease forwards",
+        }}
+      />
+
+      {/* Sheet */}
+      <div style={{
+        position: "fixed",
+        bottom: 0, left: 0, right: 0,
+        zIndex: 10001,
+        display: "flex", justifyContent: "center",
+        animation: "slide-up-sheet 0.3s cubic-bezier(0.34,1.3,0.64,1) forwards",
+      }}>
+        <div style={{
+          width: "100%", maxWidth: 480,
+          background: "linear-gradient(160deg,#1a1730 0%,#12121a 100%)",
+          border: "1px solid rgba(160,120,255,0.2)",
+          borderBottom: "none",
+          borderRadius: "24px 24px 0 0",
+          padding: "0 0 32px",
+          boxShadow: "0 -8px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(160,120,255,0.08) inset",
+        }}>
+          {/* Handle */}
+          <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: "rgba(160,120,255,0.25)" }} />
+          </div>
+
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px 16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <IoShareSocialOutline size={18} color="#a078ff" />
+              <span style={{ fontSize: 15, fontWeight: 700, color: "#e8e0ff", fontFamily: "'Poppins',sans-serif" }}>Share Product</span>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                width: 30, height: 30, borderRadius: "50%",
+                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(160,120,255,0.2)",
+                color: "#8880aa", fontSize: 16, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >✕</button>
+          </div>
+
+          {/* Product Preview Card */}
+          {product && (
+            <div style={{ margin: "0 20px 20px", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(160,120,255,0.15)", background: "rgba(255,255,255,0.03)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px" }}>
+                {productImage && (
+                  <div style={{ width: 56, height: 56, borderRadius: 10, overflow: "hidden", flexShrink: 0, background: "#0e1320", border: "1px solid rgba(160,120,255,0.15)" }}>
+                    <img src={productImage} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#e8e0ff", fontFamily: "'Poppins',sans-serif", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {product.name}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#17ec03", fontFamily: "'Cinzel',serif", marginTop: 2 }}>
+                    ₹{product.finalPrice || product.price}
+                  </div>
+                  <div style={{ fontSize: 10, color: "#8880aa", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {shareUrl}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Share Buttons */}
+          <div style={{ display: "flex", gap: 12, padding: "0 20px 20px", justifyContent: "center" }}>
+            {shareOptions.map((opt) => (
+              <a
+                key={opt.label}
+                href={opt.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={opt.note || `Share on ${opt.label}`}
+                style={{
+                  flex: 1,
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                  padding: "14px 8px",
+                  borderRadius: 14,
+                  background: opt.bg,
+                  border: `1px solid ${opt.border}`,
+                  color: opt.color,
+                  textDecoration: "none",
+                  transition: "transform 0.15s, box-shadow 0.15s",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = `0 6px 20px ${opt.bg}`; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+              >
+                {opt.icon}
+                <span style={{ fontSize: 11, fontWeight: 600, color: opt.color }}>{opt.label}</span>
+              </a>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: "rgba(160,120,255,0.1)", margin: "0 20px 16px" }} />
+
+          {/* Copy Link */}
+          <div style={{ padding: "0 20px" }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8880aa", marginBottom: 8 }}>Or copy link</div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(160,120,255,0.18)", borderRadius: 12, padding: "10px 14px" }}>
+              <span style={{ flex: 1, fontSize: 12, color: "#8880aa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {shareUrl}
+              </span>
+              <button
+                onClick={handleCopy}
+                style={{
+                  flexShrink: 0,
+                  display: "flex", alignItems: "center", gap: 6,
+                  padding: "6px 14px", borderRadius: 8,
+                  border: copied ? "1px solid rgba(74,222,128,0.5)" : "1px solid rgba(160,120,255,0.35)",
+                  background: copied ? "rgba(74,222,128,0.1)" : "rgba(160,120,255,0.1)",
+                  color: copied ? "#4ade80" : "#a078ff",
+                  fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  transition: "all 0.2s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <MdContentCopy size={14} />
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
 
 // ── CTA Buttons ───────────────────────────────────────────────────────────────
 const CTAButtons = ({ compact = false, onCart, onBuy, sizeError, cartLoading, cartAdded }) => (
@@ -372,9 +577,7 @@ const CustomerImageLightbox = ({ images, startIdx, onClose }) => {
   );
 };
 
-// ── Product Image Lightbox (FIXED for mobile) ─────────────────────────────────
-// On mobile: image fills 100% width, height is auto (natural ratio), extra space is black.
-// On desktop: original behaviour (cover in a tall card).
+// ── Product Image Lightbox ────────────────────────────────────────────────────
 const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => {
   const [idx, setIdx]           = useState(startIdx);
   const [visible, setVisible]   = useState(false);
@@ -420,13 +623,11 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
       }}
       onClick={onClose}
     >
-      {/* Close */}
       <button
         onClick={(e) => { e.stopPropagation(); onClose(); }}
         style={{ position: "absolute", top: 16, right: 16, zIndex: 20, width: 44, height: 44, borderRadius: "50%", background: "rgba(40,40,40,0.95)", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
       >✕</button>
 
-      {/* Desktop prev/next arrows */}
       {!isMobile && images.length > 1 && (
         <>
           <button onClick={(e) => { e.stopPropagation(); prev(); }} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", zIndex: 20, width: 48, height: 48, borderRadius: "50%", background: "rgba(40,40,40,0.9)", border: "none", color: "#fff", fontSize: 28, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
@@ -435,7 +636,6 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
       )}
 
       {isMobile ? (
-        /* ── MOBILE: full width, natural height, centred vertically ── */
         <div
           onClick={e => e.stopPropagation()}
           onTouchStart={e => { touchStartX.current = e.changedTouches[0].screenX; }}
@@ -457,20 +657,12 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
               src={imageUrl(images[idx])}
               alt={`${productName} — ${idx + 1}`}
               draggable={false}
-              style={{
-                width: "100%",
-                height: "auto",        /* natural aspect ratio */
-                maxHeight: "100vh",    /* never overflow screen */
-                objectFit: "contain",  /* letterbox if needed */
-                display: "block",
-                userSelect: "none",
-              }}
+              style={{ width: "100%", height: "auto", maxHeight: "100vh", objectFit: "contain", display: "block", userSelect: "none" }}
             />
           ) : (
             <div style={{ color: "#999", padding: 32 }}>No Image</div>
           )}
 
-          {/* Dots + label */}
           <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             {images.length > 1 && (
               <div style={{ display: "flex", gap: 6 }}>
@@ -483,7 +675,6 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
           </div>
         </div>
       ) : (
-        /* ── DESKTOP: original tall card style ── */
         <div
           onTouchStart={e => { touchStartX.current = e.changedTouches[0].screenX; }}
           onTouchEnd={e => {
@@ -547,6 +738,32 @@ const ExpandButton = ({ onClick }) => (
   </button>
 );
 
+// ── Share Button (below expand button) ───────────────────────────────────────
+const ShareButton = ({ onClick }) => (
+  <button
+    onClick={onClick}
+    title="Share this product"
+    style={{
+      position: "absolute", top: 50, right: 10, zIndex: 20,
+      width: 32, height: 32, borderRadius: 8,
+      background: "rgba(14,19,32,0.82)", border: "1px solid rgba(160,120,255,0.4)",
+      color: "#a078ff", display: "flex", alignItems: "center", justifyContent: "center",
+      cursor: "pointer", backdropFilter: "blur(6px)",
+      transition: "background 0.2s, border-color 0.2s",
+    }}
+    onMouseEnter={e => {
+      e.currentTarget.style.background = "rgba(160,120,255,0.2)";
+      e.currentTarget.style.borderColor = "rgba(160,120,255,0.7)";
+    }}
+    onMouseLeave={e => {
+      e.currentTarget.style.background = "rgba(14,19,32,0.82)";
+      e.currentTarget.style.borderColor = "rgba(160,120,255,0.4)";
+    }}
+  >
+    <IoShareSocialOutline size={15} />
+  </button>
+);
+
 const hasSizes          = (p) => p?.sizeStock && Object.keys(p.sizeStock).length > 0;
 const hasAnySizeInStock = (p) => hasSizes(p) && SIZES.some((s) => (p.sizeStock[s] ?? 0) > 0);
 
@@ -605,6 +822,7 @@ export default function ProductView() {
   const [sizeToast,           setSizeToast]           = useState(false);
   const [sizeError,           setSizeError]           = useState(false);
   const [lightbox,            setLightbox]            = useState(false);
+  const [shareOpen,           setShareOpen]           = useState(false);
   const touchStartX           = useRef(0);
   const touchEndX             = useRef(0);
 
@@ -613,14 +831,12 @@ export default function ProductView() {
   const [showAllReviews,      setShowAllReviews]      = useState(false);
   const [expandedReview,      setExpandedReview]      = useState(null);
 
-  // ── Cart state (mirrors ProductCard) ────────────────────────────────────────
   const [customerId,   setCustomerId]   = useState(null);
   const [cartLoading,  setCartLoading]  = useState(false);
   const [cartAdded,    setCartAdded]    = useState(false);
   const [toast,        setToast]        = useState(null);
   const toastTimer = useRef(null);
 
-  // ── Feedback state ──────────────────────────────────────────────
   const [feedbackLoading,     setFeedbackLoading]     = useState(false);
   const [feedbackLoaded,      setFeedbackLoaded]      = useState(false);
   const [avgRating,           setAvgRating]           = useState(0);
@@ -638,6 +854,11 @@ export default function ProductView() {
   const productDetailsRef = useRef(null);
   const relatedScrollRef  = useRef(null);
 
+  // ── Build share URL ─────────────────────────────────────────────────────────
+  const shareUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/product/${productId}`
+    : "";
+
   const handleTouchStart = (e) => { touchStartX.current = e.changedTouches[0].screenX; };
   const handleTouchEnd   = (e) => {
     touchEndX.current = e.changedTouches[0].screenX;
@@ -653,14 +874,12 @@ export default function ProductView() {
     } catch { return null; }
   }, [productId]);
 
-  // ── Show toast helper ─────────────────────────────────────────────────────
   const showToast = (message, type = "info", duration = 2800) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast({ message, type });
     toastTimer.current = setTimeout(() => setToast(null), duration);
   };
 
-  // ── Fetch customerId (mirrors ProductCard) ───────────────────────────────
   useEffect(() => {
     const fetchCustomerId = async () => {
       try {
@@ -677,14 +896,11 @@ export default function ProductView() {
     fetchCustomerId();
   }, []);
 
-  // ── Add to Cart (same API call as ProductCard, no size picker popup) ──────
   const addToCart = async () => {
     if (!customerId) {
       showToast("Please log in to add items to cart", "error");
       return;
     }
-
-    // Validate size if product has sizes
     if (hasSizes(product) && hasAnySizeInStock(product) && !selSize) {
       setSizeError(true);
       setSizeToast(true);
@@ -721,7 +937,6 @@ export default function ProductView() {
     }
   };
 
-  // ── Fetch product ───────────────────────────────────────────────
   useEffect(() => {
     if (!productId) return;
     const fetchProduct = async () => {
@@ -743,7 +958,6 @@ export default function ProductView() {
     fetchProduct();
   }, [productId, getDecryptedId]);
 
-  // ── Fetch feedback once product is loaded ───────────────────────
   useEffect(() => {
     if (!productId) return;
     fetchFeedback(1, true);
@@ -786,7 +1000,6 @@ export default function ProductView() {
     }
   };
 
-  // ── Fetch related products ──────────────────────────────────────
   useEffect(() => {
     if (!product?.category) return;
     const fetchRelated = async () => {
@@ -808,7 +1021,6 @@ export default function ProductView() {
     fetchRelated();
   }, [product?.category, product?.productId]);
 
-  // ── Scroll watcher ──────────────────────────────────────────────
   useEffect(() => {
     const handleScroll = () => {
       if (!productDetailsRef.current) return;
@@ -839,7 +1051,6 @@ export default function ProductView() {
 
   const isLoggedIn = () => !!Cookies.get("user");
 
-  // Buy Now — still navigates (no change)
   const handleBuy = () => {
     if (!validateSize()) return;
     persistSize();
@@ -847,11 +1058,7 @@ export default function ProductView() {
     else setAuthToast(true);
   };
 
-  // Cart — calls addToCart directly (no navigation, no size picker popup)
-  const handleCart = () => {
-    addToCart();
-  };
-
+  const handleCart = () => { addToCart(); };
   const handleGoToLogin = () => { setAuthToast(false); navigate("/login"); };
 
   const imageUrl = (path) => path ? (path.startsWith("/") ? `${BASE_URL}${path}` : path) : null;
@@ -886,6 +1093,8 @@ export default function ProductView() {
         @keyframes size-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
         @keyframes toast-in{0%{opacity:0;transform:translateX(-50%) translateY(16px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
         @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @keyframes fade-in-bg{0%{opacity:0}100%{opacity:1}}
+        @keyframes slide-up-sheet{0%{transform:translateY(100%)}100%{transform:translateY(0)}}
         .reviews-scroll-wrap::-webkit-scrollbar{display:none}
         .reviews-scroll-wrap{scrollbar-width:none;-ms-overflow-style:none}
         .cust-img-thumb:hover{opacity:1!important;transform:scale(1.04);}
@@ -893,9 +1102,7 @@ export default function ProductView() {
         .related-scroll{-ms-overflow-style:none;scrollbar-width:none;}
       `}</style>
 
-      {/* Toast notification */}
       {toast && <Toast message={toast.message} type={toast.type} />}
-
       <AuthToast visible={authToast} onLogin={handleGoToLogin} onDismiss={() => setAuthToast(false)} />
       <SizeToast visible={sizeToast} onDismiss={() => setSizeToast(false)} />
 
@@ -905,6 +1112,15 @@ export default function ProductView() {
       {custLightbox && imageFeedback.length > 0 && (
         <CustomerImageLightbox images={imageFeedback} startIdx={custLightboxIdx} onClose={() => setCustLightbox(false)} />
       )}
+
+      {/* Share Popup */}
+      <SharePopup
+        visible={shareOpen}
+        onClose={() => setShareOpen(false)}
+        product={product}
+        shareUrl={shareUrl}
+        imageUrl={imageUrl}
+      />
 
       <div style={{ minHeight: "100vh", background: "#0E1320", color: "#e8e0ff", fontFamily: "'Raleway',sans-serif" }}>
 
@@ -940,7 +1156,13 @@ export default function ProductView() {
                   boxShadow: window.innerWidth <= 768 ? "none" : "0 0 40px rgba(160,120,255,0.07)",
                 }}>
                   <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 30% 20%,rgba(160,120,255,0.07) 0%,transparent 60%)", pointerEvents: "none" }} />
+
+                  {/* Expand button at top-right */}
                   <ExpandButton onClick={() => setLightbox(true)} />
+
+                  {/* Share button directly below expand button */}
+                  <ShareButton onClick={(e) => { e.stopPropagation(); setShareOpen(true); }} />
+
                   {imageUrl(images[imgIdx]) ? (
                     <img src={imageUrl(images[imgIdx])} alt={product.name} onClick={() => setLightbox(true)}
                       onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}
@@ -1167,7 +1389,6 @@ export default function ProductView() {
                   </div>
                 )}
 
-                {/* Rating summary */}
                 <div style={{
                   display: "flex", alignItems: "center", gap: 32,
                   background: "#12121a", border: "1px solid rgba(160,120,255,0.13)",
@@ -1348,13 +1569,7 @@ export default function ProductView() {
           </div>
         )}
 
-        {/* ── Fixed bottom CTA bar (mobile) ──
-            KEY FIXES:
-            1. zIndex bumped to 9999 so nothing overlaps it
-            2. pointerEvents always "auto" when visible
-            3. touchAction: "manipulation" on buttons for instant tap response
-            4. No backdrop-filter on the wrapper (can block touches on some Android WebViews)
-        ── */}
+        {/* ── Fixed bottom CTA bar (mobile) ── */}
         <div style={{
           position: "fixed",
           bottom: 0, left: 0, right: 0,
