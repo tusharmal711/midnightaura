@@ -219,7 +219,27 @@ const SizeToast = ({ visible, onDismiss }) => (
 const SharePopup = ({ visible, onClose, product, shareUrl }) => {
   const [copied, setCopied] = useState(false);
   const mobile = isMobileDevice();
+  const [translateY, setTranslateY] = useState(0);
+const startY = useRef(0);
+     const handleSheetTouchStart = (e) => {
+  startY.current = e.touches[0].clientY;
+};
 
+const handleSheetTouchMove = (e) => {
+  const diff = e.touches[0].clientY - startY.current;
+
+  if (diff > 0) {
+    setTranslateY(diff);
+  }
+};
+
+const handleSheetTouchEnd = () => {
+  if (translateY > 120) {
+    onClose();
+  }
+
+  setTranslateY(0);
+};
   // Build the share text with the product page URL (encrypted, same as navigation)
   // — no raw image URL is included here anymore.
   const shareText = product
@@ -338,13 +358,25 @@ const SharePopup = ({ visible, onClose, product, shareUrl }) => {
       />
 
       {/* Sheet */}
-      <div style={{
-        position: "fixed",
-        bottom: 0, left: 0, right: 0,
-        zIndex: 10001,
-        display: "flex", justifyContent: "center",
-        animation: "slide-up-sheet 0.3s cubic-bezier(0.34,1.3,0.64,1) forwards",
-      }}>
+      {/* Sheet */}
+<div
+  onTouchStart={handleSheetTouchStart}
+  onTouchMove={handleSheetTouchMove}
+  onTouchEnd={handleSheetTouchEnd}
+  style={{
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10001,
+    display: "flex",
+    justifyContent: "center",
+    transform: `translateY(${translateY}px)`,
+    transition: translateY === 0
+      ? "transform .25s ease"
+      : "none",
+  }}
+>
         <div style={{
           width: "100%", maxWidth: 480,
           background: "linear-gradient(160deg,#1a1730 0%,#12121a 100%)",
