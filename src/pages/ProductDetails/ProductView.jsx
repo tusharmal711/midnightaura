@@ -14,7 +14,7 @@ import ProductCard from "../../components/ProductCard";
 import { FaCamera } from "react-icons/fa";
 
 const SECRET_KEY = "midnightaura_secret_key";
-const BASE_URL   = "http://localhost:8008";
+const BASE_URL   = "https://midnightaura-1.onrender.com";
 const SIZES      = ["S", "M", "L", "XL", "XXL"];
 
 // ── Get stored email ──────────────────────────────────────────────────────────
