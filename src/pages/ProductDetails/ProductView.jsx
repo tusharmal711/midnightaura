@@ -243,7 +243,7 @@ const handleSheetTouchEnd = () => {
   // Build the share text with the product page URL (encrypted, same as navigation)
   // — no raw image URL is included here anymore.
   const shareText = product
-    ? `🛍️ Check out *${product.name}* on Midnight Aura!\n💰 ₹${product.finalPrice || product.price}\n\n${shareUrl}`
+    ? `🛍️ Check out *${product.name}* on Chomok Tomok!\n💰 ₹${product.finalPrice || product.price}\n\n${shareUrl}`
     : shareUrl;
 
   const shareTextEncoded = encodeURIComponent(shareText);
@@ -286,7 +286,7 @@ const handleSheetTouchEnd = () => {
     if (!navigator.share) return;
     try {
       await navigator.share({
-        title: product?.name || "Midnight Aura",
+        title: product?.name || "Chomok Tomok",
         text: shareText,
         url: shareUrl,
       });
@@ -1475,7 +1475,7 @@ export default function ProductView() {
             {(feedbackLoading || hasAnyFeedback) && (
               <div style={{ marginTop: 56 }}>
                 <div className="cinzel" style={{ fontSize: 18, fontWeight: 700, color: "#e8e0ff", marginBottom: 4 }}>Customer Reviews</div>
-                <div style={{ fontSize: 13, color: "#8880aa", marginBottom: 24 }}>Verified purchases from Midnight Aura shoppers</div>
+                <div style={{ fontSize: 13, color: "#8880aa", marginBottom: 24 }}>Verified purchases from ChomokTomok shoppers</div>
 
                 {(feedbackLoading || imageFeedback.length > 0) && (
                   <div style={{ marginBottom: 28 }}>
