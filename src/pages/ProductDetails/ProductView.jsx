@@ -856,7 +856,7 @@ export default function ProductView() {
 
   // ── Build share URL ─────────────────────────────────────────────────────────
   const shareUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/product/${productId}`
+    ? `${window.location.origin}/product-view/${productId}`
     : "";
 
   const handleTouchStart = (e) => { touchStartX.current = e.changedTouches[0].screenX; };
