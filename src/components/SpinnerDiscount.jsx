@@ -4,17 +4,22 @@ import { FaLock } from "react-icons/fa";
 import { API } from "../api";
 
 // ── Wheel segments ─────────────────────────────────────────────────
+// Probabilities: 50%→0.86%, 15%→8.62%, 10%→17.24% (unchanged from the
+// prior normalization), 5%→40% (lowered), NO DISCOUNT→33.28% (raised).
+// Each label is still split across multiple wheel slices (for visual
+// variety) but the slices belonging to one label always sum back to
+// that label's total probability.
 const SEGMENTS = [
-  { label: "5% OFF",      color: "#E8531A", textColor: "#fff",    probability: 0.17 },
-  { label: "NO DISCOUNT", color: "#0a0f1e", textColor: "#9ca3af", probability: 0.07 },
-  { label: "10% OFF",     color: "#2563EB", textColor: "#fff",    probability: 0.10 },
-  { label: "5% OFF",      color: "#d97706", textColor: "#fff",    probability: 0.17 },
-  { label: "NO DISCOUNT", color: "#0a0f1e", textColor: "#9ca3af", probability: 0.06 },
-  { label: "15% OFF",     color: "#059669", textColor: "#fff",    probability: 0.10 },
-  { label: "5% OFF",      color: "#7c3aed", textColor: "#fff",    probability: 0.16 },
-  { label: "10% OFF",     color: "#0284c7", textColor: "#fff",    probability: 0.10 },
-  { label: "NO DISCOUNT", color: "#0a0f1e", textColor: "#9ca3af", probability: 0.07 },
-  { label: "50% OFF",     color: "#be185d", textColor: "#fff",    probability: 0.03 },
+  { label: "5% OFF",      color: "#d97706", textColor: "#fff",    probability: 0.1334 },
+  { label: "NO DISCOUNT", color: "#0a0f1e", textColor: "#9ca3af", probability: 0.1109 },
+  { label: "10% OFF",     color: "#2563EB", textColor: "#fff",    probability: 0.0862 },
+  { label: "5% OFF",      color: "#7c3aed", textColor: "#fff",    probability: 0.1333 },
+  { label: "NO DISCOUNT", color: "#0a0f1e", textColor: "#9ca3af", probability: 0.1110 },
+  { label: "15% OFF",     color: "#059669", textColor: "#fff",    probability: 0.0862 },
+  { label: "5% OFF",      color: "#0284c7", textColor: "#fff",    probability: 0.1333 },
+  { label: "10% OFF",     color: "#d97706", textColor: "#fff",    probability: 0.0862 },
+  { label: "NO DISCOUNT", color: "#0a0f1e", textColor: "#9ca3af", probability: 0.1109 },
+  { label: "50% OFF",     color: "#be185d", textColor: "#fff",    probability: 0.0086 },
 ];
 
 const TOTAL = SEGMENTS.reduce((s, seg) => s + seg.probability, 0);
@@ -26,11 +31,11 @@ const SLICE = 360 / SEGMENTS.length;
 const SPIN_LOCK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const PRIZES = [
-  { label: "50% OFF", color: "#be185d", icon: "🔥" },
-  { label: "15% OFF", color: "#059669", icon: "✨" },
-  { label: "10% OFF", color: "#2563EB", icon: "⚡" },
-  { label: "5% OFF",  color: "#d97706", icon: "🎁" },
-  { label: "No Discount", color: "#4b5563", icon: "😶" },
+  { label: "50% OFF", color: "#be185d", icon: "🔥", odds: "0.9%" },
+  { label: "15% OFF", color: "#059669", icon: "✨", odds: "8.6%" },
+  { label: "10% OFF", color: "#2563EB", icon: "⚡", odds: "17.2%" },
+  { label: "5% OFF",  color: "#d97706", icon: "🎁", odds: "40.0%" },
+  { label: "No Discount", color: "#4b5563", icon: "😶", odds: "33.3%" },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -128,7 +133,6 @@ function playLoseSound(ctx) {
 }
 
 // ── Mini Wheel SVG (decorative, for the voucher card) ─────────────
-// Always spinning gently via CSS, independent of the main wheel's spin logic.
 function MiniWheel({ size = 56 }) {
   const c = size / 2, r = size / 2 - 3;
   return (
@@ -158,30 +162,93 @@ function MiniWheel({ size = 56 }) {
   );
 }
 
+// ── Skeleton primitives (lazy-loading placeholders) ─────────────────
+// Each block mirrors the shape/size of real content elsewhere, so any
+// region using it doesn't jump once data arrives.
+function SkeletonBlock({ width = "100%", height = 14, radius = 6, style = {} }) {
+  return (
+    <div
+      style={{
+        width, height, borderRadius: radius,
+        background: "linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 37%, rgba(255,255,255,0.05) 63%)",
+        backgroundSize: "400% 100%",
+        animation: "skeletonShimmer 1.6s ease-in-out infinite",
+        ...style,
+      }}
+    />
+  );
+}
+
+// ── Initial status skeleton ─────────────────────────────────────────
+// While `voucherLoading` is true we don't yet know which of the two
+// final layouts will render — "wheel available" or "voucher already
+// issued this week" — because that's exactly what the in-flight fetch
+// is determining. Guessing one shape and being wrong reproduces the
+// original bug (skeleton shape ≠ resolved shape). Rather than guess,
+// this renders ONE neutral shape — a ticket-card placeholder plus a
+// short info-list placeholder, capped at the same 540px width used by
+// the voucher view — that sits comfortably as a placeholder for either
+// outcome and transitions into whichever one resolves without a
+// jarring shape change.
+function StatusSkeleton() {
+  return (
+    <div style={{ maxWidth: 540, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", borderRadius: 16, overflow: "hidden", background: "#13101c" }}>
+        <div style={{
+          width: 92, flexShrink: 0,
+          background: "linear-gradient(160deg, #2a2a33 0%, #1a1a20 100%)",
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          padding: "14px 0",
+        }}>
+          <SkeletonBlock width={46} height={46} radius="50%" />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, padding: "0.9rem 1.1rem", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <SkeletonBlock width="45%" height={10} />
+            <SkeletonBlock width={56} height={18} radius={20} />
+          </div>
+          <SkeletonBlock width="35%" height={26} />
+          <SkeletonBlock width="70%" height={14} style={{ marginTop: 2 }} />
+          <SkeletonBlock width="55%" height={10} />
+        </div>
+      </div>
+
+      <div style={{
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 14, padding: "1rem 1.25rem",
+        display: "flex", flexDirection: "column", gap: 10,
+      }}>
+        <SkeletonBlock width="40%" height={10} />
+        {[...Array(3)].map((_, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <SkeletonBlock width={28} height={28} radius={7} />
+            <SkeletonBlock width="50%" height={12} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Voucher Card (ticket-stub design) ───────────────────────────────
-// Layout mirrors a physical coupon: a dark perforated-edge stub on the
-// left (holds the spinning wheel + vertical "DISCOUNT COUPON" label)
-// connected via a dashed tear-line to a light info panel on the right
-// (discount %, code, copy button, expiry). Colors are pulled from the
-// app's existing dark purple/pink palette instead of the reference's
-// navy/white so it sits naturally inside the rest of the UI.
 function VoucherCard({ voucher, onCopy, copied, timeLeftMs }) {
+  const isNoDiscount = voucher.discountLabel === "NO DISCOUNT";
   const isUsed    = voucher.isUsed;
   const isExpired = new Date() > new Date(voucher.expiresAt);
-  const isValid   = !isUsed && !isExpired;
+  const isValid   = !isNoDiscount && !isUsed && !isExpired;
 
   const pct = voucher.discountValue;
-  const accent = pct >= 50 ? "#be185d" : pct >= 15 ? "#059669" : pct >= 10 ? "#2563EB" : "#d97706";
+  const accent = isNoDiscount ? "#4b5563" : pct >= 50 ? "#be185d" : pct >= 15 ? "#059669" : pct >= 10 ? "#2563EB" : "#d97706";
 
-  // Badge colors: ACTIVE → green, USED → red, EXPIRED → neutral gray.
-  const badgeColor = isValid ? "#22c55e" : isUsed ? "#ef4444" : "#9ca3af";
-  const badgeLabel = isValid ? "ACTIVE" : isUsed ? "USED" : "EXPIRED";
+  const badgeColor = isNoDiscount ? "#6b7280" : isValid ? "#22c55e" : isUsed ? "#ef4444" : "#9ca3af";
+  const badgeLabel = isNoDiscount ? "NO WIN" : isValid ? "ACTIVE" : isUsed ? "USED" : "EXPIRED";
 
   const stubBg = isValid
     ? `linear-gradient(160deg, ${accent} 0%, #1e1530 100%)`
     : "linear-gradient(160deg, #2a2a33 0%, #1a1a20 100%)";
 
-  const NOTCH = 14; // radius of the punched semicircle notches on the tear-line
+  const NOTCH = 14;
 
   return (
     <div style={{
@@ -205,22 +272,6 @@ function VoucherCard({ voucher, onCopy, copied, timeLeftMs }) {
         justifyContent: "space-between",
         padding: "14px 0",
       }}>
-        {/* Pinking-shear zigzag edge (left side, like a torn ticket stub) */}
-        <svg
-          width="10" height="100%" viewBox="0 0 10 200" preserveAspectRatio="none"
-          style={{ position: "absolute", left: -1, top: 0, height: "100%" }}
-        >
-          <polygon
-            points={Array.from({ length: 21 }, (_, i) => {
-              const y = (i / 20) * 200;
-              const x = i % 2 === 0 ? 10 : 2;
-              return `${x},${y}`;
-            }).join(" ") + " 0,200 0,0"}
-            fill={isValid ? accent : "#1a1a20"}
-            opacity="0.001"
-          />
-        </svg>
-
         <div style={{
           opacity: isValid ? 1 : 0.4,
           filter: isValid ? "none" : "grayscale(1)",
@@ -228,7 +279,6 @@ function VoucherCard({ voucher, onCopy, copied, timeLeftMs }) {
           <MiniWheel size={46} />
         </div>
 
-        {/* Vertical "DISCOUNT COUPON" label */}
         <div style={{
           writingMode: "vertical-rl",
           transform: "rotate(180deg)",
@@ -288,54 +338,60 @@ function VoucherCard({ voucher, onCopy, copied, timeLeftMs }) {
         <span style={{
           color: isValid ? "#fff" : "rgba(255,255,255,0.35)",
           fontWeight: 800,
-          fontSize: "1.6rem",
+          fontSize: isNoDiscount ? "1.2rem" : "1.6rem",
           lineHeight: 1,
-        }}>{voucher.discountLabel}</span>
+        }}>{isNoDiscount ? "No Discount" : voucher.discountLabel}</span>
 
-        {/* Code row + copy button */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          marginTop: 2,
-        }}>
-          <span style={{
-            fontFamily: "monospace",
-            fontSize: 12.5,
-            fontWeight: 700,
-            color: isValid ? "#fbbf24" : "rgba(255,255,255,0.2)",
-            letterSpacing: "0.1em",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}>{voucher.discountId}</span>
+        {/* Code row + copy button — hidden entirely for NO DISCOUNT since there's nothing to redeem */}
+        {!isNoDiscount && (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            marginTop: 2,
+          }}>
+            <span style={{
+              fontFamily: "monospace",
+              fontSize: 12.5,
+              fontWeight: 700,
+              color: isValid ? "#fbbf24" : "rgba(255,255,255,0.2)",
+              letterSpacing: "0.1em",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}>{voucher.discountId}</span>
 
-          {isValid && (
-            <button
-              onClick={() => onCopy(voucher.discountId)}
-              style={{
-                flexShrink: 0,
-                background: copied ? `${accent}30` : "rgba(255,255,255,0.07)",
-                border: copied ? `1px solid ${accent}60` : "1px solid rgba(255,255,255,0.14)",
-                borderRadius: 9,
-                color: copied ? accent : "rgba(255,255,255,0.65)",
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "6px 12px",
-                cursor: "pointer",
-                letterSpacing: "0.05em",
-                transition: "all 0.2s",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {copied ? "✓ Copied" : "Copy"}
-            </button>
-          )}
-        </div>
+            {isValid && (
+              <button
+                onClick={() => onCopy(voucher.discountId)}
+                style={{
+                  flexShrink: 0,
+                  background: copied ? `${accent}30` : "rgba(255,255,255,0.07)",
+                  border: copied ? `1px solid ${accent}60` : "1px solid rgba(255,255,255,0.14)",
+                  borderRadius: 9,
+                  color: copied ? accent : "rgba(255,255,255,0.65)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "6px 12px",
+                  cursor: "pointer",
+                  letterSpacing: "0.05em",
+                  transition: "all 0.2s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {copied ? "✓ Copied" : "Copy"}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Expiry / time left */}
-        {isValid ? (
+        {isNoDiscount ? (
+          <div style={{ color: "rgba(255,255,255,0.25)", fontSize: 10.5, marginTop: 2 }}>
+            SPUN {formatExpiry(voucher.issuedAt).toUpperCase()} · BETTER LUCK NEXT WEEK
+          </div>
+        ) : isValid ? (
           <div style={{ color: "rgba(255,255,255,0.35)", fontSize: 10.5, marginTop: 2 }}>
             THIS VOUCHER VALID UNTIL {formatExpiry(voucher.expiresAt).toUpperCase()}
             {timeLeftMs > 0 && (
@@ -357,14 +413,14 @@ function VoucherCard({ voucher, onCopy, copied, timeLeftMs }) {
 // ── Main Component ─────────────────────────────────────────────────
 export default function SpinnerDiscount() {
   // Voucher / user state
-  const [activeVoucher, setActiveVoucher]   = useState(null);   // most recent voucher issued within the lock window (used or not)
+  const [activeVoucher, setActiveVoucher]   = useState(null);   // most recent voucher issued within the lock window (win or NO DISCOUNT, used or not)
   const [allVouchers, setAllVouchers]       = useState([]);
   const [voucherLoading, setVoucherLoading] = useState(true);
   const [customerId, setCustomerId]         = useState(null);
   const [copied, setCopied]                 = useState(false);
   const [timeLeftMs, setTimeLeftMs]         = useState(0);
-  const [nextSpinMs, setNextSpinMs]         = useState(0);       // countdown until spin unlocks
-  const [spinLocked, setSpinLocked]         = useState(false);   // true once we know the user can't spin this week
+  const [nextSpinMs, setNextSpinMs]         = useState(0);
+  const [spinLocked, setSpinLocked]         = useState(false);
 
   // Spin state
   const [rotation, setRotation]     = useState(0);
@@ -391,9 +447,6 @@ export default function SpinnerDiscount() {
   }, []);
 
   // ── Countdown ticker ────────────────────────────────────────────
-  // Lock expiry is "7 days since the most recent voucher was issued" —
-  // this matches the backend's rule and is independent of whether the
-  // voucher has since been used or whether its own discount has expired.
   useEffect(() => {
     if (!activeVoucher) return;
     const lockExpiresAt = new Date(activeVoucher.issuedAt).getTime() + SPIN_LOCK_MS;
@@ -423,7 +476,7 @@ export default function SpinnerDiscount() {
     load();
   }, []);
 
-  // ── Load existing vouchers ──────────────────────────────────────
+  // ── Load existing vouchers (lazily resolved — neutral skeleton, no spinner) ──
   useEffect(() => {
     const load = async () => {
       const email = getStoredEmail();
@@ -435,13 +488,6 @@ export default function SpinnerDiscount() {
           setAllVouchers(vouchers);
 
           const now = Date.now();
-
-          // The spin lock is about whether a voucher was ISSUED this week,
-          // not whether it's still unused/unexpired. A used voucher still
-          // counts — otherwise the wheel reappears the moment someone
-          // redeems their code, letting them spin again the same week.
-          // This mirrors the backend's saveDiscount check:
-          //   issuedAt >= now - 7 days
           const recentlyIssued = vouchers
             .filter((v) => now - new Date(v.issuedAt).getTime() < SPIN_LOCK_MS)
             .sort((a, b) => new Date(b.issuedAt) - new Date(a.issuedAt));
@@ -473,9 +519,8 @@ export default function SpinnerDiscount() {
     setTimeout(() => setCopied(false), 2000);
   }, []);
 
-  // ── Save discount ───────────────────────────────────────────────
+  // ── Save discount (also saves NO DISCOUNT results) ───────────────
   const saveDiscountToBackend = async (label) => {
-    if (label === "NO DISCOUNT") return;
     const email = getStoredEmail();
     if (!email || !customerId) return;
     setSaveStatus("saving");
@@ -546,9 +591,11 @@ export default function SpinnerDiscount() {
         setHasSpun(true);
         const won = SEGMENTS[winIndex];
         setResult(won);
+        // NO DISCOUNT is saved too, so it's recorded in voucher history
+        // and correctly enforces the weekly spin lock.
+        saveDiscountToBackend(won.label);
         if (won.label !== "NO DISCOUNT") {
           setTimeout(() => playWinSound(ctx), 350);
-          saveDiscountToBackend(won.label);
         } else {
           setTimeout(() => playLoseSound(ctx), 350);
         }
@@ -565,21 +612,12 @@ export default function SpinnerDiscount() {
     ? `SAVE${result.label.replace("% OFF", "").replace(/\s+/g, "")}-PENDING`
     : "");
 
-  // ── Derived: show spinner or voucher-card view ──────────────────
-  // Show the wheel only if nothing has locked the spin for this week.
-  // Show the card whenever there's a voucher inside the lock window,
-  // whether it's unused, used, or even past its own expiry — the lock
-  // window and the voucher's own validity window are different things.
-  const showSpinner = !voucherLoading && !activeVoucher && !hasSpun && !spinLocked;
   const pastVouchers = allVouchers.filter(
-    (v) => v.isUsed || new Date(v.expiresAt) <= Date.now()
+    (v) => v.discountLabel === "NO DISCOUNT" || v.isUsed || new Date(v.expiresAt) <= Date.now()
   );
 
   return (
     <section style={{
-      // No forced 100vh — the section now sizes to its actual content.
-      // Previously minHeight:"100vh" left a huge empty gap whenever only
-      // the (short) locked-voucher card was rendered instead of the wheel.
       background: "#0E1320",
       padding: "2.5rem 1rem 3rem",
       fontFamily: "'Inter', 'Segoe UI', sans-serif",
@@ -602,13 +640,8 @@ export default function SpinnerDiscount() {
           </p>
         </div>
 
-        {/* ── Loading skeleton ── */}
-        {voucherLoading && (
-          <div style={{ textAlign: "center", padding: "3rem 0", color: "rgba(255,255,255,0.3)", fontSize: 14 }}>
-            <div style={{ width: 32, height: 32, border: "3px solid rgba(255,255,255,0.1)", borderTop: "3px solid #9333ea", borderRadius: "50%", animation: "spin 0.9s linear infinite", margin: "0 auto 12px" }} />
-            Loading your voucher status…
-          </div>
-        )}
+        {/* ── Loading: single neutral skeleton (see StatusSkeleton comment) ── */}
+        {voucherLoading && <StatusSkeleton />}
 
         {/* ── Already spun this week → show card, lock spinner ── */}
         {!voucherLoading && activeVoucher && (
@@ -755,7 +788,10 @@ export default function SpinnerDiscount() {
             {/* Right panel */}
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
-              {/* Result card (shows after spin) */}
+              {/* Result card (shows after spin). While the backend save is
+                  in flight, show a skeleton line for the code instead of
+                  plain "Saving…" text — keeps the lazy-loading pattern
+                  consistent everywhere data is in-flight. */}
               {showResult && result ? (
                 <div style={{
                   background: isWin
@@ -784,7 +820,7 @@ export default function SpinnerDiscount() {
                       }}>
                         <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11 }}>Voucher code</span>
                         {saveStatus === "saving" ? (
-                          <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 12 }}>Saving…</span>
+                          <SkeletonBlock width={90} height={13} radius={4} />
                         ) : saveStatus === "error" ? (
                           <span style={{ color: "#f87171", fontSize: 12 }}>Save failed</span>
                         ) : (
@@ -842,7 +878,7 @@ export default function SpinnerDiscount() {
                         </div>
                         <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, fontWeight: 600 }}>{p.label}</span>
                         <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.07)" }} />
-                        <div style={{ width: 8, height: 8, borderRadius: 2, background: p.color, flexShrink: 0 }} />
+                        <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10.5, fontWeight: 600, flexShrink: 0 }}>{p.odds}</span>
                       </div>
                     ))}
                   </div>
@@ -879,8 +915,8 @@ export default function SpinnerDiscount() {
           </div>
         )}
 
-        {/* ── Past vouchers history ── */}
-        {!voucherLoading && pastVouchers.length > 0 && (
+        {/* ── Past vouchers history (includes NO DISCOUNT spins) ── */}
+        {/* {!voucherLoading && pastVouchers.length > 0 && (
           <div style={{ maxWidth: 540, margin: "2.5rem auto 0" }}>
             <p style={{
               color: "rgba(255,255,255,0.25)", fontSize: 11,
@@ -899,7 +935,7 @@ export default function SpinnerDiscount() {
               ))}
             </div>
           </div>
-        )}
+        )} */}
       </div>
 
       <style>{`
@@ -907,11 +943,12 @@ export default function SpinnerDiscount() {
           from { opacity: 0; transform: translateY(12px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
         @keyframes miniWheelSpin {
           to { transform: rotate(360deg); }
+        }
+        @keyframes skeletonShimmer {
+          0%   { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
       `}</style>
     </section>
