@@ -172,6 +172,13 @@ export default function ViewPayment() {
   const sessionSize = sessionStorage.getItem("selectedSize") || null;
   const sessionQty  = Math.min(10, Math.max(1, Number(sessionStorage.getItem("selectedQty") || "1")));
 
+  // Voucher carried over from checkout. This was only VALIDATED there (read
+  // -only), never spent — it gets spent here, after placeOrder succeeds, via
+  // consumeDiscount. See handlePay below.
+  const appliedVoucherId    = sessionStorage.getItem("appliedVoucherId")    || null;
+  const appliedVoucherLabel = sessionStorage.getItem("appliedVoucherLabel") || null;
+  const appliedVoucherValue = Number(sessionStorage.getItem("appliedVoucherValue") || "0");
+
   // ── Product state ─────────────────────────────────────────────────────────
   const [product,     setProduct]     = useState(null);
   const [productLoad, setProductLoad] = useState(true);
@@ -190,6 +197,7 @@ export default function ViewPayment() {
   const [cardCvv,  setCardCvv]  = useState("");
   const [cardErr,  setCardErr]  = useState({});
   const [customerId, setCustomerId] = useState(null);
+  const [userEmail,  setUserEmail]  = useState(null);
   // UPI field
   const [upiId,  setUpiId]  = useState("");
   const [upiErr, setUpiErr] = useState(false);
@@ -232,6 +240,7 @@ export default function ViewPayment() {
       try {
         const email = getStoredEmail();
         if (!email) return;
+        setUserEmail(email);
         const res = await API.post("/user/getProfile", { email });
         if (res.data.success) {
           setCustomerId(res.data.user?.customerId || null);
@@ -268,12 +277,21 @@ export default function ViewPayment() {
   const unitPrice      = product ? (hasDiscount ? product.finalPrice : product.price) : 0;
   const unitOldPrice   = product?.price ?? 0;
   const discountPct    = product?.discount ?? 0;
-  const deliveryCharge = calcDelivery(unitPrice);
 
   const subtotal = unitPrice    * sessionQty;
   const mrpTotal = unitOldPrice * sessionQty;
   const savedAmt = (unitOldPrice - unitPrice) * sessionQty;
-  const total    = subtotal + deliveryCharge;
+
+  // Voucher % applied on top of the product-discounted subtotal — same basis
+  // used on the checkout page, so the number a customer agreed to there
+  // doesn't shift here.
+  const hasVoucher         = !!appliedVoucherId && appliedVoucherValue > 0;
+  const voucherDiscountAmt = hasVoucher ? Math.round(subtotal * (appliedVoucherValue / 100)) : 0;
+  const priceAfterVoucher  = subtotal - voucherDiscountAmt;
+
+  const deliveryCharge = calcDelivery(sessionQty > 0 ? priceAfterVoucher / sessionQty : unitPrice);
+  const total          = priceAfterVoucher + deliveryCharge;
+  const totalSaved     = savedAmt + voucherDiscountAmt;
 
   // ── Image URL helper ──────────────────────────────────────────────────────
   const imageUrl = (path) =>
@@ -301,6 +319,32 @@ export default function ViewPayment() {
     const ok = /^[\w.\-+]+@[\w]+$/.test(upiId.trim());
     setUpiErr(!ok);
     return ok;
+  };
+
+  // ── Consume voucher (spend it) — called ONLY after placeOrder succeeds ───
+  // This is the one place that actually marks the voucher used. If it fails
+  // here, the order has already gone through, so we don't block navigation
+  // or roll anything back — we just log it so it can be flagged/reconciled
+  // manually (customer paid the discounted price but the voucher record
+  // didn't get marked spent).
+  const consumeAppliedVoucherIfAny = async (orderId) => {
+    if (!hasVoucher || !userEmail) return;
+    try {
+      const res = await API.post("/discount/consumeDiscount", {
+        discountId: appliedVoucherId,
+        userEmail,
+        orderId,
+      });
+      if (res.data.success) {
+        sessionStorage.removeItem("appliedVoucherId");
+        sessionStorage.removeItem("appliedVoucherLabel");
+        sessionStorage.removeItem("appliedVoucherValue");
+      } else {
+        console.error("Voucher consume failed after order was placed:", res.data.message);
+      }
+    } catch (err) {
+      console.error("Voucher consume request failed after order was placed:", err);
+    }
   };
 
   // ── Place order ───────────────────────────────────────────────────────────
@@ -332,11 +376,15 @@ export default function ViewPayment() {
         size:           sessionSize,
         quantity:       sessionQty,
         payMethod,
+        voucherId:       hasVoucher ? appliedVoucherId    : null,
+        voucherDiscount: hasVoucher ? voucherDiscountAmt  : 0,
       };
 
       const res = await API.post("/productBuy/placeOrder", payload);
 
       if (res.data.success) {
+        // Order is confirmed — NOW spend the voucher, not before.
+        await consumeAppliedVoucherIfAny(res.data.order?._id);
         // ── Redirect to the dedicated success page ──
         navigate("/order-success");
       } else {
@@ -571,6 +619,26 @@ export default function ViewPayment() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Applied voucher recap — visible here too so the customer
+                      sees it on the same card as size/qty, not just buried in
+                      the price summary on the right. */}
+                  {hasVoucher && (
+                    <>
+                      <Divider />
+                      <div className="flex items-center justify-between gap-2 bg-[rgba(74,222,128,0.08)] border border-[rgba(74,222,128,0.25)] rounded-xl px-3 py-2.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FiTag size={13} className="text-green-400 shrink-0" />
+                          <span className="text-xs font-mono font-bold text-green-400 tracking-wide truncate">
+                            {appliedVoucherId}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-[#8880aa] shrink-0">
+                          {appliedVoucherLabel || `${appliedVoucherValue}% OFF`} applied
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </Card>
               )}
 
@@ -596,6 +664,16 @@ export default function ViewPayment() {
                           Discount ({discountPct}%)
                         </span>
                         <span className="text-green-400 font-semibold">− {fmt(savedAmt)}</span>
+                      </div>
+                    )}
+
+                    {hasVoucher && voucherDiscountAmt > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#8880aa] flex items-center gap-1">
+                          <FiTag size={12} className="text-green-400" />
+                          Voucher ({appliedVoucherLabel || `${appliedVoucherValue}% OFF`})
+                        </span>
+                        <span className="text-green-400 font-semibold">− {fmt(voucherDiscountAmt)}</span>
                       </div>
                     )}
 
@@ -643,9 +721,9 @@ export default function ViewPayment() {
                       <span className="cinzel text-xl font-bold text-[#17ec03]">{fmt(total)}</span>
                     </div>
 
-                    {savedAmt > 0 && (
+                    {totalSaved > 0 && (
                       <div className="flex items-center justify-center gap-1 text-xs text-green-400 bg-green-400/10 rounded-lg py-2">
-                        <FiTag size={11} /> You save {fmt(savedAmt)} on this order!
+                        <FiTag size={11} /> You save {fmt(totalSaved)} on this order!
                       </div>
                     )}
                   </div>
@@ -708,9 +786,9 @@ export default function ViewPayment() {
               <div className="text-[10px] text-[#8880aa] uppercase tracking-widest">Total</div>
               <div className="cinzel text-lg font-bold text-[#17ec03]">{fmt(total)}</div>
             </div>
-            {savedAmt > 0 && (
+            {totalSaved > 0 && (
               <div className="flex items-center gap-1 text-xs text-green-400 bg-green-400/10 px-2.5 py-1 rounded-full">
-                <FiTag size={11} /> Save {fmt(savedAmt)}
+                <FiTag size={11} /> Save {fmt(totalSaved)}
               </div>
             )}
           </div>

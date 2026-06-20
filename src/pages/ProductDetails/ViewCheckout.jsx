@@ -3,7 +3,7 @@ import { IoIosFlash } from "react-icons/io";
 import { MdDeliveryDining, MdDiscount, MdEmail } from "react-icons/md";
 import {
   FiEdit2, FiChevronDown, FiChevronUp,
-  FiX, FiCheck, FiUser, FiPhone, FiTag,
+  FiX, FiCheck, FiUser, FiPhone, FiTag, FiLoader,
 } from "react-icons/fi";
 import {
   BsShieldLockFill, BsArrowReturnLeft,
@@ -62,7 +62,7 @@ function SkeletonCard({ rows = 4 }) {
     borderRadius: 8,
   };
   return (
-    <div style={{ background: "#12121a", border: "1px solid rgba(160,120,255,0.13)", borderRadius: 20, padding: "1.25rem 1.5rem" }}>
+    <div className="checkout-card">
       <div style={{ ...shimmer, height: 10, width: "30%", marginBottom: 20 }} />
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 20 }}>
@@ -79,15 +79,15 @@ function SkeletonCard({ rows = 4 }) {
 
 // ── Stepper ───────────────────────────────────────────────────────────────────
 const Stepper = ({ current }) => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: "2rem", userSelect: "none" }}>
+  <div className="co-stepper" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, marginBottom: "2rem", userSelect: "none" }}>
     {STEPS.map((label, i) => {
       const done = i < current, active = i === current;
       return (
         <div key={i} style={{ display: "flex", alignItems: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 13, fontWeight: 700, border: "2px solid",
+            <div className="co-step-dot" style={{
+              borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+              fontWeight: 700, border: "2px solid",
               borderColor: done || active ? "#a078ff" : "rgba(160,120,255,0.22)",
               background: done ? "#a078ff" : "transparent",
               color: done ? "#fff" : active ? "#a078ff" : "#8880aa",
@@ -96,12 +96,12 @@ const Stepper = ({ current }) => (
             }}>
               {done ? <FiCheck size={14} /> : i + 1}
             </div>
-            <span style={{ fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: active ? "#a078ff" : done ? "rgba(160,120,255,0.7)" : "#8880aa" }}>
+            <span className="co-step-label" style={{ letterSpacing: "0.15em", textTransform: "uppercase", color: active ? "#a078ff" : done ? "rgba(160,120,255,0.7)" : "#8880aa" }}>
               {label}
             </span>
           </div>
           {i < STEPS.length - 1 && (
-            <div style={{ width: 64, height: 1, margin: "0 4px 16px", background: done ? "#a078ff" : "rgba(160,120,255,0.18)" }} />
+            <div className="co-step-line" style={{ height: 1, margin: "0 4px 16px", background: done ? "#a078ff" : "rgba(160,120,255,0.18)" }} />
           )}
         </div>
       );
@@ -111,7 +111,7 @@ const Stepper = ({ current }) => (
 
 // ── Primitives ────────────────────────────────────────────────────────────────
 const Card = ({ children, style = {} }) => (
-  <div style={{ background: "#12121a", border: "1px solid rgba(160,120,255,0.13)", borderRadius: 20, padding: "1.25rem 1.5rem", ...style }}>
+  <div className="checkout-card" style={style}>
     {children}
   </div>
 );
@@ -141,12 +141,13 @@ function StyledInput({ value, onValueChange, placeholder = "", type = "text", ha
       ref={ref} type={type} value={value} autoComplete={autoComplete}
       onChange={(e) => onValueChange?.(e.target.value)}
       placeholder={placeholder} readOnly={readOnly}
+      className="checkout-text-input"
       style={{
-        width: "100%", boxSizing: "border-box",
+        width: "100%", boxSizing: "border-box", minWidth: 0,
         background: readOnly ? "rgba(255,255,255,0.03)" : "#0E1320",
         border: `1px solid ${hasError ? "rgba(239,68,68,0.6)" : "rgba(160,120,255,0.25)"}`,
         borderRadius: 12, padding: "0.6rem 1rem",
-        fontSize: "0.85rem", color: readOnly ? "rgba(255,255,255,0.35)" : "#e8e0ff",
+        color: readOnly ? "rgba(255,255,255,0.35)" : "#e8e0ff",
         outline: "none", transition: "border 0.2s",
         cursor: readOnly ? "not-allowed" : "auto",
       }}
@@ -178,10 +179,10 @@ const InfoRow = ({ icon, label, children }) => (
 function ChangeModal({ title, children, onClose }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "#12121a", border: "1px solid rgba(160,120,255,0.28)", borderRadius: 24, padding: "1.75rem", width: "100%", maxWidth: 500, boxShadow: "0 0 60px rgba(160,120,255,0.25)", maxHeight: "90vh", overflowY: "auto" }}>
+      <div onClick={(e) => e.stopPropagation()} className="checkout-modal" style={{ background: "#12121a", border: "1px solid rgba(160,120,255,0.28)", borderRadius: 24, width: "100%", maxWidth: 500, boxShadow: "0 0 60px rgba(160,120,255,0.25)", maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
           <div style={{ fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "#8880aa" }}>{title}</div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(160,120,255,0.08)", border: "1px solid rgba(160,120,255,0.2)", color: "#a078ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(160,120,255,0.08)", border: "1px solid rgba(160,120,255,0.2)", color: "#a078ff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <FiX size={15} />
           </button>
         </div>
@@ -208,7 +209,7 @@ const ImagePopup = ({ src, alt, onClose }) => (
 function Toast({ message, type, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 3200); return () => clearTimeout(t); }, [onDone]);
   return (
-    <div style={{ position: "fixed", top: "2rem", right: "2rem", zIndex: 99999, display: "flex", alignItems: "center", gap: 8, padding: "0.75rem 1.25rem", borderRadius: 12, fontSize: "0.85rem", fontWeight: 600, backdropFilter: "blur(16px)", background: type === "success" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)", border: type === "success" ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(239,68,68,0.4)", color: type === "success" ? "#6ee7b7" : "#fca5a5", boxShadow: type === "success" ? "0 4px 24px rgba(16,185,129,0.2)" : "0 4px 24px rgba(239,68,68,0.2)" }}>
+    <div className="checkout-toast" style={{ position: "fixed", zIndex: 99999, display: "flex", alignItems: "center", gap: 8, padding: "0.75rem 1.25rem", borderRadius: 12, fontSize: "0.85rem", fontWeight: 600, backdropFilter: "blur(16px)", background: type === "success" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)", border: type === "success" ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(239,68,68,0.4)", color: type === "success" ? "#6ee7b7" : "#fca5a5", boxShadow: type === "success" ? "0 4px 24px rgba(16,185,129,0.2)" : "0 4px 24px rgba(239,68,68,0.2)" }}>
       {type === "success" ? <FiCheck size={15} /> : <FiX size={15} />}
       {message}
     </div>
@@ -223,6 +224,91 @@ const SaveBtn = ({ onClick, loading, label = "Save Changes" }) => (
     <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
   </button>
 );
+
+// ── Voucher Box ───────────────────────────────────────────────────────────────
+// Self-contained code-entry + apply/remove control for the Price Summary card.
+// The input+button row uses the `.voucher-row` class so it can switch from
+// a side-by-side row (≥380px) to a stacked column (very narrow phones) —
+// inline styles can't respond to a media query on their own, which is what
+// was causing the input to overflow/clip before.
+function VoucherBox({ appliedVoucher, onApply, onRemove, applying, error, disabled }) {
+  const [code, setCode] = useState("");
+
+  const handleApply = () => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    onApply(trimmed);
+  };
+
+  if (appliedVoucher) {
+    return (
+      <div className="voucher-applied-row" style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+        background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.3)",
+        borderRadius: 12, padding: "0.65rem 0.9rem",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(74,222,128,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <FiTag size={13} color="#4ade80" />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "#4ade80", fontFamily: "monospace", letterSpacing: "0.05em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {appliedVoucher.discountId}
+            </div>
+            <div style={{ fontSize: 10.5, color: "#8880aa" }}>
+              {appliedVoucher.discountLabel} applied
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={onRemove}
+          style={{
+            flexShrink: 0, display: "flex", alignItems: "center", gap: 4,
+            background: "transparent", border: "1px solid rgba(239,68,68,0.35)",
+            color: "#f87171", fontSize: 11, fontWeight: 600, padding: "5px 10px",
+            borderRadius: 8, cursor: "pointer",
+          }}
+        >
+          <FiX size={11} /> Remove
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="voucher-row">
+        <div className="voucher-input-wrap">
+          <StyledInput
+            value={code}
+            placeholder="Have a voucher code? Enter it here"
+            hasError={!!error}
+            onValueChange={(v) => setCode(v.toUpperCase())}
+          />
+        </div>
+        <button
+          onClick={handleApply}
+          disabled={applying || !code.trim() || disabled}
+          className="voucher-apply-btn"
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            borderRadius: 12,
+            background: applying || !code.trim() || disabled ? "rgba(160,120,255,0.15)" : "linear-gradient(135deg,#a078ff,#7c3aed)",
+            border: "1px solid rgba(139,92,246,0.4)",
+            color: applying || !code.trim() || disabled ? "#6b6490" : "#fff",
+            fontWeight: 700,
+            cursor: applying || !code.trim() || disabled ? "not-allowed" : "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {applying ? <FiLoader size={13} style={{ animation: "spin 0.75s linear infinite" }} /> : null}
+          {applying ? "Checking…" : "Apply"}
+        </button>
+      </div>
+      {error && <ErrorMsg msg={error} />}
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
@@ -281,6 +367,19 @@ export default function ViewCheckout() {
   useEffect(() => {
     sessionStorage.setItem("selectedQty", String(qty));
   }, [qty]);
+
+  // ── Voucher state ──────────────────────────────────────────────────────────
+  // appliedVoucher holds the record returned by POST /discount/validateDiscount
+  // once a code has been confirmed valid (discountId, discountLabel,
+  // discountValue, etc.). This is a READ-ONLY check — the voucher is NOT
+  // marked used yet. Clearing it (Remove) just stops applying it to the
+  // price shown here; since nothing was mutated, the same code can be
+  // re-applied freely. The voucher only actually gets spent when payment
+  // succeeds, via /discount/consumeDiscount on the payment page — see
+  // appliedVoucherId / appliedVoucherValue written to sessionStorage below.
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [voucherApplying, setVoucherApplying] = useState(false);
+  const [voucherError, setVoucherError] = useState("");
 
   // ── Validation errors ──────────────────────────────────────────────────────
   const [errors,    setErrors]    = useState({});
@@ -352,12 +451,6 @@ export default function ViewCheckout() {
   const productPrice  = product ? (hasDiscount ? product.finalPrice : product.price) : 0;
   const productOldPrice = product?.price ?? 0;
   const discountPct   = product?.discount ?? 0;
-  const deliveryCharge = calcDelivery(productPrice);
-
-  // Image URL helper
-  const imageUrl = (path) =>
-    path ? (path.startsWith("/") ? `${BASE_URL}${path}` : path) : null;
-  const productImage = product?.images?.[0] ? imageUrl(product.images[0]) : null;
 
   // ── Derived user values ────────────────────────────────────────────────────
   const effectiveUsername = savedUser?.username?.trim() || inlineUsername;
@@ -376,9 +469,25 @@ export default function ViewCheckout() {
   const emptyOptionalAddrFields = ADDR_FIELDS.filter(({ key, optional }) => optional && !savedAddress?.[key]?.trim());
 
   // ── Price calcs ────────────────────────────────────────────────────────────
-  const subtotal  = productPrice * qty;
-  const savedAmt  = (productOldPrice - productPrice) * qty;
-  const total     = subtotal + deliveryCharge;
+  // Voucher % is applied on top of the per-unit (already product-discounted)
+  // price, then delivery is calculated off that voucher-adjusted price — so a
+  // big enough voucher can push an order under/over the ₹699 free-delivery
+  // line just like a product discount would.
+  const subtotal = productPrice * qty;
+  const savedAmt = (productOldPrice - productPrice) * qty;
+
+  const voucherPct = appliedVoucher?.discountValue || 0;
+  const voucherDiscountAmt = voucherPct > 0 ? Math.round(subtotal * (voucherPct / 100)) : 0;
+  const priceAfterVoucher  = subtotal - voucherDiscountAmt;
+
+  const deliveryCharge = calcDelivery(priceAfterVoucher / Math.max(qty, 1) || productPrice);
+  const total = priceAfterVoucher + deliveryCharge;
+  const totalSaved = savedAmt + voucherDiscountAmt;
+
+  // Image URL helper
+  const imageUrl = (path) =>
+    path ? (path.startsWith("/") ? `${BASE_URL}${path}` : path) : null;
+  const productImage = product?.images?.[0] ? imageUrl(product.images[0]) : null;
 
   // ── Open modals ────────────────────────────────────────────────────────────
   const openPersonal = () => {
@@ -436,6 +545,43 @@ export default function ViewCheckout() {
     }
   };
 
+  // ── Apply voucher ──────────────────────────────────────────────────────────
+  // Calls POST /discount/validateDiscount — a READ-ONLY check. It confirms
+  // the code is valid and tells us the discount value, but does NOT mark the
+  // voucher used. The voucher only actually gets spent (isUsed: true) once
+  // payment succeeds, via /discount/consumeDiscount called from the payment
+  // page. That means if someone applies a code here and then abandons
+  // checkout, the voucher is untouched and still usable later.
+  const handleApplyVoucher = async (code) => {
+    if (!email) {
+      setVoucherError("Please log in to use a voucher.");
+      return;
+    }
+    setVoucherApplying(true);
+    setVoucherError("");
+    try {
+      const res = await API.post("/discount/validateDiscount", {
+        discountId: code,
+        userEmail: email,
+      });
+      if (res.data.success) {
+        setAppliedVoucher(res.data.voucher);
+        showToast(`Voucher ${code} applied 🎉`);
+      } else {
+        setVoucherError(res.data.message || "Could not apply this voucher.");
+      }
+    } catch (err) {
+      setVoucherError(err.response?.data?.message || "Invalid or expired voucher code.");
+    } finally {
+      setVoucherApplying(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherError("");
+  };
+
   // ── Continue to Payment ────────────────────────────────────────────────────
   const handleContinue = async () => {
     const finalUsername = effectiveUsername.trim();
@@ -478,9 +624,18 @@ export default function ViewCheckout() {
         }
       }
 
-      // Store qty & size for the next page
+      // Store qty, size & voucher for the next page
       sessionStorage.setItem("selectedQty",  String(qty));
       sessionStorage.setItem("selectedSize", sessionSize || "");
+      if (appliedVoucher) {
+        sessionStorage.setItem("appliedVoucherId", appliedVoucher.discountId);
+        sessionStorage.setItem("appliedVoucherLabel", appliedVoucher.discountLabel);
+        sessionStorage.setItem("appliedVoucherValue", String(appliedVoucher.discountValue));
+      } else {
+        sessionStorage.removeItem("appliedVoucherId");
+        sessionStorage.removeItem("appliedVoucherLabel");
+        sessionStorage.removeItem("appliedVoucherValue");
+      }
 
       navigate(`/view-payment/${encodeURIComponent(productId)}`);
     } catch (err) {
@@ -502,7 +657,7 @@ export default function ViewCheckout() {
 
   if (!email && !loading) return (
     <div style={{ minHeight: "100vh", background: "#0E1320", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ color: "#f87171", fontSize: 14 }}>⚠️ No session found. Please <a href="/login" style={{ color: "#f87171" }}>log in</a> again.</div>
+      <div style={{ color: "#f87171", fontSize: 14, padding: "0 1.25rem", textAlign: "center" }}>⚠️ No session found. Please <a href="/login" style={{ color: "#f87171" }}>log in</a> again.</div>
     </div>
   );
 
@@ -514,11 +669,70 @@ export default function ViewCheckout() {
       <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
       <style>{`
         *{box-sizing:border-box} body{margin:0} input{outline:none}
+        html, body { overflow-x: hidden; }
         ::-webkit-scrollbar{width:2px;height:2px}
         ::-webkit-scrollbar-track{background:transparent}
         ::-webkit-scrollbar-thumb{background:rgba(160,120,255,0.22);border-radius:2px}
         .cinzel{font-family:'Cinzel',serif}
+           
+        /* ── Base mobile-first sizing ───────────────────────────────────── */
+        .checkout-page-inner { max-width: 1100px; margin: 0 auto; padding: 1.25rem 0.85rem 0; }
+        .checkout-card { background:#12121a; border:1px solid rgba(160,120,255,0.13); border-radius:16px; padding: 1rem 1.1rem; min-width:0; overflow: hidden; }
+        .checkout-text-input { font-size: 0.95rem; }
+        .checkout-modal { padding: 1.25rem; }
+        .checkout-toast { top: 1rem; right: 1rem; left: 1rem; font-size: 0.8rem; padding: 0.65rem 1rem; }
+
+        .co-stepper { gap: 0; }
+        .co-step-dot { width: 28px; height: 28px; font-size: 11px; }
+        .co-step-label { font-size: 8.5px; }
+        .co-step-line { width: 28px; }
+
+        /* Voucher input + apply button: stacked on the smallest phones so
+           the input never gets squeezed/clipped, side-by-side from 380px up. */
+        .voucher-row { display: flex; flex-direction: column; gap: 8px; }
+        .voucher-input-wrap { flex: 1; min-width: 0; }
+        .voucher-apply-btn { width: 100%; padding: 0.65rem 0; font-size: 13px; }
+        .voucher-applied-row { flex-wrap: wrap; }
+
+        /* Trust badges: 3-up grid still works at any width, just tighten
+           gutters/text on the smallest phones. */
+        .trust-badges-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; text-align:center; }
+        .trust-badge-card { background:#12121a; border:1px solid rgba(160,120,255,0.10); border-radius:12px; padding:0.55rem 0.3rem; display:flex; flex-direction:column; align-items:center; gap:5px; min-width:0; }
+        .trust-badge-label { font-size: 8px; color:#8880aa; line-height:1.25; }
+
+        .continue-btn { padding: 0.9rem 0; font-size: 14px; border-radius: 16px; }
+
+        /* ── ≥380px: small phones, room for side-by-side voucher row ────── */
+        @media (min-width: 380px) {
+          .voucher-row { flex-direction: row; gap: 8px; }
+          .voucher-apply-btn { width: auto; padding: 0 1.1rem; flex-shrink: 0; }
+          .trust-badge-label { font-size: 9px; }
+        }
+
+        /* ── ≥480px: large phones ────────────────────────────────────────── */
+        @media (min-width: 480px) {
+          .checkout-page-inner { padding: 1.5rem 1rem 0; }
+          .checkout-card { padding: 1.1rem 1.3rem; border-radius: 18px; }
+          .co-step-dot { width: 30px; height: 30px; font-size: 12px; }
+          .co-step-label { font-size: 9.5px; }
+          .co-step-line { width: 48px; }
+          .continue-btn { padding: 1rem 0; font-size: 15px; border-radius: 18px; }
+          .trust-badges-grid { gap: 8px; }
+          .trust-badge-card { padding: 0.6rem 0.4rem; }
+        }
+
+        /* ── ≥641px: tablet / matches the existing JS isMobile threshold ── */
+        @media (min-width: 641px) {
+          .checkout-page-inner { padding: 2rem 1rem 0; }
+          .checkout-card { padding: 1.25rem 1.5rem; border-radius: 20px; }
+          .co-step-dot { width: 32px; height: 32px; font-size: 13px; }
+          .co-step-label { font-size: 10px; }
+          .co-step-line { width: 64px; }
+        }
+
+        /* ── ≥1024px: desktop two-column grid (unchanged) ────────────────── */
         @media(min-width:1024px){.checkout-grid{grid-template-columns:1fr 360px !important}}
+
         @keyframes sk-shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
         @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
@@ -581,19 +795,19 @@ export default function ViewCheckout() {
         </ChangeModal>
       )}
 
-      <div style={{ minHeight: "100vh", background: "#0E1320", color: "#e8e0ff", paddingBottom: 112, fontFamily: "'Raleway', sans-serif" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2rem 1rem 0" }}>
+      <div style={{ minHeight: "100vh", background: "#0E1320", color: "#e8e0ff", paddingBottom: 112, fontFamily: "'Raleway', sans-serif", overflowX: "hidden" }}>
+        <div className="checkout-page-inner">
           <Stepper current={1} />
 
-          <div className="checkout-grid" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.5rem" }}>
+          <div className="checkout-grid" style={{ display: "grid", gridTemplateColumns: "1fr", gap: "1.25rem", minWidth: 0 }}>
 
             {/* ════════ LEFT ════════ */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem", minWidth: 0 }}>
 
               {/* ── Delivery Details Card ── */}
               {isPageLoading ? <SkeletonCard rows={5} /> : (
                 <Card>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", gap: 8, flexWrap: "wrap" }}>
                     <SecLabel>Delivery Details</SecLabel>
                     <button style={changeBtn} onClick={openPersonal}><FiEdit2 size={12} /> Change Details</button>
                   </div>
@@ -641,17 +855,17 @@ export default function ViewCheckout() {
 
                     {/* Email */}
                     <InfoRow icon={<MdEmail size={16} color="#a078ff" />} label="Email">
-                      <div style={{ color: "#e8e0ff", fontWeight: 600 }}>{savedUser?.email}</div>
+                      <div style={{ color: "#e8e0ff", fontWeight: 600, overflowWrap: "anywhere" }}>{savedUser?.email}</div>
                     </InfoRow>
 
                     <Divider />
 
                     {/* Delivery Address */}
                     <InfoRow icon={<RiMapPin2Fill size={16} color="#a078ff" />} label="Delivery Address">
-                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-                        <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           {addrSummary ? (
-                            <div style={{ color: "#e8e0ff", fontWeight: 500, lineHeight: 1.6, fontSize: 14, marginBottom: hasEmptyAddrFields ? "0.75rem" : 0 }}>
+                            <div style={{ color: "#e8e0ff", fontWeight: 500, lineHeight: 1.6, fontSize: 14, marginBottom: hasEmptyAddrFields ? "0.75rem" : 0, overflowWrap: "anywhere" }}>
                               {addrSummary}
                             </div>
                           ) : (
@@ -707,12 +921,12 @@ export default function ViewCheckout() {
               {isPageLoading ? <SkeletonCard rows={2} /> : (
                 <Card>
                   <SecLabel>Order Items</SecLabel>
-                  <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+                  <div style={{ display: "flex", gap: "0.85rem", alignItems: "flex-start", minWidth: 0 }}>
 
                     {/* Product image */}
                     <button
                       onClick={() => productImage && setImgPopup(true)}
-                      style={{ width: 88, height: 88, borderRadius: 14, background: "#0E1320", border: "1px solid rgba(160,120,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden", cursor: productImage ? "pointer" : "default", transition: "all 0.3s" }}
+                      style={{ width: 76, height: 76, borderRadius: 14, background: "#0E1320", border: "1px solid rgba(160,120,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden", cursor: productImage ? "pointer" : "default", transition: "all 0.3s" }}
                       onMouseEnter={(e) => { if (productImage) { e.currentTarget.style.borderColor = "#a078ff"; e.currentTarget.style.boxShadow = "0 0 14px rgba(160,120,255,0.3)"; }}}
                       onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(160,120,255,0.18)"; e.currentTarget.style.boxShadow = "none"; }}
                     >
@@ -758,7 +972,7 @@ export default function ViewCheckout() {
                       )}
 
                       {/* Qty stepper (max 10) */}
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 10, color: "#8880aa", textTransform: "uppercase", letterSpacing: "0.1em" }}>Qty</span>
                         <div style={{ display: "flex", alignItems: "center", border: "1px solid rgba(160,120,255,0.25)", borderRadius: 12, overflow: "hidden" }}>
                           <button
@@ -781,9 +995,9 @@ export default function ViewCheckout() {
                   <Divider />
 
                   {/* Delivery row */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14 }}>
-                    <MdDeliveryDining size={22} color="#a078ff" />
-                    <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, flexWrap: "wrap" }}>
+                    <MdDeliveryDining size={22} color="#a078ff" style={{ flexShrink: 0 }} />
+                    <div style={{ minWidth: 0 }}>
                       <FieldLabel>Estimated Delivery</FieldLabel>
                       <div style={{ color: "#e8e0ff", fontWeight: 500 }}>
                         <span style={{ color: "#4ade80", fontWeight: 700 }}>{product?.delivery || "3–5 Business Days"}</span>
@@ -800,7 +1014,61 @@ export default function ViewCheckout() {
             {/* ════════ END LEFT ════════ */}
 
             {/* ════════ RIGHT ════════ */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", minWidth: 0 }}>
+
+              {/* ── Voucher Card ── */}
+              {!isPageLoading && (
+                <Card>
+<div
+  className="voucher-title"
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+
+    padding: "8px 16px",
+
+    background: "rgba(74,222,128,0.12)",
+    border: "1px solid rgba(74,222,128,0.4)",
+    borderRadius: "999px",
+
+    color: "#4ade80",
+
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.15em",
+    textTransform: "uppercase",
+
+    boxShadow: "0 0 12px rgba(74,222,128,0.15)",
+  }}
+>
+  <span
+    style={{
+      background: "#22c55e",
+      color: "#fff",
+      fontSize: 9,
+      fontWeight: 700,
+      padding: "3px 7px",
+      borderRadius: 999,
+      letterSpacing: "0.08em",
+    }}
+  >
+    SAVE
+  </span>
+
+  <FiTag size={13} />
+  Apply Voucher
+</div>
+                  <VoucherBox
+                    appliedVoucher={appliedVoucher}
+                    onApply={handleApplyVoucher}
+                    onRemove={handleRemoveVoucher}
+                    applying={voucherApplying}
+                    error={voucherError}
+                  />
+                </Card>
+              )}
 
               {isPageLoading ? <SkeletonCard rows={4} /> : (
                 <Card>
@@ -808,18 +1076,31 @@ export default function ViewCheckout() {
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", fontSize: 14 }}>
 
                     {/* MRP */}
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                       <span style={{ color: "#8880aa" }}>MRP{qty > 1 ? ` (×${qty})` : ""}</span>
                       <span style={{ color: "#e8e0ff", fontWeight: 500 }}>{fmt(productOldPrice * qty)}</span>
                     </div>
 
-                    {/* Discount */}
+                    {/* Product Discount */}
                     {hasDiscount && (
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                         <span style={{ color: "#8880aa", display: "flex", alignItems: "center", gap: 4 }}>
                           <MdDiscount size={13} color="#4ade80" /> Discount ({discountPct}%)
                         </span>
-                        <span style={{ color: "#4ade80", fontWeight: 600 }}>− {fmt(savedAmt)}</span>
+                        <span style={{ color: "#4ade80", fontWeight: 600, flexShrink: 0 }}>− {fmt(savedAmt)}</span>
+                      </div>
+                    )}
+
+                    {/* Voucher Discount */}
+                    {appliedVoucher && voucherDiscountAmt > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ color: "#8880aa", display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                          <FiTag size={12} color="#4ade80" style={{ flexShrink: 0 }} />
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            Voucher ({appliedVoucher.discountLabel})
+                          </span>
+                        </span>
+                        <span style={{ color: "#4ade80", fontWeight: 600, flexShrink: 0 }}>− {fmt(voucherDiscountAmt)}</span>
                       </div>
                     )}
 
@@ -827,12 +1108,12 @@ export default function ViewCheckout() {
                     <div>
                       <button
                         onClick={() => setFeesOpen((p) => !p)}
-                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", background: "transparent", border: "none", color: "#8880aa", cursor: "pointer", fontSize: 14 }}
+                        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", background: "transparent", border: "none", color: "#8880aa", cursor: "pointer", fontSize: 14, gap: 8 }}
                       >
                         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <MdDeliveryDining size={14} /> Delivery Charge &amp; Fees {feesOpen ? <FiChevronUp size={13} /> : <FiChevronDown size={13} />}
                         </span>
-                        <span style={{ color: deliveryCharge === 0 ? "#4ade80" : "#e8e0ff", fontWeight: 600 }}>
+                        <span style={{ color: deliveryCharge === 0 ? "#4ade80" : "#e8e0ff", fontWeight: 600, flexShrink: 0 }}>
                           {deliveryCharge === 0 ? "FREE" : fmt(deliveryCharge)}
                         </span>
                       </button>
@@ -856,14 +1137,14 @@ export default function ViewCheckout() {
                     <Divider />
 
                     {/* Total */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                       <span style={{ color: "#e8e0ff", fontWeight: 600, fontSize: 15 }}>Total Amount</span>
                       <span className="cinzel" style={{ fontSize: 22, fontWeight: 700, color: "#17ec03" }}>{fmt(total)}</span>
                     </div>
 
-                    {savedAmt > 0 && (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, color: "#4ade80", background: "rgba(74,222,128,0.08)", borderRadius: 10, padding: "0.5rem" }}>
-                        <FiTag size={11} /> You save {fmt(savedAmt)} on this order!
+                    {totalSaved > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: 12, color: "#4ade80", background: "rgba(74,222,128,0.08)", borderRadius: 10, padding: "0.5rem", textAlign: "center" }}>
+                        <FiTag size={11} style={{ flexShrink: 0 }} /> You save {fmt(totalSaved)} on this order!
                       </div>
                     )}
                   </div>
@@ -876,7 +1157,8 @@ export default function ViewCheckout() {
                   <button
                     onClick={handleContinue}
                     disabled={saving}
-                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "1rem", borderRadius: 18, border: "none", background: saving ? "rgba(255,214,0,0.5)" : "linear-gradient(135deg,#FFE51F,#FFD600)", color: "#111827", fontSize: 15, fontWeight: 700, letterSpacing: "0.03em", boxShadow: "0 0 24px rgba(255,229,31,0.35)", cursor: saving ? "not-allowed" : "pointer", transition: "all 0.3s", fontFamily: "'Poppins', sans-serif" }}
+                    className="continue-btn"
+                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, border: "none", background: saving ? "rgba(255,214,0,0.5)" : "linear-gradient(135deg,#FFE51F,#FFD600)", color: "#111827", fontWeight: 700, letterSpacing: "0.03em", boxShadow: "0 0 24px rgba(255,229,31,0.35)", cursor: saving ? "not-allowed" : "pointer", transition: "all 0.3s", fontFamily: "'Poppins', sans-serif" }}
                     onMouseEnter={(e) => { if (!saving) { e.currentTarget.style.boxShadow = "0 0 36px rgba(255,229,31,0.55)"; e.currentTarget.style.transform = "translateY(-1px)"; }}}
                     onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 0 24px rgba(255,229,31,0.35)"; e.currentTarget.style.transform = "none"; }}
                   >
@@ -890,15 +1172,15 @@ export default function ViewCheckout() {
 
               {/* Trust badges */}
               {!isPageLoading && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, textAlign: "center" }}>
+                <div className="trust-badges-grid">
                   {[
                     { icon: <BsShieldLockFill  size={18} color="#a078ff" />, label: "Secure Payment"  },
                     { icon: <BsArrowReturnLeft size={18} color="#a078ff" />, label: "Easy Returns"    },
                     { icon: <BsPatchCheckFill  size={18} color="#a078ff" />, label: "Verified Seller" },
                   ].map((b, i) => (
-                    <div key={i} style={{ background: "#12121a", border: "1px solid rgba(160,120,255,0.10)", borderRadius: 14, padding: "0.6rem 0.4rem", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                    <div key={i} className="trust-badge-card">
                       {b.icon}
-                      <span style={{ fontSize: 9, color: "#8880aa", lineHeight: 1.3 }}>{b.label}</span>
+                      <span className="trust-badge-label">{b.label}</span>
                     </div>
                   ))}
                 </div>
@@ -915,14 +1197,14 @@ export default function ViewCheckout() {
           style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, padding: "0.75rem 1rem", background: "rgba(14,19,32,0.95)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(160,120,255,0.12)", transition: "transform 0.3s ease-in-out", transform: fixedBar ? "translateY(0)" : "translateY(100%)" }}
         >
           <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 10, color: "#8880aa", textTransform: "uppercase", letterSpacing: "0.1em" }}>Total</div>
                 <div className="cinzel" style={{ fontSize: 20, fontWeight: 700, color: "#17ec03" }}>{fmt(total)}</div>
               </div>
-              {savedAmt > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#4ade80", background: "rgba(74,222,128,0.1)", padding: "4px 14px", borderRadius: 999 }}>
-                  <FiTag size={11} /> Save {fmt(savedAmt)}
+              {totalSaved > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: "#4ade80", background: "rgba(74,222,128,0.1)", padding: "4px 10px", borderRadius: 999, flexShrink: 0, whiteSpace: "nowrap" }}>
+                  <FiTag size={11} /> Save {fmt(totalSaved)}
                 </div>
               )}
             </div>
