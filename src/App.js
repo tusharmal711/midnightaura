@@ -41,6 +41,12 @@ import NewArrivals from "./pages/Categories/NewArrivals";
 import NotFound from "./pages/NotFound";
 import NetworkStatus from "./pages/NetworkStatus";
 import CustomizeProduct from "./pages/Categories/CustomizeProduct";
+import AboutUs from "./pages/FooterCompanyPages/AboutUs";
+import ContactUs from "./pages/FooterCompanyPages/ContactUs";
+import InfoLayout from "./layouts/InfoLayout";
+import PrivacyPolicy from "./pages/FooterCompanyPages/PrivacyPolicy";
+import TermsAndConditions from "./pages/FooterCompanyPages/TermsConditions";
+import ReturnPolicy from "./pages/FooterCompanyPages/ReturnPolicy";
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 
@@ -106,6 +112,29 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
         </Route>
 
+
+
+
+                 {/* common pages  */}
+         
+        <Route element={<InfoLayout />}>
+  <Route path="/about" element={<AboutUs />} />
+  <Route path="/contact" element={<ContactUs />} />
+  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+  <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+  <Route path="/return-policy" element={<ReturnPolicy />} />
+</Route>
+
+
+
+
+
+
+
+
+
+
+
         {/* ── Protected: User Dashboard ───────────────────────────────────── */}
         <Route
           element={
@@ -159,6 +188,18 @@ function App() {
           <Route path="deliveries"          element={<ReceivedDeliveries />} />
           <Route path="deliveries/:orderId" element={<DeliveryProductDetails />} />
         </Route>
+
+
+
+
+
+
+  
+
+
+
+
+
 
         {/* ── 404 catch-all ───────────────────────────────────────────────── */}
         <Route path="*" element={<NotFound />} />

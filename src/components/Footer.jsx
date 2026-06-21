@@ -65,6 +65,26 @@ const socials = [
   },
 ];
 
+// ── Shop categories (mirrors main navbar order) ───────────────────────────────
+const shopCategories = [
+  { label: "Men", path: "/category/men" },
+  { label: "Women", path: "/category/women" },
+  { label: "Kids", path: "/category/kids" },
+  { label: "Earrings", path: "/category/earrings" },
+  { label: "Necklaces", path: "/category/necklaces" },
+  { label: "Oversized", path: "/category/oversized" },
+  { label: "Hoodies", path: "/category/hoodies" },
+];
+
+// ── Company / legal links ─────────────────────────────────────────────────────
+const companyLinks = [
+  { label: "About Us", path: "/about" },
+  { label: "Contact Us", path: "/contact" },
+  { label: "Privacy Policy", path: "/privacy-policy" },
+  { label: "Terms & Conditions", path: "/terms-and-conditions" },
+  { label: "Return Policy", path: "/return-policy" },
+];
+
 export default function Footer() {
   const navigate = useNavigate();
 
@@ -75,7 +95,7 @@ export default function Footer() {
 
       <footer className="bg-[#080c14] border-t border-white/5">
         <div className="max-w-screen-xl mx-auto px-6 py-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
 
             {/* ── Brand ── */}
             <div className="col-span-2 md:col-span-1">
@@ -129,13 +149,27 @@ export default function Footer() {
             {/* ── Shop ── */}
             <div>
               <h4 className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-3">Shop</h4>
-              {["T-Shirts", "Hoodies", "Oversized", "Accessories"].map((l) => (
+              {shopCategories.map(({ label, path }) => (
                 <p
-                  key={l}
-                  onClick={() => navigate("/user/dashboard")}
+                  key={label}
+                  onClick={() => navigate(path)}
                   className="text-white/30 text-xs mb-2 hover:text-white/70 cursor-pointer transition-colors"
                 >
-                  {l}
+                  {label}
+                </p>
+              ))}
+            </div>
+
+            {/* ── Company ── */}
+            <div>
+              <h4 className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-3">Company</h4>
+              {companyLinks.map(({ label, path }) => (
+                <p
+                  key={label}
+                  onClick={() => navigate(path)}
+                  className="text-white/30 text-xs mb-2 hover:text-white/70 cursor-pointer transition-colors"
+                >
+                  {label}
                 </p>
               ))}
             </div>
@@ -176,8 +210,30 @@ export default function Footer() {
           </div>
 
           {/* ── Bottom bar ── */}
-          <div className="border-t border-white/5 pt-5 text-center">
+          <div className="border-t border-white/5 pt-5 flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-left">
             <p className="text-white/20 text-xs">© 2026 ChomokTomok. All rights reserved.</p>
+            <div className="flex items-center gap-4 flex-wrap justify-center">
+              <span
+                onClick={() => navigate("/privacy-policy")}
+                className="text-white/20 text-xs hover:text-white/50 cursor-pointer transition-colors"
+              >
+                Privacy Policy
+              </span>
+              <span className="text-white/10">•</span>
+              <span
+                onClick={() => navigate("/terms-and-conditions")}
+                className="text-white/20 text-xs hover:text-white/50 cursor-pointer transition-colors"
+              >
+                Terms & Conditions
+              </span>
+              <span className="text-white/10">•</span>
+              <span
+                onClick={() => navigate("/return-policy")}
+                className="text-white/20 text-xs hover:text-white/50 cursor-pointer transition-colors"
+              >
+                Return Policy
+              </span>
+            </div>
           </div>
         </div>
       </footer>
