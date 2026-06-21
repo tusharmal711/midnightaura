@@ -36,23 +36,29 @@ export default function UserCategories() {
   const [pill, setPill] = useState({ left: 0, width: 0, ready: false });
 
   // derive active from the current URL — no separate state needed
-  const activeIndex = categories.findIndex((c) => c.path === location.pathname);
+const activeIndex = categories.findIndex(
+  (c) => !c.special && c.path === location.pathname
+);
 
-  useEffect(() => {
-    const idx   = activeIndex === -1 ? 0 : activeIndex;
-    const btn   = btnRefs.current[idx];
-    const track = trackRef.current;
-    if (!btn || !track) return;
+useEffect(() => {
+  if (activeIndex === -1) {
+    setPill((prev) => ({ ...prev, ready: false }));
+    return;
+  }
 
-    const btnRect   = btn.getBoundingClientRect();
-    const trackRect = track.getBoundingClientRect();
+  const btn = btnRefs.current[activeIndex];
+  const track = trackRef.current;
+  if (!btn || !track) return;
 
-    setPill({
-      left:  btnRect.left - trackRect.left + track.scrollLeft,
-      width: btnRect.width,
-      ready: true,
-    });
-  }, [activeIndex, scrolled]);
+  const btnRect = btn.getBoundingClientRect();
+  const trackRect = track.getBoundingClientRect();
+
+  setPill({
+    left: btnRect.left - trackRect.left + track.scrollLeft,
+    width: btnRect.width,
+    ready: true,
+  });
+}, [activeIndex, scrolled]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);

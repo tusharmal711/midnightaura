@@ -40,6 +40,7 @@ import DeliveryProductDetails from "./pages/DeliveryBoyPanel/DeliveryProductDeta
 import NewArrivals from "./pages/Categories/NewArrivals";
 import NotFound from "./pages/NotFound";
 import NetworkStatus from "./pages/NetworkStatus";
+import CustomizeProduct from "./pages/Categories/CustomizeProduct";
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ function App() {
             <Route path="categories/oversized"    element={<Oversized />} />
             <Route path="categories/men"          element={<Men />} />
             <Route path="categories/new-arrivals" element={<NewArrivals />} />
+            <Route path="categories/customize" element={<CustomizeProduct />} />
           </Route>
         </Route>
 
@@ -122,6 +124,7 @@ function App() {
             <Route path="categories/oversized"    element={<Oversized />} />
             <Route path="categories/men"          element={<Men />} />
             <Route path="categories/new-arrivals" element={<NewArrivals />} />
+            <Route path="categories/customize" element={<CustomizeProduct />} />
           </Route>
 
           <Route element={<UserDashboardProfileLayout />}>
