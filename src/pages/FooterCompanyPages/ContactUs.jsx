@@ -57,7 +57,7 @@ export default function ContactUs() {
       <PageHeader
         eyebrow="Get In Touch"
         title="Questions? Drop in anytime."
-        subtitle="Whether it's an order issue, a sizing question, or a custom-tee idea you want to talk through — our team usually replies within 24 hours."
+        subtitle="Whether it's an order issue, a sizing question, or a custom-tshirt idea you want to talk through — our team usually replies within 24 hours."
       />
 
       <section className="max-w-screen-xl mx-auto px-6 py-14 grid md:grid-cols-2 gap-10">
@@ -99,9 +99,9 @@ export default function ContactUs() {
             style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <p className="text-white/40 text-[11px] uppercase tracking-wider mb-2">Support hours</p>
-            <p className="text-white/70 text-sm mb-4">Sunday – Friday, 10:00 AM – 7:00 PM (GMT+6)</p>
+            <p className="text-white/70 text-sm mb-4">Sunday – Saturday, 10:00 AM – 7:00 PM (GMT+6)</p>
             <p className="text-white/40 text-[11px] uppercase tracking-wider mb-2">Studio address</p>
-            <p className="text-white/70 text-sm">House 12, Road 4, Gulshan, Dhaka, Bangladesh</p>
+            <p className="text-white/70 text-sm">Konchowki , Gaza , Udaynarayanpur , Howrah , 711226</p>
           </div>
         </div>
 
