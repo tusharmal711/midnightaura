@@ -47,6 +47,10 @@ import InfoLayout from "./layouts/InfoLayout";
 import PrivacyPolicy from "./pages/FooterCompanyPages/PrivacyPolicy";
 import TermsAndConditions from "./pages/FooterCompanyPages/TermsConditions";
 import ReturnPolicy from "./pages/FooterCompanyPages/ReturnPolicy";
+import ViewCartCheckout from "./pages/CartItem/ViewCartCheckOut";
+import ViewCartPayment from "./pages/CartItem/ViewCartPayment";
+import CartOrderDetail from "./pages/AdminPanel/CartOrderDetails";
+import CartDeliveryProductDetails from "./pages/DeliveryBoyPanel/Cartdeliveryproductdetails";
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 
@@ -170,6 +174,15 @@ function App() {
           <Route path="/product-view/:productId"  element={<ProductView />} />
           <Route path="/view-checkout/:productId" element={<ViewCheckout />} />
           <Route path="/view-payment/:productId"  element={<ViewPayment />} />
+
+
+
+
+         
+         <Route path="/cart-checkout"  element={<ViewCartCheckout />} />
+         <Route path="/cart-payment"  element={<ViewCartPayment />} />
+
+
         </Route>
         <Route path="/order-success" element={<OrderSuccess />} />
 
@@ -179,6 +192,7 @@ function App() {
           <Route path="listing"         element={<ListingProducts />} />
           <Route path="orders"          element={<AdminOrder />} />
           <Route path="orders/:orderId" element={<OrderDetail />} />
+          <Route path="cart-orders/:cartOrderId" element={<CartOrderDetail />} />
           <Route path="feedback"        element={<Feedback />} />
         </Route>
 
@@ -187,6 +201,8 @@ function App() {
           <Route index element={<DeliveryDashboard />} />
           <Route path="deliveries"          element={<ReceivedDeliveries />} />
           <Route path="deliveries/:orderId" element={<DeliveryProductDetails />} />
+         <Route path="cart-deliveries/:cartOrderId" element={<CartDeliveryProductDetails />} />
+
         </Route>
 
 

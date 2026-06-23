@@ -61,6 +61,15 @@ function SkeletonCard() {
   );
 }
 
+function SkeletonVoucherCard() {
+  return (
+    <div style={{ background:"linear-gradient(145deg,rgba(21,23,35,0.88),rgba(11,15,26,0.95))",border:"1px solid rgba(255,255,255,0.07)",borderRadius:18,padding:16,display:"flex",flexDirection:"column",gap:10 }}>
+      <div style={{ height:9,width:"35%",borderRadius:5,background:"rgba(255,255,255,0.05)",animation:"shimmer 1.5s ease-in-out infinite" }} />
+      <div style={{ height:38,width:"100%",borderRadius:11,background:"rgba(255,255,255,0.04)",animation:"shimmer 1.5s ease-in-out infinite" }} />
+    </div>
+  );
+}
+
 // ── Cart Item Card ────────────────────────────────────────────────────────────
 function CartItemCard({ item, onRemove, onQtyChange, removing, qtyLoading }) {
   const navigate = useNavigate();
@@ -171,20 +180,166 @@ function AddressBanner({ address }) {
   );
 }
 
+// ── Voucher Box ────────────────────────────────────────────────────────────────
+// Mirrors the VoucherBox pattern used on the checkout page: a code input +
+// Apply button that calls a read-only validation endpoint, plus an
+// "applied" state with a Remove action. The voucher is NOT marked used here
+// — it's only actually consumed once an order is placed, same as checkout.
+// The input/button row uses the .cart-voucher-row class so it can switch
+// from side-by-side to stacked on very narrow phones (same breakpoint
+// strategy as checkout's .voucher-row).
+function VoucherBox({ appliedVoucher, onApply, onRemove, applying, error }) {
+  const [code, setCode] = useState("");
+
+  const handleApply = () => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    onApply(trimmed);
+  };
+
+  if (appliedVoucher) {
+    return (
+      <div style={{
+        display:"flex", alignItems:"center", justifyContent:"space-between", gap:10,
+        background:"rgba(74,222,128,0.08)", border:"1px solid rgba(74,222,128,0.3)",
+        borderRadius:12, padding:"10px 14px", flexWrap:"wrap",
+      }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, minWidth:0, flex:1 }}>
+          <div style={{ width:28, height:28, borderRadius:8, background:"rgba(74,222,128,0.15)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round"><path d="M20.59 13.41 11 23l-9-9 9.59-9.59A2 2 0 0 1 13 4h6a2 2 0 0 1 2 2v6a2 2 0 0 1-.41 1.41Z"/><circle cx="16" cy="8" r="0.5" fill="#4ade80"/></svg>
+          </div>
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontSize:12.5, fontWeight:700, color:"#4ade80", fontFamily:"monospace", letterSpacing:"0.05em", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+              {appliedVoucher.discountId}
+            </div>
+            <div style={{ fontSize:10.5, color:"rgba(255,255,255,0.4)" }}>
+              {appliedVoucher.discountLabel} applied
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={onRemove}
+          style={{
+            flexShrink:0, display:"flex", alignItems:"center", gap:4,
+            background:"transparent", border:"1px solid rgba(239,68,68,0.35)",
+            color:"#f87171", fontSize:11, fontWeight:600, padding:"5px 10px",
+            borderRadius:8, cursor:"pointer",
+          }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Remove
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="cart-voucher-row" style={{ display:"flex", flexDirection:"column", gap:8 }}>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="Have a voucher code? Enter it here"
+          style={{
+            flex:1, minWidth:0, width:"100%", boxSizing:"border-box",
+            background:"#0b0f1a",
+            border:`1px solid ${error ? "rgba(239,68,68,0.6)" : "rgba(139,92,246,0.25)"}`,
+            borderRadius:11, padding:"10px 14px",
+            color:"#f0f0f5", fontSize:13, outline:"none",
+          }}
+          onFocus={(e)=>{ if(!error) e.target.style.borderColor="#a78bfa"; }}
+          onBlur={(e)=>{ e.target.style.borderColor = error ? "rgba(239,68,68,0.6)" : "rgba(139,92,246,0.25)"; }}
+        />
+        <button
+          onClick={handleApply}
+          disabled={applying || !code.trim()}
+          style={{
+            display:"flex", alignItems:"center", justifyContent:"center", gap:6,
+            width:"100%", padding:"10px 0", borderRadius:11,
+            background: applying || !code.trim() ? "rgba(139,92,246,0.15)" : "linear-gradient(135deg,#a78bfa,#7c3aed)",
+            border:"1px solid rgba(139,92,246,0.4)",
+            color: applying || !code.trim() ? "#6b6490" : "#fff",
+            fontWeight:700, fontSize:13,
+            cursor: applying || !code.trim() ? "not-allowed" : "pointer",
+            whiteSpace:"nowrap",
+          }}
+        >
+          {applying && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ animation:"spin 1s linear infinite" }}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>}
+          {applying ? "Checking…" : "Apply"}
+        </button>
+      </div>
+      {error && (
+        <div style={{ display:"flex", alignItems:"center", gap:6, marginTop:8, fontSize:11.5, color:"#f87171" }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          {error}
+        </div>
+      )}
+      <style>{`
+        @media (min-width: 380px) {
+          .cart-voucher-row { flex-direction: row !important; }
+          .cart-voucher-row button { width: auto !important; padding: 0 18px !important; flex-shrink: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function VoucherCard({ appliedVoucher, onApply, onRemove, applying, error }) {
+  return (
+    <div style={{ background:"linear-gradient(145deg,rgba(21,23,35,0.88),rgba(11,15,26,0.95))",border:"1px solid rgba(255,255,255,0.07)",borderRadius:18,overflow:"hidden",backdropFilter:"blur(24px)",padding:16 }}>
+      <div
+        style={{
+          display:"inline-flex", alignItems:"center", gap:8, marginBottom:12,
+          padding:"8px 16px",
+          background:"rgba(74,222,128,0.12)",
+          border:"1px solid rgba(74,222,128,0.4)",
+          borderRadius:"999px",
+          color:"#4ade80",
+          fontSize:11, fontWeight:700, letterSpacing:"0.15em", textTransform:"uppercase",
+          boxShadow:"0 0 12px rgba(74,222,128,0.15)",
+        }}
+      >
+        <span style={{ background:"#22c55e", color:"#fff", fontSize:9, fontWeight:700, padding:"3px 7px", borderRadius:999, letterSpacing:"0.08em" }}>
+          SAVE
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20.59 13.41 11 23l-9-9 9.59-9.59A2 2 0 0 1 13 4h6a2 2 0 0 1 2 2v6a2 2 0 0 1-.41 1.41Z"/></svg>
+        Apply Voucher
+      </div>
+      <VoucherBox
+        appliedVoucher={appliedVoucher}
+        onApply={onApply}
+        onRemove={onRemove}
+        applying={applying}
+        error={error}
+      />
+    </div>
+  );
+}
+
 // ── Price Summary ─────────────────────────────────────────────────────────────
-function PriceSummary({ summary, onPlaceOrder }) {
-  const { subtotal, totalDiscount, deliveryCharge, totalAmount, totalItems } = summary;
+function PriceSummary({ summary, appliedVoucher, onPlaceOrder }) {
+  const { subtotal, totalDiscount, voucherDiscount, deliveryCharge, totalAmount, totalItems } = summary;
+  const totalSaved = totalDiscount + voucherDiscount;
   const rows = [
     { label:`MRP (${totalItems} item${totalItems>1?"s":""})`, value:fmt(subtotal), valueColor:"#f0f0f5" },
     { label:"Discount", value:`− ${fmt(totalDiscount)}`, valueColor:"#4ade80" },
-    { label:"Delivery Charges (8%)", value:fmt(deliveryCharge), valueColor:"#f0f0f5" },
   ];
+  if (appliedVoucher && voucherDiscount > 0) {
+    rows.push({ label:`Voucher (${appliedVoucher.discountLabel})`, value:`− ${fmt(voucherDiscount)}`, valueColor:"#4ade80" });
+  }
+  rows.push({ label:"Delivery Charges (8%)", value:fmt(deliveryCharge), valueColor:"#f0f0f5" });
+
   return (
     <div style={{ background:"linear-gradient(145deg,rgba(21,23,35,0.88),rgba(11,15,26,0.95))",border:"1px solid rgba(255,255,255,0.07)",borderRadius:18,overflow:"hidden",backdropFilter:"blur(24px)" }}>
       <div style={{ padding:"16px 18px 0" }}>
         <p style={{ color:"rgba(255,255,255,0.35)",fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:14 }}>Price Details</p>
         <div style={{ display:"flex",flexDirection:"column",gap:11 }}>
-          {rows.map((r)=>(<div key={r.label} style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}><span style={{ color:"rgba(255,255,255,0.45)",fontSize:12.5 }}>{r.label}</span><span style={{ color:r.valueColor,fontSize:12.5,fontWeight:600 }}>{r.value}</span></div>))}
+          {rows.map((r)=>(
+            <div key={r.label} style={{ display:"flex",justifyContent:"space-between",alignItems:"center",gap:8 }}>
+              <span style={{ color:"rgba(255,255,255,0.45)",fontSize:12.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{r.label}</span>
+              <span style={{ color:r.valueColor,fontSize:12.5,fontWeight:600,flexShrink:0 }}>{r.value}</span>
+            </div>
+          ))}
         </div>
         <div style={{ margin:"14px 0",height:1,background:"rgba(255,255,255,0.06)" }} />
         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14 }}>
@@ -192,7 +347,7 @@ function PriceSummary({ summary, onPlaceOrder }) {
           <span style={{ color:"#f0f0f5",fontSize:15,fontWeight:800,fontFamily:"'Poppins',sans-serif" }}>{fmt(totalAmount)}</span>
         </div>
       </div>
-      {totalDiscount>0 && <div style={{ margin:"0 18px 14px",padding:"8px 12px",borderRadius:10,background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.2)",textAlign:"center" }}><span style={{ color:"#4ade80",fontSize:11.5,fontWeight:700 }}>🎉 You'll save {fmt(totalDiscount)} on this order!</span></div>}
+      {totalSaved>0 && <div style={{ margin:"0 18px 14px",padding:"8px 12px",borderRadius:10,background:"rgba(34,197,94,0.08)",border:"1px solid rgba(34,197,94,0.2)",textAlign:"center" }}><span style={{ color:"#4ade80",fontSize:11.5,fontWeight:700 }}>🎉 You'll save {fmt(totalSaved)} on this order!</span></div>}
       <div style={{ padding:"0 18px 18px" }}>
         <button onClick={onPlaceOrder} style={{ width:"100%",padding:"13px 0",borderRadius:13,fontSize:15,fontWeight:800,background:"linear-gradient(135deg,#eab308,#ca8a04)",color:"#000",border:"none",cursor:"pointer",letterSpacing:"0.02em",boxShadow:"0 4px 20px rgba(234,179,8,0.35)",transition:"all 0.2s",fontFamily:"'Poppins',sans-serif" }}
           onMouseEnter={(e)=>{e.currentTarget.style.boxShadow="0 6px 28px rgba(234,179,8,0.5)";e.currentTarget.style.transform="translateY(-1px)";}}
@@ -217,6 +372,17 @@ export default function Cart() {
   const [showClearModal, setShowClearModal] = useState(false);
   const [clearing,       setClearing]       = useState(false);
 
+  // ── Voucher state ──────────────────────────────────────────────────────────
+  // appliedVoucher holds the record returned by POST /discount/validateDiscount
+  // once a code has been confirmed valid. This is a READ-ONLY check — the
+  // voucher is NOT marked used yet, same as on the checkout page. It only
+  // actually gets spent (isUsed: true) once the order is placed, via
+  // /discount/consumeDiscount — so it's stashed in sessionStorage here for
+  // place-order/payment to pick up, exactly like ViewCheckout does.
+  const [appliedVoucher,  setAppliedVoucher]  = useState(null);
+  const [voucherApplying, setVoucherApplying] = useState(false);
+  const [voucherError,    setVoucherError]    = useState("");
+
   useEffect(() => {
     const run = async () => {
       try { const email=getStoredEmail(); if (!email){setLoading(false);return;} const res=await API.post("/user/getProfile",{email}); if (res.data.success) setCustomerId(res.data.user?.customerId||null); }
@@ -229,17 +395,36 @@ export default function Cart() {
 
   const fetchCart = async () => {
     setLoading(true);
-    try { const res=await API.get(`/cart/getCart/${customerId}`); if (res.data.success){setCartItems(res.data.data||[]);setAddress(res.data.address||null);setSummary(res.data.summary||null);} }
+    try { const res=await API.get(`/cart/getCart/${customerId}`); if (res.data.success){setCartItems(res.data.data||[]);setAddress(res.data.address||null);setSummary(withVoucher(res.data.summary||null, null));} }
     catch (err){ console.error("[Cart] fetchCart:",err); }
     finally { setLoading(false); }
   };
 
-  const recomputeSummary = useCallback((items) => {
+  // Re-derives subtotal/discount from line items, then layers the voucher
+  // percentage on top of the product-discounted amount before recomputing
+  // delivery — same ordering as checkout: product discount → voucher % →
+  // delivery on the voucher-adjusted total.
+  const withVoucher = (baseSummary, voucher) => {
+    if (!baseSummary) return baseSummary;
+    const afterProductDiscount = baseSummary.subtotal - baseSummary.totalDiscount;
+    const voucherPct = voucher?.discountValue || 0;
+    const voucherDiscount = voucherPct > 0 ? Math.round(afterProductDiscount * (voucherPct / 100)) : 0;
+    const afterVoucher = afterProductDiscount - voucherDiscount;
+    const dc = Math.round(afterVoucher * DELIVERY_RATE);
+    return {
+      ...baseSummary,
+      voucherDiscount,
+      deliveryCharge: dc,
+      totalAmount: afterVoucher + dc,
+    };
+  };
+
+  const recomputeSummary = useCallback((items, voucher = appliedVoucher) => {
     let subtotal=0,totalDiscount=0;
     items.forEach((item)=>{ const mrp=item.product?.mrp||0,price=item.product?.finalPrice||0; subtotal+=mrp*item.quantity; totalDiscount+=(mrp-price)*item.quantity; });
-    const after=subtotal-totalDiscount, dc=Math.round(after*DELIVERY_RATE);
-    setSummary({ subtotal:Math.round(subtotal),totalDiscount:Math.round(totalDiscount),deliveryCharge:dc,totalAmount:Math.round(after+dc),totalItems:items.length });
-  }, []);
+    const base = { subtotal:Math.round(subtotal),totalDiscount:Math.round(totalDiscount),totalItems:items.length };
+    setSummary(withVoucher(base, voucher));
+  }, [appliedVoucher]);
 
   const handleRemove = async (cartId) => {
     setRemoving((r)=>({...r,[cartId]:true}));
@@ -260,12 +445,68 @@ export default function Cart() {
 
   const handleClearCart = async () => {
     setClearing(true);
-    try { const res=await API.delete("/cart/clearCart",{data:{customerId}}); if (res.data.success){setCartItems([]);setSummary(null);setShowClearModal(false);} }
+    try {
+      const res=await API.delete("/cart/clearCart",{data:{customerId}});
+      if (res.data.success){
+        setCartItems([]);
+        setSummary(null);
+        setShowClearModal(false);
+        setAppliedVoucher(null);
+        setVoucherError("");
+        sessionStorage.removeItem("appliedVoucherId");
+        sessionStorage.removeItem("appliedVoucherLabel");
+        sessionStorage.removeItem("appliedVoucherValue");
+      }
+    }
     catch (err){ console.error("[Cart] clearCart:",err); }
     finally { setClearing(false); }
   };
 
-  const handlePlaceOrder = () => navigate("/place-order");
+  // ── Apply voucher ──────────────────────────────────────────────────────────
+  // Calls POST /discount/validateDiscount — read-only, doesn't mark the
+  // voucher used. On success, layers its percentage into the price summary
+  // and stashes the voucher details in sessionStorage so place-order /
+  // payment can consume it later, matching ViewCheckout's flow exactly.
+  const handleApplyVoucher = async (code) => {
+    const email = getStoredEmail();
+    if (!email) {
+      setVoucherError("Please log in to use a voucher.");
+      return;
+    }
+    setVoucherApplying(true);
+    setVoucherError("");
+    try {
+      const res = await API.post("/discount/validateDiscount", {
+        discountId: code,
+        userEmail: email,
+      });
+      if (res.data.success) {
+        const voucher = res.data.voucher;
+        setAppliedVoucher(voucher);
+        recomputeSummary(cartItems, voucher);
+        sessionStorage.setItem("appliedVoucherId", voucher.discountId);
+        sessionStorage.setItem("appliedVoucherLabel", voucher.discountLabel);
+        sessionStorage.setItem("appliedVoucherValue", String(voucher.discountValue));
+      } else {
+        setVoucherError(res.data.message || "Could not apply this voucher.");
+      }
+    } catch (err) {
+      setVoucherError(err.response?.data?.message || "Invalid or expired voucher code.");
+    } finally {
+      setVoucherApplying(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherError("");
+    recomputeSummary(cartItems, null);
+    sessionStorage.removeItem("appliedVoucherId");
+    sessionStorage.removeItem("appliedVoucherLabel");
+    sessionStorage.removeItem("appliedVoucherValue");
+  };
+
+  const handlePlaceOrder = () => navigate("/cart-checkout");
   const isEmpty = !loading && cartItems.length === 0;
 
   return (
@@ -310,6 +551,7 @@ export default function Cart() {
         {loading && (
           <div style={{ display:"flex",flexDirection:"column",gap:12,animation:"fadeUp 0.3s ease" }}>
             {[1,2,3].map((i)=><SkeletonCard key={i} />)}
+            <SkeletonVoucherCard />
           </div>
         )}
 
@@ -330,7 +572,16 @@ export default function Cart() {
             {cartItems.map((item)=>(
               <CartItemCard key={item.cartId} item={item} onRemove={handleRemove} onQtyChange={handleQtyChange} removing={!!removing[item.cartId]} qtyLoading={!!qtyLoading[item.cartId]} />
             ))}
-            {summary && <PriceSummary summary={summary} onPlaceOrder={handlePlaceOrder} />}
+
+            <VoucherCard
+              appliedVoucher={appliedVoucher}
+              onApply={handleApplyVoucher}
+              onRemove={handleRemoveVoucher}
+              applying={voucherApplying}
+              error={voucherError}
+            />
+
+            {summary && <PriceSummary summary={summary} appliedVoucher={appliedVoucher} onPlaceOrder={handlePlaceOrder} />}
             <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"10px 0 4px",opacity:0.45 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               <span style={{ color:"rgba(255,255,255,0.45)",fontSize:10.5 }}>Safe & secure payments · 100% authentic products</span>

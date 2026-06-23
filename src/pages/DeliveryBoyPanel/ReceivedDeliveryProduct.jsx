@@ -1,5 +1,5 @@
 // ReceivedDeliveries.jsx
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../../api";
 
@@ -13,16 +13,10 @@ const getImageUrl = (img) => {
 };
 
 // ─── Status config ────────────────────────────────────────────────────────────
-// NOTE: orderState === "SHIPPED" is displayed as "PENDING" per requirement
+// orderState "SHIPPED" displayed as "Pending"
 const ORDER_STATUS_STYLES = {
   SHIPPED:   { bg: "rgba(234,179,8,0.12)",  color: "#fde68a", border: "rgba(234,179,8,0.35)",  dot: "#fbbf24", label: "Pending"   },
   DELIVERED: { bg: "rgba(34,197,94,0.12)",  color: "#86efac", border: "rgba(34,197,94,0.35)",  dot: "#4ade80", label: "Delivered" },
-};
-
-const PAY_STATUS_STYLES = {
-  PENDING: { bg: "rgba(234,179,8,0.12)", color: "#fde68a", border: "rgba(234,179,8,0.3)"  },
-  PAID:    { bg: "rgba(34,197,94,0.12)", color: "#86efac", border: "rgba(34,197,94,0.3)"  },
-  FAILED:  { bg: "rgba(239,68,68,0.12)", color: "#fca5a5", border: "rgba(239,68,68,0.3)"  },
 };
 
 const FILTERS       = ["All", "SHIPPED", "DELIVERED"];
@@ -30,12 +24,18 @@ const FILTER_LABELS = { All: "All", SHIPPED: "Pending", DELIVERED: "Delivered" }
 
 const ORDERS_PER_PAGE = 10;
 
-// grid: image | orderId | customer | address | product | price | date | status | view
-const COL = "64px minmax(110px,1fr) minmax(140px,1.2fr) minmax(180px,1.6fr) minmax(150px,1.4fr) 100px 80px 95px 56px";
-const TABLE_MIN_WIDTH = 1060;
+// Source badge styles
+const SOURCE_STYLES = {
+  delivery: { bg: "rgba(139,92,246,0.12)", color: "#c4b5fd", border: "rgba(139,92,246,0.3)", label: "Delivery" },
+  cart:     { bg: "rgba(6,182,212,0.12)",  color: "#67e8f9", border: "rgba(6,182,212,0.3)",  label: "Cart"     },
+};
+
+// grid: image | orderId | customer | address | product | price | date | status | source | view
+const COL = "64px minmax(110px,1fr) minmax(140px,1.2fr) minmax(180px,1.6fr) minmax(150px,1.4fr) 100px 80px 95px 68px 56px";
+const TABLE_MIN_WIDTH = 1140;
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
-const toDateStr = (d) => new Date(d).toISOString().slice(0, 10);
+const toDateStr   = (d) => new Date(d).toISOString().slice(0, 10);
 const todayStr     = () => toDateStr(new Date());
 const yesterdayStr = () => {
   const d = new Date();
@@ -43,7 +43,7 @@ const yesterdayStr = () => {
   return toDateStr(d);
 };
 
-// ─── Customer key: normalise by phone or email ────────────────────────────────
+// ─── Customer key ─────────────────────────────────────────────────────────────
 const customerKey = (order) =>
   order.customer?.phone ||
   order.customer?.mobileNumber ||
@@ -51,7 +51,6 @@ const customerKey = (order) =>
   order.customer?.username ||
   "unknown";
 
-// Build a map: customerKey → count of SHIPPED (pending) orders
 const buildPendingCountMap = (orders) => {
   const map = {};
   orders.forEach((o) => {
@@ -63,14 +62,39 @@ const buildPendingCountMap = (orders) => {
   return map;
 };
 
-// ─── Open Google Maps with lat/lng ────────────────────────────────────────────
-const openGoogleMaps = (lat, lng, label = "") => {
-  // If label provided, show it as the marker label too
-  const query = label
-    ? encodeURIComponent(label)
-    : `${lat},${lng}`;
-  const url = `https://www.google.com/maps?q=${lat},${lng}&z=17&hl=en`;
-  window.open(url, "_blank", "noopener,noreferrer");
+// ─── Normalise a cart order to the same shape as a delivery order ─────────────
+const normaliseCartOrder = (co) => {
+  // A cart order may have multiple items — show the first as "product"
+  const firstItem = (co.items || [])[0] || {};
+  const itemCount = (co.items || []).length;
+
+  return {
+    orderId:         co.cartOrderId,
+    orderState:      co.orderState === "CONFIRMED" ? "SHIPPED" : co.orderState, // treat CONFIRMED as pending visually
+    paymentStatus:   co.paymentStatus,
+    totalPrice:      co.totalPrice,
+    deliveryCharge:  co.deliveryCharge,
+    createdAt:       co.createdAt,
+    customer:        co.customer || null,
+    deliveryAddress: co.deliveryAddress || null,
+    product: {
+      productName:   itemCount > 1
+        ? `${firstItem.productName || "—"} +${itemCount - 1} more`
+        : (firstItem.productName || "—"),
+      productImages: firstItem.productImage ? [firstItem.productImage] : [],
+    },
+    size:     firstItem.size || null,
+    quantity: firstItem.quantity || null,
+    _source:  "cart",
+    _raw:     co,
+  };
+};
+
+const normaliseDeliveryOrder = (o) => ({ ...o, _source: "delivery" });
+
+// ─── Google Maps ──────────────────────────────────────────────────────────────
+const openGoogleMaps = (lat, lng) => {
+  window.open(`https://www.google.com/maps?q=${lat},${lng}&z=17&hl=en`, "_blank", "noopener,noreferrer");
 };
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
@@ -90,14 +114,29 @@ function StatusBadge({ status, styles }) {
   );
 }
 
-// ─── Single product thumbnail ─────────────────────────────────────────────────
+// ─── Source Badge ─────────────────────────────────────────────────────────────
+function SourceBadge({ source }) {
+  const s = SOURCE_STYLES[source];
+  if (!s) return null;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center",
+      fontSize: 10, fontWeight: 800,
+      padding: "2px 8px", borderRadius: 20, whiteSpace: "nowrap",
+      background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+    }}>
+      {s.label}
+    </span>
+  );
+}
+
+// ─── Product Thumbnail ────────────────────────────────────────────────────────
 function ProductThumb({ images }) {
   const img = (images || []).filter(Boolean)[0];
   return (
     <div style={{
       width: 44, height: 56, borderRadius: 8, overflow: "hidden", flexShrink: 0,
-      background: "rgba(255,255,255,0.06)",
-      border: "1px solid rgba(255,255,255,0.1)",
+      background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>
       {img ? (
@@ -113,31 +152,21 @@ function ProductThumb({ images }) {
   );
 }
 
-// ─── Expandable Address with Track Location button ───────────────────────────
+// ─── Expandable Address ───────────────────────────────────────────────────────
 function ExpandableAddress({ address }) {
   const [open, setOpen] = useState(false);
-
   if (!address) return <span style={{ color: "rgba(255,255,255,0.25)", fontSize: 12 }}>—</span>;
 
   const full = [
-    address.addressLine1,
-    address.addressLine2,
-    address.city,
-    address.state,
-    address.pincode,
+    address.addressLine1, address.addressLine2,
+    address.city, address.state, address.pincode,
   ].filter(Boolean).join(", ");
-
   const short = full.length > 40 ? full.slice(0, 40) + "…" : full;
-
-  // GPS location from map picker
   const hasLocation = address.location?.lat && address.location?.lng;
 
   return (
     <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", lineHeight: 1.5 }}>
-      {/* Address text */}
       <span>{open ? full : short}</span>
-
-      {/* "more / less" toggle */}
       {full.length > 40 && (
         <button
           onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
@@ -146,71 +175,30 @@ function ExpandableAddress({ address }) {
             borderRadius: 6, border: "1px solid rgba(139,92,246,0.3)",
             background: "rgba(139,92,246,0.1)", color: "#a78bfa", cursor: "pointer",
           }}
-        >
-          {open ? "less" : "more"}
-        </button>
+        >{open ? "less" : "more"}</button>
       )}
-
-      {/* Track Location button — only shown when GPS pin is available */}
       {hasLocation && (
         <div style={{ marginTop: 6 }}>
           <button
-            onClick={e => {
-              e.stopPropagation();
-              openGoogleMaps(
-                address.location.lat,
-                address.location.lng,
-                address.location.label || full
-              );
-            }}
-            title={`Open in Google Maps (${address.location.lat.toFixed(5)}, ${address.location.lng.toFixed(5)})`}
+            onClick={e => { e.stopPropagation(); openGoogleMaps(address.location.lat, address.location.lng); }}
             style={{
               display: "inline-flex", alignItems: "center", gap: 5,
-              fontSize: 10, fontWeight: 700,
-              padding: "3px 9px", borderRadius: 8, cursor: "pointer",
-              background: "rgba(34,197,94,0.12)",
-              color: "#4ade80",
-              border: "1px solid rgba(34,197,94,0.3)",
-              transition: "background 0.15s, transform 0.12s",
-              whiteSpace: "nowrap",
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = "rgba(34,197,94,0.22)";
-              e.currentTarget.style.transform  = "scale(1.04)";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = "rgba(34,197,94,0.12)";
-              e.currentTarget.style.transform  = "scale(1)";
+              fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 8, cursor: "pointer",
+              background: "rgba(34,197,94,0.12)", color: "#4ade80",
+              border: "1px solid rgba(34,197,94,0.3)", whiteSpace: "nowrap",
             }}
           >
-            {/* Map pin icon */}
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5">
               <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
             Track Location
           </button>
-
-          {/* Show label if set */}
-          {/* {address.location.label && (
-            <p style={{ fontSize: 9, color: "rgba(74,222,128,0.5)", margin: "2px 0 0" }}>
-            {address.location.label}
-            </p>
-          )} */}
         </div>
       )}
-
-      {/* No GPS pin set — subtle hint */}
       {!hasLocation && (
         <div style={{ marginTop: 5 }}>
-          <span
-            title="Customer has not set a GPS pin yet"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              fontSize: 9, fontWeight: 600,
-              color: "rgba(255,255,255,0.2)",
-            }}
-          >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 9, fontWeight: 600, color: "rgba(255,255,255,0.2)" }}>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
@@ -223,7 +211,7 @@ function ExpandableAddress({ address }) {
   );
 }
 
-// ─── Multi-parcel badge ───────────────────────────────────────────────────────
+// ─── Multi-Parcel Badge ───────────────────────────────────────────────────────
 function MultiParcelBadge({ count }) {
   if (count <= 1) return null;
   return (
@@ -231,11 +219,9 @@ function MultiParcelBadge({ count }) {
       title={`This customer has ${count} pending parcels — deliver all together!`}
       style={{
         display: "inline-flex", alignItems: "center", gap: 4,
-        fontSize: 10, fontWeight: 800,
-        padding: "2px 7px", borderRadius: 20, whiteSpace: "nowrap",
+        fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 20,
         background: "rgba(251,191,36,0.15)", color: "#fbbf24",
-        border: "1px solid rgba(251,191,36,0.35)",
-        marginTop: 3, cursor: "default",
+        border: "1px solid rgba(251,191,36,0.35)", marginTop: 3, cursor: "default",
       }}
     >
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2.5">
@@ -286,6 +272,7 @@ function SkeletonRow() {
         <div className="sk-d" style={{ width: 60, height: 13, marginLeft: "auto" }} />
         <div className="sk-d" style={{ width: 50, height: 13, margin: "0 auto" }} />
         <div className="sk-d" style={{ width: 72, height: 22, borderRadius: 20, margin: "0 auto" }} />
+        <div className="sk-d" style={{ width: 52, height: 20, borderRadius: 20, margin: "0 auto" }} />
         <div className="sk-d" style={{ width: 28, height: 28, borderRadius: 9, margin: "0 auto" }} />
       </div>
     </>
@@ -404,8 +391,7 @@ function DateFilterBar({ dateFilter, onDateFilter, orders }) {
           style={{
             background: "rgba(255,255,255,0.05)", border: "1px solid rgba(6,182,212,0.2)",
             color: "rgba(255,255,255,0.7)", borderRadius: 10, padding: "7px 10px",
-            fontSize: 12, outline: "none", cursor: "pointer",
-            colorScheme: "dark",
+            fontSize: 12, outline: "none", cursor: "pointer", colorScheme: "dark",
           }}
         />
         {!["all", today, yesterday].includes(dateFilter) && (
@@ -438,31 +424,30 @@ function DateFilterBar({ dateFilter, onDateFilter, orders }) {
   );
 }
 
-// ─── Summary cards ────────────────────────────────────────────────────────────
+// ─── Summary Cards ────────────────────────────────────────────────────────────
 function SummaryCards({ orders, dateFilter }) {
   const subset      = dateFilter === "all" ? orders : orders.filter(o => toDateStr(o.createdAt) === dateFilter);
   const shipped     = subset.filter(o => o.orderState === "SHIPPED").length;
   const delivered   = subset.filter(o => o.orderState === "DELIVERED").length;
-  const totalEarned = subset
-    .filter(o => o.orderState === "DELIVERED")
-    .reduce((s, o) => s + (o.deliveryCharge || 0), 0);
+  const totalEarned = subset.filter(o => o.orderState === "DELIVERED").reduce((s, o) => s + (o.deliveryCharge || 0), 0);
+  const cartCount   = subset.filter(o => o._source === "cart").length;
   const totalOrders = subset.length;
 
   const cards = [
-    { label: "Total Orders",  value: totalOrders,       color: "#c4b5fd", bg: "rgba(139,92,246,0.1)", border: "rgba(139,92,246,0.25)" },
-    { label: "Pending",       value: shipped,           color: "#fde68a", bg: "rgba(234,179,8,0.1)",  border: "rgba(234,179,8,0.25)"  },
-    { label: "Delivered",     value: delivered,         color: "#86efac", bg: "rgba(34,197,94,0.1)",  border: "rgba(34,197,94,0.25)"  },
+    { label: "Total Orders",  value: totalOrders, color: "#c4b5fd", bg: "rgba(139,92,246,0.1)", border: "rgba(139,92,246,0.25)" },
+    { label: "Pending",       value: shipped,     color: "#fde68a", bg: "rgba(234,179,8,0.1)",  border: "rgba(234,179,8,0.25)"  },
+    { label: "Delivered",     value: delivered,   color: "#86efac", bg: "rgba(34,197,94,0.1)",  border: "rgba(34,197,94,0.25)"  },
+    { label: "Cart Orders",   value: cartCount,   color: "#67e8f9", bg: "rgba(6,182,212,0.1)",  border: "rgba(6,182,212,0.25)"  },
     { label: "Total Earned (Delivery Charge)", value: `₹${totalEarned}`, color: "#fbbf24", bg: "rgba(234,179,8,0.1)", border: "rgba(234,179,8,0.25)" },
   ];
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, marginBottom: 20 }}>
-      <style>{`@media(min-width:640px){ .del-summary-grid { grid-template-columns: repeat(4,1fr) !important; } }`}</style>
+      <style>{`
+        @media(min-width:640px){ .del-summary-grid { grid-template-columns: repeat(5,1fr) !important; } }
+      `}</style>
       {cards.map(({ label, value, color, bg, border }) => (
-        <div key={label} className="del-summary-grid" style={{
-          borderRadius: 14, padding: "14px 16px",
-          background: bg, border: `1px solid ${border}`,
-        }}>
+        <div key={label} className="del-summary-grid" style={{ borderRadius: 14, padding: "14px 16px", background: bg, border: `1px solid ${border}` }}>
           <p style={{ fontSize: 22, fontWeight: 800, color, margin: 0 }}>{value}</p>
           <p style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.4)", margin: "3px 0 0" }}>{label}</p>
         </div>
@@ -473,16 +458,21 @@ function SummaryCards({ orders, dateFilter }) {
 
 // ─── Order Row ────────────────────────────────────────────────────────────────
 function DeliveryRow({ order, pendingCountMap }) {
-  const navigate = useNavigate();
-  const images   = order.product?.productImages ?? [];
+  const navigate   = useNavigate();
+  const images     = order.product?.productImages ?? [];
+  const pendingCnt = order.orderState === "SHIPPED" ? (pendingCountMap[customerKey(order)] || 1) : 0;
 
-  const pendingCount = order.orderState === "SHIPPED"
-    ? (pendingCountMap[customerKey(order)] || 1)
-    : 0;
+  const handleView = () => {
+    if (order._source === "cart") {
+      navigate(`/delivery-boy/cart-deliveries/${order.orderId}`);
+    } else {
+      navigate(`/delivery-boy/deliveries/${order.orderId}`);
+    }
+  };
 
   const handleRowClick = (e) => {
     if (e.target.closest("button") || e.target.closest("input")) return;
-    navigate(`/delivery-boy/deliveries/${order.orderId}`);
+    handleView();
   };
 
   return (
@@ -501,18 +491,27 @@ function DeliveryRow({ order, pendingCountMap }) {
       <ProductThumb images={images} />
 
       {/* Order ID */}
-      <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: "#a78bfa" }}>
-        #{order.orderId}
-      </span>
+      <span
+  style={{
+    fontFamily: "monospace",
+    fontSize: 12,
+    fontWeight: 800,
+    color: order._source === "cart"
+      ? "#ffb300"
+      : "#a78bfa",
+  }}
+>
+  #{order.orderId}
+</span>
 
-      {/* Customer + multi-parcel badge */}
+      {/* Customer */}
       <div style={{ minWidth: 0 }}>
         <p style={{ color: "#fff", fontSize: 13, fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {order.customer?.username || order.customer?.email?.split("@")[0] || "—"}
         </p>
         {order.customer?.customerId && (
           <p style={{ fontSize: 11, color: "rgba(255,255,255,0.38)", margin: "2px 0 0" }}>
-            Id : {order.customer.customerId}
+            Id: {order.customer.customerId}
           </p>
         )}
         {order.customer?.phone && (
@@ -520,10 +519,10 @@ function DeliveryRow({ order, pendingCountMap }) {
             {order.customer.phone}
           </p>
         )}
-        <MultiParcelBadge count={pendingCount} />
+        <MultiParcelBadge count={pendingCnt} />
       </div>
 
-      {/* Address — now includes Track Location button */}
+      {/* Address */}
       <div style={{ paddingRight: 8 }}>
         <ExpandableAddress address={order.deliveryAddress} />
       </div>
@@ -565,10 +564,15 @@ function DeliveryRow({ order, pendingCountMap }) {
         <StatusBadge status={order.orderState} styles={ORDER_STATUS_STYLES} />
       </div>
 
+      {/* Source */}
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <SourceBadge source={order._source} />
+      </div>
+
       {/* View */}
       <div style={{ display: "flex", justifyContent: "center" }} onClick={e => e.stopPropagation()}>
         <button
-          onClick={() => navigate(`/delivery-boy/deliveries/${order.orderId}`)}
+          onClick={handleView}
           title="View order details"
           style={{
             padding: "6px 8px", borderRadius: 9,
@@ -600,15 +604,40 @@ export default function ReceivedDeliveries() {
   const [dateFilter,  setDateFilter]  = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // ── Fetch ─────────────────────────────────────────────────────────────────
+  // ── Fetch both delivery orders & cart orders in parallel ──────────────────
   useEffect(() => {
     (async () => {
       try {
-        const res = await API.get("/delivery/fetchDeliveryProducts");
-        if (res.data.success) setOrders(res.data.orders);
-        else setError("Failed to load delivery orders.");
+        const [deliveryRes, cartRes] = await Promise.allSettled([
+          API.get("/delivery/fetchDeliveryProducts"),
+          API.get("/cart/fetchAllCartOrders"),
+        ]);
+
+        const deliveryOrders =
+          deliveryRes.status === "fulfilled" && deliveryRes.value.data.success
+            ? deliveryRes.value.data.orders.map(normaliseDeliveryOrder)
+            : [];
+
+        const cartOrders =
+          cartRes.status === "fulfilled" && cartRes.value.data.success
+            ? cartRes.value.data.orders
+                // Only show cart orders that have reached SHIPPED / DELIVERED stage
+                .filter(o => ["SHIPPED", "DELIVERED", "CONFIRMED"].includes(o.orderState))
+                .map(normaliseCartOrder)
+            : [];
+
+        // Merge & sort by createdAt desc
+        const merged = [...deliveryOrders, ...cartOrders].sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+
+        setOrders(merged);
+
+        if (deliveryRes.status === "rejected" && cartRes.status === "rejected") {
+          setError("Failed to load delivery orders.");
+        }
       } catch (err) {
-        console.error("fetchDeliveryOrders error", err);
+        console.error("fetchOrders error", err);
         setError("Something went wrong while fetching delivery orders.");
       } finally {
         setLoading(false);
@@ -619,7 +648,7 @@ export default function ReceivedDeliveries() {
   // ── Pending count map ──────────────────────────────────────────────────────
   const pendingCountMap = buildPendingCountMap(orders);
 
-  // ── Derived ───────────────────────────────────────────────────────────────
+  // ── Filtering ─────────────────────────────────────────────────────────────
   const filtered = orders.filter(o => {
     const matchStatus = active === "All" || o.orderState === active;
     const matchDate   = dateFilter === "all" || toDateStr(o.createdAt) === dateFilter;
@@ -631,7 +660,8 @@ export default function ReceivedDeliveries() {
       o.customer?.username?.toLowerCase().includes(q) ||
       o.customer?.email?.toLowerCase().includes(q) ||
       o.customer?.phone?.includes(q) ||
-      o.customer?.customerId?.toLowerCase().includes(q);
+      o.customer?.customerId?.toLowerCase().includes(q) ||
+      o._source?.includes(q);
     return matchStatus && matchDate && matchSearch;
   });
 
@@ -668,7 +698,9 @@ export default function ReceivedDeliveries() {
         <div style={{ marginBottom: 20 }}>
           <h1 style={{ color: "#fff", fontSize: 22, fontWeight: 800, margin: 0 }}>Received Deliveries</h1>
           <p style={{ color: "rgba(255,255,255,0.38)", fontSize: 13, margin: "4px 0 0" }}>
-            {loading ? "Loading…" : `${orders.length} shipment${orders.length !== 1 ? "s" : ""} — pending & delivered`}
+            {loading
+              ? "Loading…"
+              : `${orders.length} shipment${orders.length !== 1 ? "s" : ""} — delivery & cart orders combined`}
           </p>
         </div>
 
@@ -711,7 +743,7 @@ export default function ReceivedDeliveries() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search ID, name, phone…"
+              placeholder="Search ID, name, phone, cart…"
               style={{
                 width: "100%", paddingLeft: 30, paddingRight: 14, paddingTop: 8, paddingBottom: 8,
                 fontSize: 12, borderRadius: 10, outline: "none", boxSizing: "border-box",
@@ -725,11 +757,7 @@ export default function ReceivedDeliveries() {
         {/* Table */}
         <div
           className="del-x-scroll"
-          style={{
-            borderRadius: 16,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "rgba(255,255,255,0.04)",
-          }}
+          style={{ borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" }}
         >
           {/* Header */}
           <div style={{
@@ -749,6 +777,7 @@ export default function ReceivedDeliveries() {
             <span style={{ textAlign: "right" }}>Price</span>
             <span style={{ textAlign: "center" }}>Date</span>
             <span style={{ textAlign: "center" }}>Status</span>
+            <span style={{ textAlign: "center" }}>Source</span>
             <span style={{ textAlign: "center" }}>View</span>
           </div>
 
@@ -773,7 +802,7 @@ export default function ReceivedDeliveries() {
 
           {/* Rows */}
           {!loading && !error && paginatedOrders.map(o => (
-            <div key={o.orderId} style={{ minWidth: TABLE_MIN_WIDTH }}>
+            <div key={`${o._source}-${o.orderId}`} style={{ minWidth: TABLE_MIN_WIDTH }}>
               <DeliveryRow order={o} pendingCountMap={pendingCountMap} />
             </div>
           ))}

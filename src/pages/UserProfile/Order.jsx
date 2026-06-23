@@ -58,6 +58,66 @@ const imageUrl = (path) =>
 const encodeProductId = (id) =>
   encodeURIComponent(CryptoJS.AES.encrypt(id, SECRET_KEY).toString());
 
+// ── Normalizers: shape raw API rows into one unified order model ─────────────
+// Unified shape used by the UI everywhere below:
+// {
+//   type: "single" | "cart",
+//   orderKey: string,            // the id used for status/cancel/return API calls
+//   orderDate, quantity (single only), size (single only),
+//   totalPrice, deliveryCharge, orderState, paymentStatus, payMethod,
+//   deliveryCode, returnInfo,
+//   product: {...} | null,       // single-order product block
+//   items: [...] | null,         // cart-order line items
+//   raw: original record
+// }
+const normalizeSingleOrder = (order) => ({
+  type:           "single",
+  orderKey:       order.orderId,
+  orderId:        order.orderId,
+  orderDate:      order.orderDate,
+  size:           order.size,
+  quantity:       order.quantity,
+  totalPrice:     order.totalPrice,
+  deliveryCharge: order.deliveryCharge,
+  payMethod:      order.payMethod,
+  paymentStatus:  order.paymentStatus,
+  orderState:     order.orderState,
+  deliveryCode:   order.deliveryCode,
+  returnInfo:     order.returnInfo,
+  product:        order.product,
+  items:          null,
+  raw:            order,
+});
+
+const normalizeCartOrder = (order) => ({
+  type:           "cart",
+  orderKey:       order.cartOrderId,
+  orderId:        order.cartOrderId,
+  orderDate:      order.createdAt,
+  size:           null,
+  quantity:       order.items?.reduce((sum, it) => sum + (it.quantity || 0), 0) || 0,
+  totalPrice:     order.totalPrice,
+  deliveryCharge: order.deliveryCharge,
+  payMethod:      order.payMethod,
+  paymentStatus:  order.paymentStatus,
+  orderState:     order.orderState,
+  deliveryCode:   order.deliveryCode || null,
+  returnInfo:     order.returnInfo || null,
+  product:        null,
+  items: (order.items || []).map((it) => ({
+    productId:    it.productId,
+    name:         it.productName,
+    thumbnail:    it.productImage,
+    size:         it.size,
+    quantity:     it.quantity,
+    unitPrice:    it.unitPrice,
+    mrp:          it.mrp,
+    discount:     it.discount,
+    lineTotal:    it.lineTotal,
+  })),
+  raw: order,
+});
+
 // ── Progress Bar ──────────────────────────────────────────────────────────────
 function OrderProgressBar({ state }) {
   const isCancelled = state === "CANCELLED";
@@ -413,7 +473,17 @@ function ImageCropper({ src, onCrop, onCancel }) {
 }
 
 // ── Return Popup ──────────────────────────────────────────────────────────────
+// Works for both single orders (one product, no picker) and cart orders
+// (must pick which line item is being returned).
 function ReturnPopup({ order, customerId, onClose, onSuccess }) {
+  const isCart = order.type === "cart";
+  const returnableItems = isCart ? (order.items || []) : (order.product ? [{
+    productId: order.product.productId,
+    name:      order.product.name,
+    thumbnail: order.product.thumbnail,
+  }] : []);
+
+  const [selectedItem, setSelectedItem]   = useState(isCart ? null : returnableItems[0] || null);
   const [selectedCause, setSelectedCause] = useState("");
   const [rawImageSrc, setRawImageSrc]     = useState(null);
   const [croppedImage, setCroppedImage]   = useState(null);
@@ -424,8 +494,8 @@ function ReturnPopup({ order, customerId, onClose, onSuccess }) {
   const galleryInputId = useRef(`return-gallery-${Math.random().toString(36).slice(2)}`);
   const cameraInputId  = useRef(`return-camera-${Math.random().toString(36).slice(2)}`);
 
-  const productThumb = order?.product?.thumbnail ? imageUrl(order.product.thumbnail) : null;
-  const productName  = order?.product?.name || "Product";
+  const productThumb = selectedItem?.thumbnail ? imageUrl(selectedItem.thumbnail) : null;
+  const productName  = selectedItem?.name || "Product";
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -436,23 +506,23 @@ function ReturnPopup({ order, customerId, onClose, onSuccess }) {
     reader.readAsDataURL(file);
   };
 
-  const isValid = selectedCause !== "";
+  const isValid = selectedCause !== "" && !!selectedItem;
 
   const handleSubmit = async () => {
     if (!isValid || submitting) return;
     setSubmitting(true);
     try {
       const payload = {
-        orderId:     order.orderId,
+        orderId:     order.orderKey,
         customerId,
-        productId:   order.product?.productId,
+        productId:   selectedItem?.productId,
         returnCause: selectedCause,
         returnImage: croppedImage || null,
       };
       const res = await API.post("/productBuy/submitReturn", payload);
       if (res.data.success) {
         setSubmitted(true);
-        onSuccess(order.orderId); // notify parent to update local state
+        onSuccess(order.orderKey);
       } else {
         console.error("Return submission failed:", res.data.message);
       }
@@ -516,6 +586,30 @@ function ReturnPopup({ order, customerId, onClose, onSuccess }) {
               </div>
             ) : (
               <>
+                {/* Item picker — only shown for cart orders with more than one item */}
+                {isCart && returnableItems.length > 0 && (
+                  <div>
+                    <label style={{ display: "block", color: "rgba(255,255,255,0.45)", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+                      Which item are you returning? <span style={{ color: "#f87171" }}>*</span>
+                    </label>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {returnableItems.map((it) => {
+                        const thumb = it.thumbnail ? imageUrl(it.thumbnail) : null;
+                        const active = selectedItem?.productId === it.productId;
+                        return (
+                          <button key={it.productId} onClick={() => setSelectedItem(it)}
+                            style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12, textAlign: "left", background: active ? "rgba(251,146,60,0.1)" : "rgba(255,255,255,0.03)", border: active ? "1px solid rgba(251,146,60,0.45)" : "1px solid rgba(255,255,255,0.06)", color: active ? "#fdba74" : "rgba(255,255,255,0.6)", cursor: "pointer", width: "100%", transition: "all 0.18s" }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 8, overflow: "hidden", flexShrink: 0, background: "rgba(255,255,255,0.05)" }}>
+                              {thumb && <img src={thumb} alt={it.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                            </div>
+                            <span style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.3 }}>{it.name}{it.size ? ` · Size ${it.size}` : ""}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Product preview */}
                 <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "4px 0" }}>
                   {productThumb ? (
@@ -646,7 +740,16 @@ function ReturnPopup({ order, customerId, onClose, onSuccess }) {
 }
 
 // ── Feedback Popup ────────────────────────────────────────────────────────────
+// Works for both single orders (one product) and cart orders (pick which item).
 function FeedbackPopup({ order, onClose, onSubmit, customerId }) {
+  const isCart = order.type === "cart";
+  const feedbackItems = isCart ? (order.items || []) : (order.product ? [{
+    productId: order.product.productId,
+    name:      order.product.name,
+    thumbnail: order.product.thumbnail,
+  }] : []);
+
+  const [selectedItem, setSelectedItem]   = useState(isCart ? null : feedbackItems[0] || null);
   const [feedbackType, setFeedbackType]   = useState("");
   const [rating, setRating]               = useState(0);
   const [title, setTitle]                 = useState("");
@@ -661,8 +764,8 @@ function FeedbackPopup({ order, onClose, onSubmit, customerId }) {
   const galleryInputId = useRef(`feedback-gallery-${Math.random().toString(36).slice(2)}`);
   const cameraInputId  = useRef(`feedback-camera-${Math.random().toString(36).slice(2)}`);
 
-  const productThumb = order?.product?.thumbnail ? imageUrl(order.product.thumbnail) : null;
-  const productName  = order?.product?.name || "Product";
+  const productThumb = selectedItem?.thumbnail ? imageUrl(selectedItem.thumbnail) : null;
+  const productName  = selectedItem?.name || "Product";
   const ratingLabels = ["", "Poor", "Fair", "Good", "Great", "Excellent"];
 
   const handleFileChange = (e) => {
@@ -675,7 +778,7 @@ function FeedbackPopup({ order, onClose, onSubmit, customerId }) {
   };
 
   const isValid = () => {
-    if (!feedbackType || rating === 0) return false;
+    if (!selectedItem || !feedbackType || rating === 0) return false;
     if (feedbackType === "comment") return title.trim() && description.trim();
     if (feedbackType === "image")   return croppedImage && imageComment.trim();
     return false;
@@ -686,7 +789,7 @@ function FeedbackPopup({ order, onClose, onSubmit, customerId }) {
     setSubmitting(true);
     try {
       const payload = {
-        orderId: order.orderId, productId: order.product?.productId, customerId,
+        orderId: order.orderKey, productId: selectedItem?.productId, customerId,
         feedbackType, rating,
         ...(feedbackType === "comment" && { title, description }),
         ...(feedbackType === "image"   && { croppedImage, imageComment }),
@@ -732,6 +835,30 @@ function FeedbackPopup({ order, onClose, onSubmit, customerId }) {
               </div>
             ) : (
               <>
+                {/* Item picker — cart orders with multiple items need this to choose which product gets the feedback */}
+                {isCart && feedbackItems.length > 0 && (
+                  <div>
+                    <label style={{ display: "block", color: "rgba(255,255,255,0.45)", fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+                      Which item is this feedback for? <span style={{ color: "#f87171" }}>*</span>
+                    </label>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {feedbackItems.map((it) => {
+                        const thumb = it.thumbnail ? imageUrl(it.thumbnail) : null;
+                        const active = selectedItem?.productId === it.productId;
+                        return (
+                          <button key={it.productId} onClick={() => setSelectedItem(it)}
+                            style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 12, textAlign: "left", background: active ? "rgba(139,92,246,0.1)" : "rgba(255,255,255,0.03)", border: active ? "1px solid rgba(139,92,246,0.45)" : "1px solid rgba(255,255,255,0.06)", color: active ? "#c4b5fd" : "rgba(255,255,255,0.6)", cursor: "pointer", width: "100%", transition: "all 0.18s" }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 8, overflow: "hidden", flexShrink: 0, background: "rgba(255,255,255,0.05)" }}>
+                              {thumb && <img src={thumb} alt={it.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
+                            </div>
+                            <span style={{ fontSize: 12.5, fontWeight: 500, lineHeight: 1.3 }}>{it.name}{it.size ? ` · Size ${it.size}` : ""}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {!feedbackType && (
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "10px 0 4px", animation: "fadeSlideIn 0.25s ease" }}>
                     {productThumb ? (
@@ -868,6 +995,7 @@ function FeedbackPopup({ order, onClose, onSubmit, customerId }) {
 }
 
 // ── Order Card ────────────────────────────────────────────────────────────────
+// Renders both single-product orders and multi-item cart orders.
 function OrderCard({ order, onCancelClick, customerId, onReturnSuccess }) {
   const navigate = useNavigate();
   const [expanded, setExpanded]       = useState(false);
@@ -875,8 +1003,18 @@ function OrderCard({ order, onCancelClick, customerId, onReturnSuccess }) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showReturn, setShowReturn]   = useState(false);
 
-  const p            = order.product;
-  const thumb        = p?.thumbnail ? imageUrl(p.thumbnail) : null;
+  const isCartOrder  = order.type === "cart";
+  const p            = order.product; // single-order only
+  const items        = order.items || []; // cart-order only
+
+  // Header thumbnail/name: single order uses its product, cart order uses first item (+ "and N more")
+  const headerThumb = isCartOrder
+    ? (items[0]?.thumbnail ? imageUrl(items[0].thumbnail) : null)
+    : (p?.thumbnail ? imageUrl(p.thumbnail) : null);
+  const headerName = isCartOrder
+    ? (items.length > 1 ? `${items[0]?.name || "Item"} + ${items.length - 1} more item${items.length - 1 > 1 ? "s" : ""}` : (items[0]?.name || "Cart Order"))
+    : (p?.name || "Product Unavailable");
+
   const stateClr     = STATE_COLORS[order.orderState] || STATE_COLORS.PLACED;
   const isCancelled  = order.orderState === "CANCELLED";
   const isDelivered  = order.orderState === "DELIVERED";
@@ -892,12 +1030,20 @@ function OrderCard({ order, onCancelClick, customerId, onReturnSuccess }) {
 
   const goToProduct = (e) => {
     if (e.target.closest("button") || e.target.closest("a") || e.target.closest("label")) return;
+    // For cart orders with multiple items, clicking the card doesn't have one obvious
+    // product destination, so only navigate for single-product orders.
+    if (isCartOrder) return;
     if (!p?.productId) return;
     navigate(`/product-view/${encodeProductId(p.productId)}`);
   };
 
   const handleOrderAgain = (e) => {
     e.stopPropagation();
+    if (isCartOrder) {
+      // Jump to the first item; cart re-order across multiple products isn't a single destination.
+      if (items[0]?.productId) navigate(`/product-view/${encodeProductId(items[0].productId)}`);
+      return;
+    }
     if (!p?.productId) return;
     navigate(`/product-view/${encodeProductId(p.productId)}`);
   };
@@ -905,30 +1051,37 @@ function OrderCard({ order, onCancelClick, customerId, onReturnSuccess }) {
   return (
     <>
       <div className="rounded-2xl overflow-hidden transition-all duration-300"
-        style={{ background: "linear-gradient(145deg, rgba(21,23,35,0.85) 0%, #0B0F1A 100%)", border: "1px solid rgba(255,255,255,0.07)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", boxShadow: "0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)", cursor: "pointer" }}
+        style={{ background: "linear-gradient(145deg, rgba(21,23,35,0.85) 0%, #0B0F1A 100%)", border: "1px solid rgba(255,255,255,0.07)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", boxShadow: "0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)", cursor: isCartOrder ? "default" : "pointer" }}
         onClick={goToProduct}>
 
         {/* Main Row */}
         <div className="p-4 flex gap-3 items-start">
           <div className="shrink-0 rounded-xl overflow-hidden" style={{ width: 68, height: 68, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>
-            {thumb
-              ? <img src={thumb} alt={p?.name} className="w-full h-full object-cover" />
+            {headerThumb
+              ? <img src={headerThumb} alt={headerName} className="w-full h-full object-cover" />
               : <div className="w-full h-full flex items-center justify-center" style={{ color: "rgba(255,255,255,0.15)", fontSize: 9 }}>No img</div>
             }
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2 flex-wrap">
-              <p className="font-semibold leading-snug line-clamp-2" style={{ color: "#f0f0f5", fontFamily: "'Poppins', sans-serif", fontSize: 13.5, maxWidth: "66%" }}>
-                {p?.name || "Product Unavailable"}
-              </p>
+              <div className="flex items-center gap-1.5" style={{ maxWidth: "66%" }}>
+                {isCartOrder && (
+                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.06em", padding: "2px 6px", borderRadius: 6, background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.3)", color: "#c4b5fd", flexShrink: 0 }}>CART</span>
+                )}
+                <p className="font-semibold leading-snug line-clamp-2" style={{ color: "#f0f0f5", fontFamily: "'Poppins', sans-serif", fontSize: 13.5 }}>
+                  {headerName}
+                </p>
+              </div>
               <span className="font-bold px-2 py-0.5 rounded-full shrink-0"
                 style={{ background: stateClr.bg, border: `1px solid ${stateClr.border}`, color: stateClr.text, fontSize: 9, letterSpacing: "0.08em" }}>
                 {order.orderState}
               </span>
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-              {order.size && <span style={{ color: "rgba(255,255,255,0.38)", fontSize: 11 }}>Size <span style={{ color: "#a78bfa", fontWeight: 600 }}>{order.size}</span></span>}
-              <span style={{ color: "rgba(255,255,255,0.38)", fontSize: 11 }}>Qty <span style={{ color: "#a78bfa", fontWeight: 600 }}>{order.quantity}</span></span>
+              {!isCartOrder && order.size && <span style={{ color: "rgba(255,255,255,0.38)", fontSize: 11 }}>Size <span style={{ color: "#a78bfa", fontWeight: 600 }}>{order.size}</span></span>}
+              <span style={{ color: "rgba(255,255,255,0.38)", fontSize: 11 }}>
+                {isCartOrder ? `${items.length} item${items.length !== 1 ? "s" : ""}` : <>Qty <span style={{ color: "#a78bfa", fontWeight: 600 }}>{order.quantity}</span></>}
+              </span>
               <span style={{ color: "rgba(255,255,255,0.38)", fontSize: 11 }}>{fmtDate(order.orderDate)}</span>
             </div>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -1018,8 +1171,9 @@ function OrderCard({ order, onCancelClick, customerId, onReturnSuccess }) {
         </div>
 
         {/* Expandable Details */}
-        <div style={{ maxHeight: expanded ? 700 : 0, overflow: "hidden", transition: "max-height 0.38s cubic-bezier(0.4,0,0.2,1)" }} onClick={(e) => e.stopPropagation()}>
-          {p && (
+        <div style={{ maxHeight: expanded ? 900 : 0, overflow: "hidden", transition: "max-height 0.38s cubic-bezier(0.4,0,0.2,1)" }} onClick={(e) => e.stopPropagation()}>
+          {/* Single-order details */}
+          {!isCartOrder && p && (
             <div className="px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
               {p.images && p.images.length > 0 && (
                 <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
@@ -1064,6 +1218,39 @@ function OrderCard({ order, onCancelClick, customerId, onReturnSuccess }) {
               )}
             </div>
           )}
+
+          {/* Cart-order details: list every line item */}
+          {isCartOrder && items.length > 0 && (
+            <div className="px-4 py-3 flex flex-col gap-2.5" style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+              {items.map((it, idx) => {
+                const thumb = it.thumbnail ? imageUrl(it.thumbnail) : null;
+                return (
+                  <div key={`${it.productId}-${idx}`} className="flex items-center gap-3 rounded-xl p-2"
+                    style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}
+                    onClick={() => it.productId && navigate(`/product-view/${encodeProductId(it.productId)}`)}>
+                    <div className="shrink-0 rounded-lg overflow-hidden" style={{ width: 46, height: 46, background: "rgba(255,255,255,0.04)", cursor: "pointer" }}>
+                      {thumb
+                        ? <img src={thumb} alt={it.name} className="w-full h-full object-cover" />
+                        : <div className="w-full h-full flex items-center justify-center" style={{ color: "rgba(255,255,255,0.15)", fontSize: 8 }}>No img</div>
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p style={{ color: "#f0f0f5", fontSize: 12, fontWeight: 600, lineHeight: 1.3 }} className="line-clamp-1">{it.name}</p>
+                      <div className="flex flex-wrap gap-x-2.5 mt-0.5">
+                        {it.size && <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>Size <span style={{ color: "#a78bfa", fontWeight: 600 }}>{it.size}</span></span>}
+                        <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 10 }}>Qty <span style={{ color: "#a78bfa", fontWeight: 600 }}>{it.quantity}</span></span>
+                        {it.discount > 0 && <span style={{ color: "#4ade80", fontSize: 10, fontWeight: 600 }}>{it.discount}% OFF</span>}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p style={{ color: "#4ade80", fontSize: 12.5, fontWeight: 700 }}>{fmt(it.lineTotal)}</p>
+                      {it.mrp > it.unitPrice && <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, textDecoration: "line-through" }}>{fmt(it.mrp * it.quantity)}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1078,9 +1265,9 @@ function OrderCard({ order, onCancelClick, customerId, onReturnSuccess }) {
           order={order}
           customerId={customerId}
           onClose={() => setShowReturn(false)}
-          onSuccess={(orderId) => {
+          onSuccess={(orderKey) => {
             setShowReturn(false);
-            onReturnSuccess(orderId);
+            onReturnSuccess(order.type, orderKey);
           }}
         />
       )}
@@ -1090,7 +1277,7 @@ function OrderCard({ order, onCancelClick, customerId, onReturnSuccess }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function Order() {
-  const [orders,      setOrders]      = useState([]);
+  const [orders,      setOrders]      = useState([]); // unified, normalized list
   const [loading,     setLoading]     = useState(true);
   const [customerId,  setCustomerId]  = useState(null);
   const [cancelOrder, setCancelOrder] = useState(null);
@@ -1113,8 +1300,25 @@ export default function Order() {
     const fetchOrders = async () => {
       setLoading(true);
       try {
-        const res = await API.get(`/productBuy/getUserOrder/${customerId}`);
-        if (res.data.success) setOrders(res.data.data || []);
+        // Fetch single-product orders and cart orders in parallel, then merge.
+        const [singleRes, cartRes] = await Promise.allSettled([
+          API.get(`/productBuy/getUserOrder/${customerId}`),
+          API.get(`/cart/getCartOrders/${customerId}`),
+        ]);
+
+        const singleOrders = singleRes.status === "fulfilled" && singleRes.value.data?.success
+          ? (singleRes.value.data.data || []).map(normalizeSingleOrder)
+          : [];
+
+        const cartOrders = cartRes.status === "fulfilled" && cartRes.value.data?.success
+          ? (cartRes.value.data.data || []).map(normalizeCartOrder)
+          : [];
+
+        const merged = [...singleOrders, ...cartOrders].sort(
+          (a, b) => new Date(b.orderDate) - new Date(a.orderDate)
+        );
+
+        setOrders(merged);
       } catch (err) { console.error("fetchOrders error", err); }
       finally { setLoading(false); }
     };
@@ -1125,11 +1329,15 @@ export default function Order() {
     if (!cancelOrder) return;
     setCancelLoad(true);
     try {
-      const res = await API.put(`/productBuy/updateOrderStatus/${cancelOrder.orderId}`, { orderState: "CANCELLED", reason });
+      const endpoint = cancelOrder.type === "cart"
+        ? `/cartOrder/updateCartOrderStatus/${cancelOrder.orderKey}`
+        : `/productBuy/updateOrderStatus/${cancelOrder.orderKey}`;
+
+      const res = await API.put(endpoint, { orderState: "CANCELLED", reason });
       if (res.data.success) {
         setOrders((prev) => prev.map((o) =>
-          o.orderId === cancelOrder.orderId
-            ? { ...o, orderState: "CANCELLED", cancellationReason: reason, cancelledAt: new Date() }
+          o.orderKey === cancelOrder.orderKey && o.type === cancelOrder.type
+            ? { ...o, orderState: "CANCELLED" }
             : o
         ));
         setCancelOrder(null);
@@ -1139,14 +1347,13 @@ export default function Order() {
   };
 
   // Called by OrderCard when a return is submitted successfully
-  const handleReturnSuccess = (orderId) => {
+  const handleReturnSuccess = (orderType, orderKey) => {
     setOrders((prev) => prev.map((o) =>
-      o.orderId === orderId
+      o.orderKey === orderKey && o.type === orderType
         ? {
             ...o,
             orderState: "RETURNED",
-            returnedAt: new Date(),
-            returnInfo: { returnStatus: "REQUESTED" },  // optimistic update
+            returnInfo: { returnStatus: "REQUESTED", returnCause: o.returnInfo?.returnCause || "" },
           }
         : o
     ));
@@ -1180,7 +1387,7 @@ export default function Order() {
         <div className="flex flex-col gap-3">
           {orders.map((order) => (
             <OrderCard
-              key={order.orderId}
+              key={`${order.type}-${order.orderKey}`}
               order={order}
               customerId={customerId}
               onCancelClick={(o) => setCancelOrder(o)}
