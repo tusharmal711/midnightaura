@@ -7,7 +7,7 @@ import { API } from "../../api";
 
 const SECRET_KEY    = "midnightaura_secret_key";
 const BASE_URL      = "http://localhost:8008";
-const DELIVERY_RATE = 0.08;
+
 
 const fmt = (n) => "₹" + Number(n).toLocaleString("en-IN");
 const imgUrl = (path) => path ? (path.startsWith("/") ? `${BASE_URL}${path}` : path) : null;
@@ -61,14 +61,14 @@ function SkeletonCard() {
   );
 }
 
-function SkeletonVoucherCard() {
-  return (
-    <div style={{ background:"linear-gradient(145deg,rgba(21,23,35,0.88),rgba(11,15,26,0.95))",border:"1px solid rgba(255,255,255,0.07)",borderRadius:18,padding:16,display:"flex",flexDirection:"column",gap:10 }}>
-      <div style={{ height:9,width:"35%",borderRadius:5,background:"rgba(255,255,255,0.05)",animation:"shimmer 1.5s ease-in-out infinite" }} />
-      <div style={{ height:38,width:"100%",borderRadius:11,background:"rgba(255,255,255,0.04)",animation:"shimmer 1.5s ease-in-out infinite" }} />
-    </div>
-  );
-}
+// function SkeletonVoucherCard() {
+//   return (
+//     <div style={{ background:"linear-gradient(145deg,rgba(21,23,35,0.88),rgba(11,15,26,0.95))",border:"1px solid rgba(255,255,255,0.07)",borderRadius:18,padding:16,display:"flex",flexDirection:"column",gap:10 }}>
+//       <div style={{ height:9,width:"35%",borderRadius:5,background:"rgba(255,255,255,0.05)",animation:"shimmer 1.5s ease-in-out infinite" }} />
+//       <div style={{ height:38,width:"100%",borderRadius:11,background:"rgba(255,255,255,0.04)",animation:"shimmer 1.5s ease-in-out infinite" }} />
+//     </div>
+//   );
+// }
 
 // ── Cart Item Card ────────────────────────────────────────────────────────────
 function CartItemCard({ item, onRemove, onQtyChange, removing, qtyLoading }) {
@@ -284,37 +284,37 @@ function VoucherBox({ appliedVoucher, onApply, onRemove, applying, error }) {
   );
 }
 
-function VoucherCard({ appliedVoucher, onApply, onRemove, applying, error }) {
-  return (
-    <div style={{ background:"linear-gradient(145deg,rgba(21,23,35,0.88),rgba(11,15,26,0.95))",border:"1px solid rgba(255,255,255,0.07)",borderRadius:18,overflow:"hidden",backdropFilter:"blur(24px)",padding:16 }}>
-      <div
-        style={{
-          display:"inline-flex", alignItems:"center", gap:8, marginBottom:12,
-          padding:"8px 16px",
-          background:"rgba(74,222,128,0.12)",
-          border:"1px solid rgba(74,222,128,0.4)",
-          borderRadius:"999px",
-          color:"#4ade80",
-          fontSize:11, fontWeight:700, letterSpacing:"0.15em", textTransform:"uppercase",
-          boxShadow:"0 0 12px rgba(74,222,128,0.15)",
-        }}
-      >
-        <span style={{ background:"#22c55e", color:"#fff", fontSize:9, fontWeight:700, padding:"3px 7px", borderRadius:999, letterSpacing:"0.08em" }}>
-          SAVE
-        </span>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20.59 13.41 11 23l-9-9 9.59-9.59A2 2 0 0 1 13 4h6a2 2 0 0 1 2 2v6a2 2 0 0 1-.41 1.41Z"/></svg>
-        Apply Voucher
-      </div>
-      <VoucherBox
-        appliedVoucher={appliedVoucher}
-        onApply={onApply}
-        onRemove={onRemove}
-        applying={applying}
-        error={error}
-      />
-    </div>
-  );
-}
+// function VoucherCard({ appliedVoucher, onApply, onRemove, applying, error }) {
+//   return (
+//     <div style={{ background:"linear-gradient(145deg,rgba(21,23,35,0.88),rgba(11,15,26,0.95))",border:"1px solid rgba(255,255,255,0.07)",borderRadius:18,overflow:"hidden",backdropFilter:"blur(24px)",padding:16 }}>
+//       <div
+//         style={{
+//           display:"inline-flex", alignItems:"center", gap:8, marginBottom:12,
+//           padding:"8px 16px",
+//           background:"rgba(74,222,128,0.12)",
+//           border:"1px solid rgba(74,222,128,0.4)",
+//           borderRadius:"999px",
+//           color:"#4ade80",
+//           fontSize:11, fontWeight:700, letterSpacing:"0.15em", textTransform:"uppercase",
+//           boxShadow:"0 0 12px rgba(74,222,128,0.15)",
+//         }}
+//       >
+//         <span style={{ background:"#22c55e", color:"#fff", fontSize:9, fontWeight:700, padding:"3px 7px", borderRadius:999, letterSpacing:"0.08em" }}>
+//           SAVE
+//         </span>
+//         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20.59 13.41 11 23l-9-9 9.59-9.59A2 2 0 0 1 13 4h6a2 2 0 0 1 2 2v6a2 2 0 0 1-.41 1.41Z"/></svg>
+//         Apply Voucher
+//       </div>
+//       <VoucherBox
+//         appliedVoucher={appliedVoucher}
+//         onApply={onApply}
+//         onRemove={onRemove}
+//         applying={applying}
+//         error={error}
+//       />
+//     </div>
+//   );
+// }
 
 // ── Price Summary ─────────────────────────────────────────────────────────────
 function PriceSummary({ summary, appliedVoucher, onPlaceOrder }) {
@@ -327,8 +327,13 @@ function PriceSummary({ summary, appliedVoucher, onPlaceOrder }) {
   if (appliedVoucher && voucherDiscount > 0) {
     rows.push({ label:`Voucher (${appliedVoucher.discountLabel})`, value:`− ${fmt(voucherDiscount)}`, valueColor:"#4ade80" });
   }
-  rows.push({ label:"Delivery Charges (8%)", value:fmt(deliveryCharge), valueColor:"#f0f0f5" });
-
+rows.push({
+  label: totalItems === 1
+    ? "Delivery Charges"
+    : "Delivery Charges (Multiple Items)",
+  value: fmt(deliveryCharge),
+  valueColor: "#f0f0f5",
+});
   return (
     <div style={{ background:"linear-gradient(145deg,rgba(21,23,35,0.88),rgba(11,15,26,0.95))",border:"1px solid rgba(255,255,255,0.07)",borderRadius:18,overflow:"hidden",backdropFilter:"blur(24px)" }}>
       <div style={{ padding:"16px 18px 0" }}>
@@ -404,20 +409,31 @@ export default function Cart() {
   // percentage on top of the product-discounted amount before recomputing
   // delivery — same ordering as checkout: product discount → voucher % →
   // delivery on the voucher-adjusted total.
-  const withVoucher = (baseSummary, voucher) => {
-    if (!baseSummary) return baseSummary;
-    const afterProductDiscount = baseSummary.subtotal - baseSummary.totalDiscount;
-    const voucherPct = voucher?.discountValue || 0;
-    const voucherDiscount = voucherPct > 0 ? Math.round(afterProductDiscount * (voucherPct / 100)) : 0;
-    const afterVoucher = afterProductDiscount - voucherDiscount;
-    const dc = Math.round(afterVoucher * DELIVERY_RATE);
-    return {
-      ...baseSummary,
-      voucherDiscount,
-      deliveryCharge: dc,
-      totalAmount: afterVoucher + dc,
-    };
+const withVoucher = (baseSummary, voucher) => {
+  if (!baseSummary) return baseSummary;
+
+  const afterProductDiscount =
+    baseSummary.subtotal - baseSummary.totalDiscount;
+
+  const voucherPct = voucher?.discountValue || 0;
+
+  const voucherDiscount =
+    voucherPct > 0
+      ? Math.round(afterProductDiscount * (voucherPct / 100))
+      : 0;
+
+  const afterVoucher = afterProductDiscount - voucherDiscount;
+
+  // Delivery charge
+  const dc = baseSummary.totalItems === 1 ? 30 : 40;
+
+  return {
+    ...baseSummary,
+    voucherDiscount,
+    deliveryCharge: dc,
+    totalAmount: afterVoucher + dc,
   };
+};
 
   const recomputeSummary = useCallback((items, voucher = appliedVoucher) => {
     let subtotal=0,totalDiscount=0;
@@ -548,12 +564,12 @@ export default function Cart() {
 
       {/* Content */}
       <div style={{ padding:"0 12px" }}>
-        {loading && (
+        {/* {loading && (
           <div style={{ display:"flex",flexDirection:"column",gap:12,animation:"fadeUp 0.3s ease" }}>
             {[1,2,3].map((i)=><SkeletonCard key={i} />)}
             <SkeletonVoucherCard />
           </div>
-        )}
+        )} */}
 
         {isEmpty && (
           <div style={{ display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",paddingTop:80,gap:16,animation:"fadeUp 0.3s ease" }}>
@@ -573,13 +589,13 @@ export default function Cart() {
               <CartItemCard key={item.cartId} item={item} onRemove={handleRemove} onQtyChange={handleQtyChange} removing={!!removing[item.cartId]} qtyLoading={!!qtyLoading[item.cartId]} />
             ))}
 
-            <VoucherCard
+            {/* <VoucherCard
               appliedVoucher={appliedVoucher}
               onApply={handleApplyVoucher}
               onRemove={handleRemoveVoucher}
               applying={voucherApplying}
               error={voucherError}
-            />
+            /> */}
 
             {summary && <PriceSummary summary={summary} appliedVoucher={appliedVoucher} onPlaceOrder={handlePlaceOrder} />}
             <div style={{ display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"10px 0 4px",opacity:0.45 }}>

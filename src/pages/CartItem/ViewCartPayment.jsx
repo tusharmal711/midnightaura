@@ -19,9 +19,10 @@ const BASE_URL = "https://midnightaura-1.onrender.com";
 const STEPS    = ["Address", "Order Summary", "Payment"];
 const fmt      = (n) => "₹" + Number(n).toLocaleString("en-IN");
 const imgUrl   = (path) => !path ? null : path.startsWith("http") ? path : `${BASE_URL}${path.startsWith("/")?"":"/"}${path}`;
-const DELIVERY_RATE = 0.08;
-const calcDelivery  = (afterVoucher) => afterVoucher >= 699 ? 0 : Math.round(afterVoucher * DELIVERY_RATE);
-
+const calcDelivery = (totalItems) => {
+  if (totalItems === 1) return 30;
+  return 40;
+};
 function getStoredEmail() {
   try { const s = localStorage.getItem("user"); if (s) { const p=JSON.parse(s); if (p?.email) return p.email; } } catch(_) {}
   try { const c = Cookies.get("user"); if (c) { const p=JSON.parse(c); if (p?.email) return p.email; } } catch(_) {}
@@ -177,10 +178,19 @@ export default function ViewCartPayment() {
     mrpTotal     += mrp   * item.quantity;
     totalDiscount += (mrp - price) * item.quantity;
   });
-  const voucherDiscountAmt = hasVoucher ? Math.round(subtotal * (appliedVoucherValue / 100)) : 0;
-  const afterVoucher       = subtotal - voucherDiscountAmt;
-  const deliveryCharge     = calcDelivery(afterVoucher);
-  const total              = afterVoucher + deliveryCharge;
+  const voucherDiscountAmt =
+  hasVoucher
+    ? Math.round(subtotal * (appliedVoucherValue / 100))
+    : 0;
+
+const afterVoucher = subtotal - voucherDiscountAmt;
+
+// number of products in cart
+const totalItems = cartItems.length;
+
+const deliveryCharge = calcDelivery(totalItems);
+
+const total = afterVoucher + deliveryCharge;
   const totalSaved         = totalDiscount + voucherDiscountAmt;
 
   // ── Card helpers ──────────────────────────────────────────────────────────
@@ -231,13 +241,22 @@ export default function ViewCartPayment() {
         quantity:  item.quantity,
       }));
 
-      const res = await API.post("/cart/placeCartOrder", {
-        customerId,
-        items,
-        voucherId:       hasVoucher ? appliedVoucherId : null,
-        voucherDiscount: hasVoucher ? voucherDiscountAmt : 0,
-        payMethod,
-      });
+     const res = await API.post("/cart/placeCartOrder", {
+  customerId,
+  items,
+
+  subtotal,
+  mrpTotal,
+  totalDiscount,
+
+  voucherId: hasVoucher ? appliedVoucherId : null,
+  voucherDiscount: hasVoucher ? voucherDiscountAmt : 0,
+
+  deliveryCharge,
+  totalPrice: total,
+
+  payMethod,
+});
 
       if (res.data.success) {
         await consumeVoucher(res.data.data?._id);

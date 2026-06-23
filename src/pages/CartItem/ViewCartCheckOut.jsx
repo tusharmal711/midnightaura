@@ -20,9 +20,10 @@ const fmt  = (n) => "₹" + Number(n).toLocaleString("en-IN");
 const imgUrl = (path) =>
   !path ? null : path.startsWith("http") ? path : `${BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
 
-const DELIVERY_RATE = 0.08;
-const calcDelivery  = (afterVoucher) =>
-  afterVoucher >= 699 ? 0 : Math.round(afterVoucher * DELIVERY_RATE);
+const calcDelivery = (totalItems) => {
+  if (totalItems === 1) return 30;
+  return 40;
+};
 
 const STEPS      = ["Address", "Order Summary", "Payment"];
 const ADDR_FIELDS = [
@@ -344,11 +345,19 @@ export default function ViewCartCheckout() {
     mrpTotal     += mrp   * item.quantity;
     totalDiscount += (mrp - price) * item.quantity;
   });
-  const voucherPct         = appliedVoucher?.discountValue || 0;
-  const voucherDiscountAmt = voucherPct > 0 ? Math.round(subtotal * (voucherPct / 100)) : 0;
-  const afterVoucher       = subtotal - voucherDiscountAmt;
-  const deliveryCharge     = calcDelivery(afterVoucher);
-  const total              = afterVoucher + deliveryCharge;
+const voucherPct         = appliedVoucher?.discountValue || 0;
+const voucherDiscountAmt = voucherPct > 0
+  ? Math.round(subtotal * (voucherPct / 100))
+  : 0;
+
+const afterVoucher = subtotal - voucherDiscountAmt;
+
+// Number of different products in cart
+const totalItems = cartItems.length;
+
+const deliveryCharge = calcDelivery(totalItems);
+
+const total = afterVoucher + deliveryCharge;
   const totalSaved         = totalDiscount + voucherDiscountAmt;
 
   // ── Effective address & user ───────────────────────────────────────────────
@@ -710,7 +719,7 @@ export default function ViewCartCheckout() {
         </div>
 
         {/* Fixed bottom bar */}
-        <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:50, padding:"0.75rem 1rem", background:"rgba(14,19,32,0.95)", backdropFilter:"blur(12px)", borderTop:"1px solid rgba(160,120,255,0.12)", transition:"transform 0.3s ease-in-out", transform: fixedBar ? "translateY(0)" : "translateY(100%)" }}>
+        <div style={{ position:"fixed",  display: window.innerWidth > 768 ? "none" : "block", bottom:0, left:0, right:0, zIndex:50, padding:"0.75rem 1rem", background:"rgba(14,19,32,0.95)", backdropFilter:"blur(12px)", borderTop:"1px solid rgba(160,120,255,0.12)", transition:"transform 0.3s ease-in-out", transform: fixedBar ? "translateY(0)" : "translateY(100%)" }}>
           <div style={{ maxWidth:1100, margin:"0 auto", display:"flex", flexDirection:"column", gap:8 }}>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8 }}>
               <div>
