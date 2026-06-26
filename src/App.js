@@ -51,6 +51,7 @@ import ViewCartCheckout from "./pages/CartItem/ViewCartCheckOut";
 import ViewCartPayment from "./pages/CartItem/ViewCartPayment";
 import CartOrderDetail from "./pages/AdminPanel/CartOrderDetails";
 import CartDeliveryProductDetails from "./pages/DeliveryBoyPanel/Cartdeliveryproductdetails";
+import Trending from "./pages/Categories/Trending";
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 
@@ -105,6 +106,7 @@ function App() {
             <Route path="categories/oversized"    element={<Oversized />} />
             <Route path="categories/men"          element={<Men />} />
             <Route path="categories/new-arrivals" element={<NewArrivals />} />
+             <Route path="categories/trending" element={<Trending />} />
             <Route path="categories/customize" element={<CustomizeProduct />} />
           </Route>
         </Route>
@@ -157,6 +159,7 @@ function App() {
             <Route path="categories/oversized"    element={<Oversized />} />
             <Route path="categories/men"          element={<Men />} />
             <Route path="categories/new-arrivals" element={<NewArrivals />} />
+            <Route path="categories/trending" element={<Trending />} />
             <Route path="categories/customize" element={<CustomizeProduct />} />
           </Route>
 

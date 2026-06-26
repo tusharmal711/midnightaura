@@ -8,9 +8,7 @@ import {
   FiMenu,
   FiX,
   FiSearch,
-  FiTag,
   FiGrid,
-  FiArrowRight,
 } from "react-icons/fi";
 import Cookies from "js-cookie";
 import appLogo from "../assets/images/appImage/chomoktomok-logo.png";
@@ -25,18 +23,7 @@ const getStoredEmail = () => {
   return null;
 };
 
-// ── Route map ──────────────────────────────────────────────────────────────────
-const ROUTE_MAP = {
-  Men:       "/user/dashboard/categories/men",
-  Women:     "/user/dashboard/categories/women",
-  Kids:      "/user/dashboard/categories/kids",
-  Earrings:  "/user/dashboard/categories/earrings",
-  Necklaces: "/user/dashboard/categories/necklaces",
-  Oversized: "/user/dashboard/categories/oversized",
-  Hoodies:   "/user/dashboard/categories/hoodies",
-};
-
-// Category icon map
+// ── Category icon map ────────────────────────────────────────────────────────
 const CAT_ICONS = {
   Men:       "👔",
   Women:     "👗",
@@ -70,14 +57,6 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-// ── Price presets ──────────────────────────────────────────────────────────────
-const PRICE_PRESETS = [
-  { label: "Under ₹299",   minPrice: 0,    maxPrice: 299   },
-  { label: "₹300 – ₹599", minPrice: 300,  maxPrice: 599   },
-  { label: "₹600 – ₹999", minPrice: 600,  maxPrice: 999   },
-  { label: "Above ₹1000", minPrice: 1000, maxPrice: 99999 },
-];
-
 // ── Image helper ───────────────────────────────────────────────────────────────
 const getImgSrc = (img) => {
   if (!img) return null;
@@ -99,7 +78,10 @@ function HighlightMatch({ text, full }) {
 }
 
 // ── CategoryList ───────────────────────────────────────────────────────────────
-function CategoryList({ query, suggestions, onSelectCategory }) {
+// `activeIndex` is the flat index (across categories+products) of the
+// keyboard-highlighted item. `startIndex` is where this list begins in
+// that flat ordering, so each row can compare its own flat index to it.
+function CategoryList({ query, suggestions, onSelectCategory, activeIndex, startIndex, registerRef }) {
   return (
     <>
       <div className="px-4 pt-3 pb-1">
@@ -107,36 +89,42 @@ function CategoryList({ query, suggestions, onSelectCategory }) {
           Categories
         </p>
       </div>
-      {suggestions.map((s) => (
-        <button
-          key={s.category}
-          onClick={() => onSelectCategory(s.route)}
-          className="flex items-center justify-between w-full px-4 py-2.5 transition-all text-left"
-          onMouseEnter={e => e.currentTarget.style.background = "rgba(139,92,246,0.12)"}
-          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex items-center justify-center w-7 h-7 rounded-lg" style={{ background: "rgba(168,85,247,0.15)", fontSize: 15 }}>
-              {CAT_ICONS[s.category] || "🛒"}
-            </span>
-            <div>
-              <span style={{ color: "#ffffff", fontSize: 13, fontWeight: 500 }}>
-                <HighlightMatch text={query} full={s.category} />
+      {suggestions.map((s, i) => {
+        const flatIndex = startIndex + i;
+        const isActive  = flatIndex === activeIndex;
+        return (
+          <button
+            key={s.category}
+            ref={(el) => registerRef(flatIndex, el)}
+            onClick={() => onSelectCategory(s.route)}
+            className="flex items-center justify-between w-full px-4 py-2.5 transition-all text-left"
+            style={{ background: isActive ? "rgba(139,92,246,0.18)" : "transparent" }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(139,92,246,0.12)"}
+            onMouseLeave={e => e.currentTarget.style.background = isActive ? "rgba(139,92,246,0.18)" : "transparent"}
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex items-center justify-center w-7 h-7 rounded-lg" style={{ background: "rgba(168,85,247,0.15)", fontSize: 15 }}>
+                {CAT_ICONS[s.category] || "🛒"}
               </span>
-              <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginLeft: 6 }}>
-                {s.matchReason}
-              </span>
+              <div>
+                <span style={{ color: "#ffffff", fontSize: 13, fontWeight: 500 }}>
+                  <HighlightMatch text={query} full={s.category} />
+                </span>
+                <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginLeft: 6 }}>
+                  {s.matchReason}
+                </span>
+              </div>
             </div>
-          </div>
-          <FiGrid size={13} style={{ color: "rgba(139,92,246,0.7)" }} />
-        </button>
-      ))}
+            <FiGrid size={13} style={{ color: "rgba(139,92,246,0.7)" }} />
+          </button>
+        );
+      })}
     </>
   );
 }
 
 // ── ProductList ────────────────────────────────────────────────────────────────
-function ProductList({ query, suggestions, onSelectProduct }) {
+function ProductList({ query, suggestions, onSelectProduct, activeIndex, startIndex, registerRef }) {
   return (
     <>
       <div className="px-4 pt-2 pb-1">
@@ -144,15 +132,19 @@ function ProductList({ query, suggestions, onSelectProduct }) {
           Products
         </p>
       </div>
-      {suggestions.map((p) => {
-        const imgSrc = getImgSrc(p.image);
+      {suggestions.map((p, i) => {
+        const imgSrc    = getImgSrc(p.image);
+        const flatIndex = startIndex + i;
+        const isActive  = flatIndex === activeIndex;
         return (
           <button
             key={p.id}
+            ref={(el) => registerRef(flatIndex, el)}
             onClick={() => onSelectProduct(p)}
             className="flex items-center gap-3 w-full px-4 py-2 transition-all text-left"
+            style={{ background: isActive ? "rgba(139,92,246,0.16)" : "transparent" }}
             onMouseEnter={e => e.currentTarget.style.background = "rgba(139,92,246,0.10)"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            onMouseLeave={e => e.currentTarget.style.background = isActive ? "rgba(139,92,246,0.16)" : "transparent"}
           >
             <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
               {imgSrc ? (
@@ -247,7 +239,20 @@ function DropdownShell({ children, isMobile, navbarRef }) {
 }
 
 // ── SearchDropdown ─────────────────────────────────────────────────────────────
-function SearchDropdown({ query, onSelectCategory, onSelectProduct, onClose, isMobile, navbarRef }) {
+// Exposes the flattened, currently-active suggestion list to the parent via
+// `onResultsChange` so the navbar's keydown handler can move the highlighted
+// index and trigger selection on Enter.
+function SearchDropdown({
+  query,
+  onSelectCategory,
+  onSelectProduct,
+  onClose,
+  isMobile,
+  navbarRef,
+  activeIndex,
+  onResultsChange,
+  registerRef,
+}) {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const debouncedQ            = useDebounce(query, 280);
@@ -268,14 +273,34 @@ function SearchDropdown({ query, onSelectCategory, onSelectProduct, onClose, isM
 
   const hasCategories = results?.categorySuggestions?.length > 0;
   const hasProducts   = results?.productSuggestions?.length > 0;
-  const noResults     = results && !hasCategories && !hasProducts && !loading;
-  const categoryType  = results?.categorySuggestionsType ?? "none";
-  const productsFirst = categoryType === "derived";
+  const noResults      = results && !hasCategories && !hasProducts && !loading;
+  const categoryType   = results?.categorySuggestionsType ?? "none";
+  const productsFirst  = categoryType === "derived";
 
   const handleSelectCategory = (route) => { onSelectCategory(route); onClose(); };
   const handleSelectProduct  = (product) => { onSelectProduct(product); onClose(); };
 
-  // ── Default (empty query): Browse Categories + Shop by Price ──────────────
+  // ── Tell the parent the current flattened, ordered list of selectable
+  //    items so arrow-key navigation + Enter can work from the input. ──────
+  useEffect(() => {
+    if (!query.trim()) {
+      onResultsChange([]);
+      return;
+    }
+    if (loading || !results) {
+      onResultsChange([]);
+      return;
+    }
+    const cats  = results.categorySuggestions  || [];
+    const prods = results.productSuggestions   || [];
+    const catItems  = cats.map((s)  => ({ type: "category", payload: s.route }));
+    const prodItems = prods.map((p) => ({ type: "product",  payload: p }));
+    const ordered = productsFirst ? [...prodItems, ...catItems] : [...catItems, ...prodItems];
+    onResultsChange(ordered);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results, loading, productsFirst, query]);
+
+  // ── Default (empty query): Browse Categories only ─────────────────────────
   if (!query.trim()) {
     return (
       <DropdownShell isMobile={isMobile} navbarRef={navbarRef}>
@@ -299,41 +324,38 @@ function SearchDropdown({ query, onSelectCategory, onSelectProduct, onClose, isM
             </button>
           ))}
         </div>
-
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", margin: "0 12px" }} />
-
-        <div className="px-4 pt-3 pb-1">
-          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-            Shop by Price
-          </p>
-        </div>
-        <div className="flex flex-col px-3 pb-3 gap-0.5">
-          {PRICE_PRESETS.map((preset) => (
-            <button
-              key={preset.label}
-              onClick={() => { onSelectCategory(null, preset); onClose(); }}
-              className="flex items-center justify-between px-3 py-2 rounded-xl text-left transition-all"
-              style={{ color: "rgba(255,255,255,0.65)", fontSize: 13 }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.12)"; e.currentTarget.style.color = "#c4b5fd"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.65)"; }}
-            >
-              <div className="flex items-center gap-2.5">
-                <FiTag size={13} style={{ color: "#a855f7" }} />
-                <span>{preset.label}</span>
-              </div>
-              <FiArrowRight size={12} style={{ color: "rgba(255,255,255,0.25)" }} />
-            </button>
-          ))}
-        </div>
       </DropdownShell>
     );
   }
 
+  // Flat start indices for keyboard highlighting, matching the ordering
+  // logic above (productsFirst decides which block comes first).
+  const catCount  = results?.categorySuggestions?.length ?? 0;
+  const prodCount = results?.productSuggestions?.length ?? 0;
+  const catStart  = productsFirst ? prodCount : 0;
+  const prodStart = productsFirst ? 0 : catCount;
+
   const categoryBlock = hasCategories && (
-    <CategoryList key="categories" query={query} suggestions={results.categorySuggestions} onSelectCategory={handleSelectCategory} />
+    <CategoryList
+      key="categories"
+      query={query}
+      suggestions={results.categorySuggestions}
+      onSelectCategory={handleSelectCategory}
+      activeIndex={activeIndex}
+      startIndex={catStart}
+      registerRef={registerRef}
+    />
   );
   const productBlock = hasProducts && (
-    <ProductList key="products" query={query} suggestions={results.productSuggestions} onSelectProduct={handleSelectProduct} />
+    <ProductList
+      key="products"
+      query={query}
+      suggestions={results.productSuggestions}
+      onSelectProduct={handleSelectProduct}
+      activeIndex={activeIndex}
+      startIndex={prodStart}
+      registerRef={registerRef}
+    />
   );
   const divider = hasCategories && hasProducts && (
     <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", margin: "6px 12px" }} />
@@ -352,33 +374,6 @@ function SearchDropdown({ query, onSelectCategory, onSelectProduct, onClose, isM
 
       {!loading && productsFirst && <>{productBlock}{divider}{categoryBlock}</>}
       {!loading && !productsFirst && <>{categoryBlock}{divider}{productBlock}</>}
-
-      {/* Price presets always shown while searching */}
-      {!loading && query && (
-        <>
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", margin: "6px 12px" }} />
-          <div className="px-4 pt-1 pb-1">
-            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              Shop by Price
-            </p>
-          </div>
-          <div className="flex flex-col px-3 pb-3 gap-0.5">
-            {PRICE_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                onClick={() => { onSelectCategory(null, preset); onClose(); }}
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-left transition-all"
-                style={{ color: "rgba(255,255,255,0.55)", fontSize: 12 }}
-                onMouseEnter={e => { e.currentTarget.style.background = "rgba(139,92,246,0.12)"; e.currentTarget.style.color = "#c4b5fd"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.55)"; }}
-              >
-                <FiTag size={11} style={{ color: "#a855f7" }} />
-                <span>{preset.label}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
 
       {/* No results */}
       {noResults && (
@@ -403,6 +398,11 @@ export default function UserNavbar() {
   const [searchOpen, setSearchOpen]     = useState(false);
   const [query, setQuery]               = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Keyboard navigation over the flattened suggestion list (categories + products)
+  const [activeIndex, setActiveIndex]     = useState(-1);
+  const [flatResults, setFlatResults]     = useState([]); // [{ type: "category"|"product", payload }]
+  const itemRefs                          = useRef({});   // flatIndex -> DOM node
 
   const navigate        = useNavigate();
   const location        = useLocation();
@@ -458,13 +458,27 @@ export default function UserNavbar() {
     }
   }, [searchOpen]);
 
+  // ── Reset keyboard highlight whenever the suggestion list itself changes ──
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [flatResults]);
+
+  // ── Keep the highlighted row scrolled into view ───────────────────────────
+  useEffect(() => {
+    if (activeIndex >= 0 && itemRefs.current[activeIndex]) {
+      itemRefs.current[activeIndex].scrollIntoView({ block: "nearest" });
+    }
+  }, [activeIndex]);
+
+  const registerRef = useCallback((index, el) => {
+    itemRefs.current[index] = el;
+  }, []);
+
   // ── Navigation helpers ─────────────────────────────────────────────────────
-  const handleSelectCategory = useCallback((route, pricePreset = null) => {
+  const handleSelectCategory = useCallback((route) => {
     setDropdownOpen(false);
     setQuery("");
-    if (pricePreset) {
-      navigate("/user/dashboard", { state: { priceFilter: pricePreset } });
-    } else if (route) {
+    if (route) {
       navigate(route);
     }
   }, [navigate]);
@@ -506,14 +520,50 @@ export default function UserNavbar() {
     }
   }, [navigate]);
 
+  // ── Selecting whichever item is currently highlighted by the keyboard ─────
+  const selectActiveItem = useCallback(() => {
+    const item = flatResults[activeIndex];
+    if (!item) return false;
+    if (item.type === "category") {
+      handleSelectCategory(item.payload);
+    } else if (item.type === "product") {
+      handleSelectProduct(item.payload);
+    }
+    return true;
+  }, [flatResults, activeIndex, handleSelectCategory, handleSelectProduct]);
+
   const handleQueryChange = (val) => {
     setQuery(val);
     setDropdownOpen(true);
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter")  handleSearchSubmit(query);
-    if (e.key === "Escape") { setDropdownOpen(false); setQuery(""); }
+    if (e.key === "ArrowDown") {
+      if (flatResults.length === 0) return;
+      e.preventDefault();
+      setDropdownOpen(true);
+      setActiveIndex((prev) => (prev + 1 >= flatResults.length ? 0 : prev + 1));
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      if (flatResults.length === 0) return;
+      e.preventDefault();
+      setActiveIndex((prev) => (prev - 1 < 0 ? flatResults.length - 1 : prev - 1));
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      // If a suggestion is highlighted via keyboard, select it.
+      // Otherwise fall back to a plain text search submit.
+      const handled = selectActiveItem();
+      if (!handled) handleSearchSubmit(query);
+      return;
+    }
+    if (e.key === "Escape") {
+      setDropdownOpen(false);
+      setQuery("");
+      setActiveIndex(-1);
+    }
   };
 
   const closeMobileSearch = () => {
@@ -586,6 +636,9 @@ export default function UserNavbar() {
                 onClose={() => setDropdownOpen(false)}
                 isMobile={false}
                 navbarRef={navbarBarRef}
+                activeIndex={activeIndex}
+                onResultsChange={setFlatResults}
+                registerRef={registerRef}
               />
             )}
           </div>
@@ -644,6 +697,9 @@ export default function UserNavbar() {
                     }}
                     isMobile={true}
                     navbarRef={navbarBarRef}
+                    activeIndex={activeIndex}
+                    onResultsChange={setFlatResults}
+                    registerRef={registerRef}
                   />
                 )}
               </div>
