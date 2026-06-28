@@ -122,9 +122,16 @@ const Toast = ({ message, type }) => {
 // ── Auth Toast ────────────────────────────────────────────────────────────────
 const AuthToast = ({ visible, onLogin, onDismiss }) => (
   <div style={{
-    position: "fixed", inset: 0, zIndex: 60,
+    position: "fixed", inset: 0,
+    // FIX: was zIndex 60, which sat *below* the fixed mobile CTA bar (zIndex 9999),
+    // so the bar visually covered the bottom portion of this dialog on mobile.
+    // Bumped above the CTA bar's zIndex, and raised the mobile bottom padding so
+    // the dialog clears the bar's actual rendered height (buttons + its own
+    // padding, plus extra when the "select a size" warning row is showing).
+    zIndex: 10050,
     display: "flex", alignItems: "flex-end", justifyContent: "center",
-    paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
+    paddingBottom: window.innerWidth <= 768 ? 160 : 40,
+    paddingLeft: 16, paddingRight: 16,
     pointerEvents: visible ? "auto" : "none",
     transition: "opacity 0.3s", opacity: visible ? 1 : 0,
   }}>
@@ -152,9 +159,15 @@ const AuthToast = ({ visible, onLogin, onDismiss }) => (
 // ── Size Toast ────────────────────────────────────────────────────────────────
 const SizeToast = ({ visible, onDismiss }) => (
   <div style={{
-    position: "fixed", inset: 0, zIndex: 60,
+    position: "fixed", inset: 0,
+    // FIX: was zIndex 60 (below the fixed mobile CTA bar's zIndex 9999), which is
+    // exactly why the bar was covering the lower half of this dialog on mobile —
+    // matches the reported screenshot. Raised above the CTA bar, and increased the
+    // mobile bottom padding so the box sits fully above the bar instead of behind it.
+    zIndex: 10050,
     display: "flex", alignItems: "flex-end", justifyContent: "center",
-    paddingBottom: 40, paddingLeft: 16, paddingRight: 16,
+    paddingBottom: window.innerWidth <= 768 ? 160 : 40,
+    paddingLeft: 16, paddingRight: 16,
     pointerEvents: visible ? "auto" : "none",
     opacity: visible ? 1 : 0, transition: "opacity 0.3s",
   }}>
@@ -1687,11 +1700,12 @@ export default function ProductView() {
       width: window.innerWidth <= 768 ? 168 : 240,
       minWidth: window.innerWidth <= 768 ? 168 : 240,
       flexShrink: 0,
-      height: window.innerWidth <= 768 ? 300 : 330,
+      /* FIX #2: mobile card height reduced from 300 -> 280 to match "For You" sizing */
+      height: window.innerWidth <= 768 ? 280 : 330,
       display:"flex",
-      
+
       scrollSnapAlign: "start",
-    
+
     }}
   >
     <div className="scroll-card-fix" style={{ width: "100%", height: "100%", display: "flex" }}>
@@ -1721,15 +1735,22 @@ export default function ProductView() {
               {!forYouLoading && forYouProducts.length > 0 && (
                 window.innerWidth <= 768 ? (
                   // ── Mobile: stacked rows, 2 products per row ──
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)",width:"100%", gap: 12, justifyItems: "center", alignItems: "center" }}>
+                  // FIX: matches the exact grid pattern used in ProductSection.jsx
+                  // (className="grid grid-cols-2 gap-3"), which never relies on
+                  // 100vw / negative-margin breakout math. Earlier versions of this
+                  // block sat one level below "Similar Products", whose desktop
+                  // scroller uses width:"100vw" + marginLeft:"calc(50% - 50vw)" —
+                  // on mobile that breakout can leave a stray sub-pixel of horizontal
+                  // overflow on the page, which makes any sibling block's "100%"
+                  // resolve inconsistently between its left and right edges. Using a
+                  // plain Tailwind grid class here (no inline width/boxSizing/viewport
+                  // math at all) sidesteps that entirely — exactly like ProductSection
+                  // does — so both columns get identical, symmetric gutters.
+                  <div className="grid grid-cols-2 gap-3">
                     {forYouProducts.map((p, i) => (
                       <div
                         key={p.id ?? p._id ?? i}
-                        style={{
-                          width: "100%",
-                          height: 280,
-                          display: "flex",
-                        }}
+                        style={{ height: 280, display: "flex" }}
                       >
                         <div className="scroll-card-fix" style={{ width: "100%", height: "100%", display: "flex" }}>
                           <ProductCard product={p} />
@@ -1772,7 +1793,7 @@ export default function ProductView() {
                               minWidth: 240,
                               flexShrink: 0,
                               height: 330,
-                              
+
                               display: "flex",
                               scrollSnapAlign: "start",
                             }}
