@@ -1,23 +1,138 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset
-  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-  xmlns:xhtml="http://www.w3.org/1999/xhtml"
->
+    xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
-  <!-- Homepage — highest priority -->
-  <url>
-    <loc>https://chomoktomok.com/</loc>
-    <lastmod>2026-06-15</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
+    <!-- Home -->
+    <url>
+        <loc>https://chomoktomok.com/</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
 
-  <!-- Product listing — very important for e-commerce SEO -->
-  <url>
-    <loc>https://chomoktomok.com/products</loc>
-    <lastmod>2026-06-15</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
+    <!-- Products -->
+    <url>
+        <loc>https://chomoktomok.com/products</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.95</priority>
+    </url>
+
+    <!-- Trending -->
+    <url>
+        <loc>https://chomoktomok.com/categories/trending</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.90</priority>
+    </url>
+
+    <!-- New Arrivals -->
+    <url>
+        <loc>https://chomoktomok.com/categories/new-arrivals</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.90</priority>
+    </url>
+
+    <!-- Men -->
+    <url>
+        <loc>https://chomoktomok.com/categories/men</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.85</priority>
+    </url>
+
+    <!-- Women -->
+    <url>
+        <loc>https://chomoktomok.com/categories/women</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.85</priority>
+    </url>
+
+    <!-- Kids -->
+    <url>
+        <loc>https://chomoktomok.com/categories/kids</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.85</priority>
+    </url>
+
+    <!-- Oversized -->
+    <url>
+        <loc>https://chomoktomok.com/categories/oversized</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.85</priority>
+    </url>
+
+    <!-- Hoodies -->
+    <url>
+        <loc>https://chomoktomok.com/categories/hoodies</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.85</priority>
+    </url>
+
+    <!-- Earrings -->
+    <url>
+        <loc>https://chomoktomok.com/categories/earrings</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.80</priority>
+    </url>
+
+    <!-- Necklaces -->
+    <url>
+        <loc>https://chomoktomok.com/categories/necklaces</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.80</priority>
+    </url>
+
+    <!-- Customize -->
+    <url>
+        <loc>https://chomoktomok.com/categories/customize</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.80</priority>
+    </url>
+
+    <!-- Company -->
+    <url>
+        <loc>https://chomoktomok.com/about</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.70</priority>
+    </url>
+
+    <url>
+        <loc>https://chomoktomok.com/contact</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.70</priority>
+    </url>
+
+    <!-- Policies -->
+    <url>
+        <loc>https://chomoktomok.com/privacy-policy</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.50</priority>
+    </url>
+
+    <url>
+        <loc>https://chomoktomok.com/terms-and-conditions</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.50</priority>
+    </url>
+
+    <url>
+        <loc>https://chomoktomok.com/return-policy</loc>
+        <lastmod>2026-06-30</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.50</priority>
+    </url>
 
 </urlset>
