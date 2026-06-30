@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 import { IoIosFlash } from "react-icons/io";
 import { MdDeliveryDining } from "react-icons/md";
 import { HiHomeModern } from "react-icons/hi2";
