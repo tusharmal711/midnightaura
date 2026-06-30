@@ -581,7 +581,7 @@ export default function UserNavbar() {
 
       <div
         ref={navbarBarRef}
-        className="sticky top-0 z-50 relative"
+        className="sticky top-0 z-50"
         style={{ background: "#0B0F1A", borderBottom: "1px solid rgba(255,255,255,0.08)" }}
       >
         {/* ── Main bar ── */}

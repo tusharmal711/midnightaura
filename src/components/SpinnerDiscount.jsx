@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Cookies from "js-cookie";
 import { FaLock } from "react-icons/fa";
+import { FiX, FiShoppingCart } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import { API } from "../api";
-
+import { MdDiscount } from "react-icons/md";
 // ── Wheel segments ─────────────────────────────────────────────────
 // Probabilities: 50%→0.86%, 15%→8.62%, 10%→17.24% (unchanged from the
 // prior normalization), 5%→40% (lowered), NO DISCOUNT→33.28% (raised).
@@ -410,6 +412,102 @@ function VoucherCard({ voucher, onCopy, copied, timeLeftMs }) {
   );
 }
 
+// ── Login Required Modal ────────────────────────────────────────────
+// Mirrors the existing "Login Required" cart modal style/UX so the
+// experience is consistent across the app: dimmed backdrop, dark card,
+// gradient icon badge, close (X), heading, message, gradient CTA that
+// routes to the login page.
+function LoginRequiredModal({ onClose }) {
+  const navigate = useNavigate();
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.65)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: 16,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "#141927",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 20,
+          padding: "2.25rem 2rem",
+          width: "100%",
+          maxWidth: 420,
+          textAlign: "center",
+          position: "relative",
+          boxShadow: "0 20px 60px -16px rgba(0,0,0,0.6)",
+        }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: "absolute",
+            top: 14,
+            right: 14,
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "rgba(255,255,255,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
+        >
+          <FiX size={16} />
+        </button>
+
+        <div style={{
+          width: 64, height: 64, borderRadius: "50%", margin: "0 auto 1.25rem",
+          background: "linear-gradient(135deg, #a855f7 0%, #ec4899 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <MdDiscount  size={28} color="#fff" />
+        </div>
+
+        <h3 style={{ color: "#fff", fontSize: "1.4rem", fontWeight: 800, margin: "0 0 10px" }}>
+          Login Required
+        </h3>
+        <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 14, lineHeight: 1.6, margin: "0 0 1.75rem" }}>
+          Please login to spin the wheel and win a discount voucher.
+        </p>
+
+        <button
+          onClick={() => navigate("/login")}
+          style={{
+            width: "100%",
+            padding: "13px 0",
+            borderRadius: 12,
+            border: "none",
+            background: "linear-gradient(135deg, #7c3aed 0%, #ec4899 100%)",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: 14.5,
+            cursor: "pointer",
+            letterSpacing: "0.02em",
+          }}
+        >
+          Login Now
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Component ─────────────────────────────────────────────────
 export default function SpinnerDiscount() {
   // Voucher / user state
@@ -421,6 +519,10 @@ export default function SpinnerDiscount() {
   const [timeLeftMs, setTimeLeftMs]         = useState(0);
   const [nextSpinMs, setNextSpinMs]         = useState(0);
   const [spinLocked, setSpinLocked]         = useState(false);
+
+  // Auth / login modal state
+  const [isLoggedIn, setIsLoggedIn]         = useState(!!getStoredEmail());
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Spin state
   const [rotation, setRotation]     = useState(0);
@@ -477,6 +579,8 @@ export default function SpinnerDiscount() {
   }, []);
 
   // ── Load existing vouchers (lazily resolved — neutral skeleton, no spinner) ──
+  // Skipped entirely for logged-out visitors: there is no voucher history to
+  // fetch, and the wheel stays in its default unlocked state until login.
   useEffect(() => {
     const load = async () => {
       const email = getStoredEmail();
@@ -548,6 +652,14 @@ export default function SpinnerDiscount() {
 
   // ── Spin ────────────────────────────────────────────────────────
   function spin() {
+    // Guests must log in before spinning — show the same "Login Required"
+    // experience used elsewhere in the app instead of starting the wheel.
+    if (!getStoredEmail()) {
+      setIsLoggedIn(false);
+      setShowLoginModal(true);
+      return;
+    }
+
     if (spinning || hasSpun || spinLocked) return;
     setResult(null);
     setShowResult(false);
@@ -641,10 +753,12 @@ export default function SpinnerDiscount() {
         </div>
 
         {/* ── Loading: single neutral skeleton (see StatusSkeleton comment) ── */}
-        {voucherLoading && <StatusSkeleton />}
+        {/* Skipped for logged-out visitors — there's nothing to fetch, so the
+            wheel renders immediately in its default unlocked state. */}
+        {isLoggedIn && voucherLoading && <StatusSkeleton />}
 
         {/* ── Already spun this week → show card, lock spinner ── */}
-        {!voucherLoading && activeVoucher && (
+        {isLoggedIn && !voucherLoading && activeVoucher && (
           <div style={{ maxWidth: 540, margin: "0 auto", display: "flex", flexDirection: "column", gap: 16 }}>
 
             {/* Locked banner */}
@@ -679,7 +793,10 @@ export default function SpinnerDiscount() {
         )}
 
         {/* ── Spin available → show wheel ── */}
-        {!voucherLoading && !activeVoucher && (
+        {/* For guests this is always the branch shown (no voucher to lock
+            against), and clicking Spin triggers the login modal instead of
+            starting the animation. */}
+        {(!isLoggedIn || (!voucherLoading && !activeVoucher)) && (
           <div style={{
             display: "grid",
             gridTemplateColumns: isMobile ? "1fr" : `${WS + 24}px 1fr`,
@@ -761,27 +878,27 @@ export default function SpinnerDiscount() {
               {/* Spin button */}
               <button
                 onClick={spin}
-                disabled={spinning || hasSpun || spinLocked}
+                disabled={isLoggedIn && (spinning || hasSpun || spinLocked)}
                 style={{
                   width: "100%", maxWidth: 220, padding: "12px 0",
-                  background: (hasSpun || spinLocked)
+                  background: isLoggedIn && (hasSpun || spinLocked)
                     ? "rgba(255,255,255,0.06)"
                     : spinning
                       ? "rgba(244,63,94,0.5)"
                       : "linear-gradient(135deg, #f43f5e 0%, #9333ea 100%)",
-                  border: (hasSpun || spinLocked) ? "1px solid rgba(255,255,255,0.1)" : "none",
+                  border: isLoggedIn && (hasSpun || spinLocked) ? "1px solid rgba(255,255,255,0.1)" : "none",
                   borderRadius: 10,
-                  color: (hasSpun || spinLocked) ? "rgba(255,255,255,0.25)" : "#fff",
+                  color: isLoggedIn && (hasSpun || spinLocked) ? "rgba(255,255,255,0.25)" : "#fff",
                   fontSize: 14, fontWeight: 700,
-                  cursor: (hasSpun || spinLocked) ? "not-allowed" : spinning ? "wait" : "pointer",
+                  cursor: isLoggedIn && (hasSpun || spinLocked) ? "not-allowed" : spinning ? "wait" : "pointer",
                   letterSpacing: "0.03em",
                   transition: "opacity 0.2s, transform 0.15s",
                   transform: spinning ? "scale(0.97)" : "scale(1)",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                 }}
               >
-                {(hasSpun || spinLocked) && <FaLock size={12} />}
-                {spinning ? "Spinning…" : (hasSpun || spinLocked) ? "Spun this week" : "Spin the Wheel"}
+                {isLoggedIn && (hasSpun || spinLocked) && <FaLock size={12} />}
+                {spinning ? "Spinning…" : isLoggedIn && (hasSpun || spinLocked) ? "Spun this week" : "Spin the Wheel"}
               </button>
             </div>
 
@@ -937,6 +1054,11 @@ export default function SpinnerDiscount() {
           </div>
         )} */}
       </div>
+
+      {/* ── Login required modal (guests only) ── */}
+      {showLoginModal && (
+        <LoginRequiredModal onClose={() => setShowLoginModal(false)} />
+      )}
 
       <style>{`
         @keyframes fadeUp {

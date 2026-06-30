@@ -4,6 +4,7 @@ import HeroSection from "../sections/home/HeroSection";
 import Features from "../sections/home/Features";
 import ProductSection from "../components/ProductSection";
 import { Helmet } from "react-helmet-async";
+import SpinnerDiscount from "../components/SpinnerDiscount";
 
 
 export default function Home() {
@@ -79,6 +80,7 @@ export default function Home() {
      
       <HeroSection />
       <Features />
+      <SpinnerDiscount />
       <ProductSection title="🔥 Trending Now" link="/categories/trending" />
 <ProductSection title="✨ New Arrivals" link="/categories/new-arrivals" />
 <ProductSection title="Men" link="/categories/men" />
