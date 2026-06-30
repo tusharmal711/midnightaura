@@ -11,12 +11,12 @@
     </url>
 
     <!-- Products -->
-    <url>
+    <!-- <url>
         <loc>https://chomoktomok.com/products</loc>
         <lastmod>2026-06-30</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.95</priority>
-    </url>
+    </url> -->
 
     <!-- Trending -->
     <url>
