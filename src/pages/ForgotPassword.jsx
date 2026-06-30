@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [toast, setToast] = useState("");
@@ -21,7 +22,38 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen bg-[#0E1320] flex items-center justify-center px-6 py-10">
+ <Helmet>
+      <title>Forgot Password | ChomokTomok</title>
 
+      <meta
+        name="description"
+        content="Reset your ChomokTomok account password securely by requesting a password reset link."
+      />
+
+      <meta name="robots" content="noindex,nofollow" />
+
+      <link
+        rel="canonical"
+        href="https://chomoktomok.com/forgot-password"
+      />
+
+      <meta
+        property="og:title"
+        content="Forgot Password | ChomokTomok"
+      />
+
+      <meta
+        property="og:description"
+        content="Request a password reset link for your ChomokTomok account."
+      />
+
+      <meta
+        property="og:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <meta property="og:type" content="website" />
+    </Helmet>
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-7 left-1/2 -translate-x-1/2 bg-[#1e2a45] text-white text-sm px-5 py-2.5 rounded-full border border-white/10 z-50 whitespace-nowrap">

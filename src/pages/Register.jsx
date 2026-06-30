@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { API } from "../api";
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -54,6 +55,38 @@ const handleRegister = async (e) => {
 
   return (
     <div className="min-h-screen bg-[#0E1320] flex items-center justify-center px-6 py-10">
+      <Helmet>
+    <title>Signup | ChomokTomok</title>
+
+    <meta
+      name="description"
+      content="Create your ChomokTomok account to shop premium T-shirts, hoodies, oversized wear, and fashion accessories."
+    />
+
+    <meta name="robots" content="noindex,nofollow" />
+
+    <link
+      rel="canonical"
+      href="https://chomoktomok.com/register"
+    />
+
+    <meta
+      property="og:title"
+      content="Create Account | ChomokTomok"
+    />
+
+    <meta
+      property="og:description"
+      content="Sign up for a ChomokTomok account and start shopping premium fashion."
+    />
+
+    <meta
+      property="og:image"
+      content="https://chomoktomok.com/Images/chomoktomok-og.png"
+    />
+
+    <meta property="og:type" content="website" />
+  </Helmet>
 
       {/* Toast */}
       {toast && (

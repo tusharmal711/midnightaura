@@ -1,8 +1,88 @@
 import PageHeader from "../../components/PageHeader";
 import LegalSection from "./LegalSection";
-
+import { Helmet } from "react-helmet-async";
 export default function PrivacyPolicy() {
   return (
+     <>
+    <Helmet>
+      <title>Privacy Policy | ChomokTomok</title>
+
+      <meta
+        name="description"
+        content="Read the ChomokTomok Privacy Policy to understand how we collect, use, store, and protect your personal information when you use our website and services."
+      />
+
+      <meta
+        name="keywords"
+        content="privacy policy, ChomokTomok privacy, customer privacy, data protection, online shopping privacy, ecommerce privacy"
+      />
+
+      <meta name="robots" content="index,follow" />
+
+      <link
+        rel="canonical"
+        href="https://chomoktomok.com/privacy-policy"
+      />
+
+      <meta
+        property="og:title"
+        content="Privacy Policy | ChomokTomok"
+      />
+
+      <meta
+        property="og:description"
+        content="Learn how ChomokTomok collects, uses, and protects your personal information."
+      />
+
+      <meta
+        property="og:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <meta
+        property="og:url"
+        content="https://chomoktomok.com/privacy-policy"
+      />
+
+      <meta property="og:type" content="website" />
+
+      <meta
+        name="twitter:card"
+        content="summary_large_image"
+      />
+
+      <meta
+        name="twitter:title"
+        content="Privacy Policy | ChomokTomok"
+      />
+
+      <meta
+        name="twitter:description"
+        content="Read the ChomokTomok Privacy Policy."
+      />
+
+      <meta
+        name="twitter:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Privacy Policy",
+          url: "https://chomoktomok.com/privacy-policy",
+          description:
+            "Privacy Policy explaining how ChomokTomok collects, uses, and protects customer information.",
+          isPartOf: {
+            "@type": "WebSite",
+            name: "ChomokTomok",
+            url: "https://chomoktomok.com",
+          },
+        })}
+      </script>
+    </Helmet>
+
     <div className="bg-[#080c14] min-h-screen">
       <PageHeader
         eyebrow="Legal"
@@ -52,5 +132,6 @@ export default function PrivacyPolicy() {
 
       </section>
     </div>
+    </>
   );
 }

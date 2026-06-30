@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import ProductCard from "../../components/ProductCard";
 import { API } from "../../api";
-
+import { useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 const LIMIT = 10;
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
@@ -40,7 +41,9 @@ const NewArrivals = () => {
   const [total, setTotal]           = useState(0);
   const [loading, setLoading]       = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+const location = useLocation();
 
+  const isDashboard = location.pathname.startsWith("/user/dashboard");
   // Sentinel div watched by IntersectionObserver
   const sentinelRef   = useRef(null);
   const isFetchingRef = useRef(false); // prevent duplicate in-flight requests
@@ -100,6 +103,71 @@ const NewArrivals = () => {
 
   return (
     <>
+    <Helmet>
+  <title>New Arrivals | Latest Fashion Collection | ChomokTomok</title>
+
+  <meta
+    name="description"
+    content="Discover the latest new arrivals at ChomokTomok. Shop newly added T-shirts, oversized T-shirts, hoodies, kids wear, earrings, necklaces and more."
+  />
+
+  <meta
+    name="keywords"
+    content="new arrivals, latest fashion, new t shirts, new hoodies, oversized t shirts, fashion accessories, ChomokTomok"
+  />
+
+  <meta
+    name="robots"
+    content={isDashboard ? "noindex,nofollow" : "index,follow"}
+  />
+
+  <link
+    rel="canonical"
+    href="https://chomoktomok.com/new-arrivals"
+  />
+
+  <meta
+    property="og:title"
+    content="New Arrivals | ChomokTomok"
+  />
+
+  <meta
+    property="og:description"
+    content="Explore the latest fashion arrivals at ChomokTomok."
+  />
+
+  <meta
+    property="og:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+
+  <meta
+    property="og:url"
+    content="https://chomoktomok.com/new-arrivals"
+  />
+
+  <meta property="og:type" content="website" />
+
+  <meta
+    name="twitter:card"
+    content="summary_large_image"
+  />
+
+  <meta
+    name="twitter:title"
+    content="New Arrivals | ChomokTomok"
+  />
+
+  <meta
+    name="twitter:description"
+    content="Shop the newest fashion products added to ChomokTomok."
+  />
+
+  <meta
+    name="twitter:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+</Helmet>
       <style>{`
         @keyframes sk-shimmer {
           0%   { background-position: -600px 0; }

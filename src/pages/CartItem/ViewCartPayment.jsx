@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 import { IoIosFlash }               from "react-icons/io";
 import { MdDiscount, MdDeliveryDining } from "react-icons/md";
+import { Helmet } from "react-helmet-async";
 import {
   FiCheck, FiChevronDown, FiChevronUp,
   FiTag, FiCreditCard, FiSmartphone, FiShoppingBag, FiX,
@@ -285,6 +286,16 @@ const total = afterVoucher + deliveryCharge;
 
   return (
     <>
+    <Helmet>
+  <title>Payment | ChomokTomok</title>
+
+  <meta
+    name="description"
+    content="Complete your payment securely to place your order on ChomokTomok."
+  />
+
+  <meta name="robots" content="noindex,nofollow" />
+</Helmet>
       <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`
         *{box-sizing:border-box} body{margin:0} input{outline:none}

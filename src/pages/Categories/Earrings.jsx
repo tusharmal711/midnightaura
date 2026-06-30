@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import ProductCard from "../../components/ProductCard";
 import { API } from "../../api";
-
+import { Helmet } from "react-helmet-async";
+import { useLocation } from "react-router-dom";
 const LIMIT = 10;
 
 function ProductCardSkeleton() {
@@ -91,9 +92,38 @@ const Earrings = () => {
   useEffect(() => {
     fetchEarrings(page);
   }, [page]);
+const location = useLocation();
 
+  const isDashboard = location.pathname.startsWith("/user/dashboard");
   return (
+    
     <>
+    <Helmet>
+        <title>Earrings Collection | ChomokTomok</title>
+
+        <meta
+          name="description"
+          content="Shop premium fashion earrings online at ChomokTomok."
+        />
+
+        {isDashboard ? (
+          <>
+            <meta name="robots" content="noindex,nofollow" />
+            <link
+              rel="canonical"
+              href="https://chomoktomok.com/categories/earrings"
+            />
+          </>
+        ) : (
+          <>
+            <meta name="robots" content="index,follow" />
+            <link
+              rel="canonical"
+              href="https://chomoktomok.com/categories/earrings"
+            />
+          </>
+        )}
+      </Helmet>
       <style>{`
         @keyframes sk-shimmer {
           0%   { background-position: -600px 0; }

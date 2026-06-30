@@ -1,6 +1,6 @@
 import PageHeader from "../../components/PageHeader";
 import LegalSection from "./LegalSection";
-
+import { Helmet } from "react-helmet-async";
 const steps = [
   { label: "Delivered", detail: "Your order arrives" },
   { label: "Day 1–7", detail: "Return window open" },
@@ -10,6 +10,85 @@ const steps = [
 
 export default function ReturnPolicy() {
   return (
+     <>
+    <Helmet>
+      <title>Return Policy | ChomokTomok</title>
+
+      <meta
+        name="description"
+        content="Read the ChomokTomok Return Policy for information about returns, refunds, exchanges, custom T-shirts, damaged products, and eligibility."
+      />
+
+      <meta
+        name="keywords"
+        content="return policy, refund policy, exchange policy, custom tshirt return, oversized tshirt return, ChomokTomok returns"
+      />
+
+      <meta name="robots" content="index,follow" />
+
+      <link
+        rel="canonical"
+        href="https://chomoktomok.com/return-policy"
+      />
+
+      <meta
+        property="og:title"
+        content="Return Policy | ChomokTomok"
+      />
+
+      <meta
+        property="og:description"
+        content="Learn about ChomokTomok's return, exchange and refund policy."
+      />
+
+      <meta
+        property="og:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <meta
+        property="og:url"
+        content="https://chomoktomok.com/return-policy"
+      />
+
+      <meta property="og:type" content="website" />
+
+      <meta
+        name="twitter:card"
+        content="summary_large_image"
+      />
+
+      <meta
+        name="twitter:title"
+        content="Return Policy | ChomokTomok"
+      />
+
+      <meta
+        name="twitter:description"
+        content="Read the ChomokTomok Return Policy and refund process."
+      />
+
+      <meta
+        name="twitter:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Return Policy",
+          url: "https://chomoktomok.com/return-policy",
+          description:
+            "Return Policy explaining refunds, exchanges, damaged products and return eligibility at ChomokTomok.",
+          isPartOf: {
+            "@type": "WebSite",
+            name: "ChomokTomok",
+            url: "https://chomoktomok.com",
+          },
+        })}
+      </script>
+    </Helmet>
     <div className="bg-[#080c14] min-h-screen">
       <PageHeader
         eyebrow="Legal"
@@ -76,5 +155,6 @@ export default function ReturnPolicy() {
 
       </section>
     </div>
+    </>
   );
 }

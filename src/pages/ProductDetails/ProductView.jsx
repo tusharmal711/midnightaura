@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Helmet } from "react-helmet";
 import { IoIosFlash } from "react-icons/io";
 import { MdDeliveryDining } from "react-icons/md";
 import { HiHomeModern } from "react-icons/hi2";
@@ -123,11 +124,6 @@ const Toast = ({ message, type }) => {
 const AuthToast = ({ visible, onLogin, onDismiss }) => (
   <div style={{
     position: "fixed", inset: 0,
-    // FIX: was zIndex 60, which sat *below* the fixed mobile CTA bar (zIndex 9999),
-    // so the bar visually covered the bottom portion of this dialog on mobile.
-    // Bumped above the CTA bar's zIndex, and raised the mobile bottom padding so
-    // the dialog clears the bar's actual rendered height (buttons + its own
-    // padding, plus extra when the "select a size" warning row is showing).
     zIndex: 10050,
     display: "flex", alignItems: "flex-end", justifyContent: "center",
     paddingBottom: window.innerWidth <= 768 ? 160 : 40,
@@ -160,10 +156,6 @@ const AuthToast = ({ visible, onLogin, onDismiss }) => (
 const SizeToast = ({ visible, onDismiss }) => (
   <div style={{
     position: "fixed", inset: 0,
-    // FIX: was zIndex 60 (below the fixed mobile CTA bar's zIndex 9999), which is
-    // exactly why the bar was covering the lower half of this dialog on mobile —
-    // matches the reported screenshot. Raised above the CTA bar, and increased the
-    // mobile bottom padding so the box sits fully above the bar instead of behind it.
     zIndex: 10050,
     display: "flex", alignItems: "flex-end", justifyContent: "center",
     paddingBottom: window.innerWidth <= 768 ? 160 : 40,
@@ -257,7 +249,6 @@ const SharePopup = ({ visible, onClose, product, shareUrl, imageUrl }) => {
 
   return (
     <>
-      {/* Backdrop */}
       <div
         onClick={onClose}
         style={{
@@ -267,8 +258,6 @@ const SharePopup = ({ visible, onClose, product, shareUrl, imageUrl }) => {
           animation: "fade-in-bg 0.2s ease forwards",
         }}
       />
-
-      {/* Sheet */}
       <div style={{
         position: "fixed",
         bottom: 0, left: 0, right: 0,
@@ -285,12 +274,9 @@ const SharePopup = ({ visible, onClose, product, shareUrl, imageUrl }) => {
           padding: "0 0 32px",
           boxShadow: "0 -8px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(160,120,255,0.08) inset",
         }}>
-          {/* Handle */}
           <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
             <div style={{ width: 40, height: 4, borderRadius: 2, background: "rgba(160,120,255,0.25)" }} />
           </div>
-
-          {/* Header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px 16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <IoShareSocialOutline size={18} color="#a078ff" />
@@ -306,8 +292,6 @@ const SharePopup = ({ visible, onClose, product, shareUrl, imageUrl }) => {
               }}
             >✕</button>
           </div>
-
-          {/* Product Preview Card */}
           {product && (
             <div style={{ margin: "0 20px 20px", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(160,120,255,0.15)", background: "rgba(255,255,255,0.03)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px" }}>
@@ -330,8 +314,6 @@ const SharePopup = ({ visible, onClose, product, shareUrl, imageUrl }) => {
               </div>
             </div>
           )}
-
-          {/* Share Buttons */}
           <div style={{ display: "flex", gap: 12, padding: "0 20px 20px", justifyContent: "center" }}>
             {shareOptions.map((opt) => (
               <a
@@ -360,11 +342,7 @@ const SharePopup = ({ visible, onClose, product, shareUrl, imageUrl }) => {
               </a>
             ))}
           </div>
-
-          {/* Divider */}
           <div style={{ height: 1, background: "rgba(160,120,255,0.1)", margin: "0 20px 16px" }} />
-
-          {/* Copy Link */}
           <div style={{ padding: "0 20px" }}>
             <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#8880aa", marginBottom: 8 }}>Or copy link</div>
             <div style={{ display: "flex", gap: 10, alignItems: "center", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(160,120,255,0.18)", borderRadius: 12, padding: "10px 14px" }}>
@@ -410,7 +388,6 @@ const CTAButtons = ({ compact = false, onCart, onBuy, sizeError, cartLoading, ca
       </div>
     )}
     <div style={{ display: "flex", gap: 12, width: "100%", alignItems: "stretch" }}>
-      {/* Add to Cart */}
       <button
         onClick={onCart}
         disabled={cartLoading}
@@ -454,7 +431,6 @@ const CTAButtons = ({ compact = false, onCart, onBuy, sizeError, cartLoading, ca
           </>
         )}
       </button>
-      {/* Buy Now */}
       <button
         onClick={onBuy}
         style={{
@@ -675,7 +651,6 @@ const ImageLightbox = ({ images, productName, startIdx, imageUrl, onClose }) => 
           ) : (
             <div style={{ color: "#999", padding: 32 }}>No Image</div>
           )}
-
           <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
             {images.length > 1 && (
               <div style={{ display: "flex", gap: 6 }}>
@@ -751,7 +726,7 @@ const ExpandButton = ({ onClick }) => (
   </button>
 );
 
-// ── Share Button (below expand button) ───────────────────────────────────────
+// ── Share Button ──────────────────────────────────────────────────────────────
 const ShareButton = ({ onClick }) => (
   <button
     onClick={onClick}
@@ -907,7 +882,6 @@ export default function ProductView() {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [relatedLoading,  setRelatedLoading]  = useState(false);
 
-  // ── For You (one-by-one across categories) ──────────────────────────────────
   const [forYouProducts, setForYouProducts] = useState([]);
   const [forYouLoading,  setForYouLoading]  = useState(false);
 
@@ -916,8 +890,21 @@ export default function ProductView() {
   const forYouScrollRef   = useRef(null);
 
   // ── Build share URL ─────────────────────────────────────────────────────────
-  const shareUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/product/${productId}`
+  const shareUrl = `https://www.chomoktomok.com/product-view/${productId}`;
+     
+   
+
+  // ── Dynamic SEO values ──────────────────────────────────────────────────────
+  const seoTitle = product
+    ? `${product.name} | ChomokTomok`
+    : "ChomokTomok";
+
+  const seoDescription = product
+    ? `Buy ${product.name} from ChomokTomok at ₹${product.finalPrice || product.price}. ${product.details?.[0] ? `${product.details[0].field}: ${product.details[0].value}.` : ""} Fast delivery available.`
+    : "Shop the latest fashion at ChomokTomok.";
+
+  const seoImage = product?.images?.[0]
+    ? (product.images[0].startsWith("/") ? `${BASE_URL}${product.images[0]}` : product.images[0])
     : "";
 
   const handleTouchStart = (e) => { touchStartX.current = e.changedTouches[0].screenX; };
@@ -1082,16 +1069,11 @@ export default function ProductView() {
     fetchRelated();
   }, [product?.category, product?.productId]);
 
-  // ── Fetch "For You" — one product at a time, cycling through every category ──
   useEffect(() => {
     if (!product) return;
     const fetchForYou = async () => {
       setForYouLoading(true);
       try {
-        // The backend requires a `category` param (no "all categories" mode),
-        // and the shaped product response doesn't include a `category` field.
-        // So fetch a small page from each valid category in parallel, and tag
-        // each product with the category it came from on the client side.
         const VALID_CATEGORIES = ["Men", "Women", "Kids", "Earrings", "Necklaces", "Oversized", "Hoodies"];
 
         const results = await Promise.allSettled(
@@ -1102,8 +1084,6 @@ export default function ProductView() {
           )
         );
 
-        // Group products by category so we can interleave them one-by-one
-        // (category A → category B → category C → category A → ...).
         const grouped = {};
         results.forEach((res, idx) => {
           const cat = VALID_CATEGORIES[idx];
@@ -1200,7 +1180,6 @@ export default function ProductView() {
   const displayedStars = avgRating > 0 ? starString(avgRating) : "☆☆☆☆☆";
   const hasAnyFeedback = feedbackLoaded && totalCount > 0;
 
-  // ── Generic horizontal-scroll-by-arrow helper ────────────────────────────────
   const scrollByAmount = (ref, dir) => {
     if (!ref.current) return;
     const amount = ref.current.clientWidth * 0.8;
@@ -1209,6 +1188,28 @@ export default function ProductView() {
 
   return (
     <>
+      {/* ── Dynamic SEO with React Helmet ── */}
+      <Helmet>
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
+
+        {/* Open Graph (Facebook, WhatsApp previews) */}
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
+        <meta property="og:type" content="product" />
+        <meta property="og:url" content={shareUrl} />
+        {seoImage && <meta property="og:image" content={seoImage} />}
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoTitle} />
+        <meta name="twitter:description" content={seoDescription} />
+        {seoImage && <meta name="twitter:image" content={seoImage} />}
+
+        {/* Canonical */}
+        <link rel="canonical" href={shareUrl} />
+      </Helmet>
+
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
       <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -1246,7 +1247,6 @@ export default function ProductView() {
         <CustomerImageLightbox images={imageFeedback} startIdx={custLightboxIdx} onClose={() => setCustLightbox(false)} />
       )}
 
-      {/* Share Popup */}
       <SharePopup
         visible={shareOpen}
         onClose={() => setShareOpen(false)}
@@ -1290,10 +1290,7 @@ export default function ProductView() {
                 }}>
                   <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 30% 20%,rgba(160,120,255,0.07) 0%,transparent 60%)", pointerEvents: "none" }} />
 
-                  {/* Expand button at top-right */}
                   <ExpandButton onClick={() => setLightbox(true)} />
-
-                  {/* Share button directly below expand button */}
                   <ShareButton onClick={(e) => { e.stopPropagation(); setShareOpen(true); }} />
 
                   {imageUrl(images[imgIdx]) ? (
@@ -1674,7 +1671,7 @@ export default function ProductView() {
                   <div
                     ref={relatedScrollRef}
                     className="related-scroll"
-                    style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch", cursor: "grab", marginLeft:30, scrollSnapType: "x mandatory", paddingBottom: 4, userSelect: "none", paddingLeft: 0, paddingRight: 0 }}
+                    style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch", cursor: "grab", marginLeft: 30, scrollSnapType: "x mandatory", paddingBottom: 4, userSelect: "none", paddingLeft: 0, paddingRight: 0 }}
                     onMouseDown={e => {
                       const el = relatedScrollRef.current;
                       el.dataset.isDragging = "true";
@@ -1691,27 +1688,24 @@ export default function ProductView() {
                     onMouseUp={() => { relatedScrollRef.current.dataset.isDragging = "false"; relatedScrollRef.current.style.cursor = "grab"; }}
                     onMouseLeave={() => { relatedScrollRef.current.dataset.isDragging = "false"; relatedScrollRef.current.style.cursor = "grab"; }}
                   >
-                    <div style={{ display: "flex", gap: 14, width: "max-content",paddingBottom: 8 }}>
+                    <div style={{ display: "flex", gap: 14, width: "max-content", paddingBottom: 8 }}>
                       <div style={{ width: 20, flexShrink: 0 }} />
                       {relatedProducts.map((p, i) => (
                         <div
-    key={p.id ?? p._id ?? i}
-    style={{
-      width: window.innerWidth <= 768 ? 168 : 240,
-      minWidth: window.innerWidth <= 768 ? 168 : 240,
-      flexShrink: 0,
-      /* FIX #2: mobile card height reduced from 300 -> 280 to match "For You" sizing */
-      height: window.innerWidth <= 768 ? 280 : 330,
-      display:"flex",
-
-      scrollSnapAlign: "start",
-
-    }}
-  >
-    <div className="scroll-card-fix" style={{ width: "100%", height: "100%", display: "flex" }}>
-      <ProductCard product={p} />
-    </div>
-  </div>
+                          key={p.id ?? p._id ?? i}
+                          style={{
+                            width: window.innerWidth <= 768 ? 168 : 240,
+                            minWidth: window.innerWidth <= 768 ? 168 : 240,
+                            flexShrink: 0,
+                            height: window.innerWidth <= 768 ? 280 : 330,
+                            display: "flex",
+                            scrollSnapAlign: "start",
+                          }}
+                        >
+                          <div className="scroll-card-fix" style={{ width: "100%", height: "100%", display: "flex" }}>
+                            <ProductCard product={p} />
+                          </div>
+                        </div>
                       ))}
                       <div style={{ width: 20, flexShrink: 0 }} />
                     </div>
@@ -1734,18 +1728,6 @@ export default function ProductView() {
 
               {!forYouLoading && forYouProducts.length > 0 && (
                 window.innerWidth <= 768 ? (
-                  // ── Mobile: stacked rows, 2 products per row ──
-                  // FIX: matches the exact grid pattern used in ProductSection.jsx
-                  // (className="grid grid-cols-2 gap-3"), which never relies on
-                  // 100vw / negative-margin breakout math. Earlier versions of this
-                  // block sat one level below "Similar Products", whose desktop
-                  // scroller uses width:"100vw" + marginLeft:"calc(50% - 50vw)" —
-                  // on mobile that breakout can leave a stray sub-pixel of horizontal
-                  // overflow on the page, which makes any sibling block's "100%"
-                  // resolve inconsistently between its left and right edges. Using a
-                  // plain Tailwind grid class here (no inline width/boxSizing/viewport
-                  // math at all) sidesteps that entirely — exactly like ProductSection
-                  // does — so both columns get identical, symmetric gutters.
                   <div className="grid grid-cols-2 gap-3">
                     {forYouProducts.map((p, i) => (
                       <div
@@ -1759,14 +1741,13 @@ export default function ProductView() {
                     ))}
                   </div>
                 ) : (
-                  // ── Desktop: left-right scrollable, same card design as Similar Products ──
                   <div style={{ position: "relative", width: "100vw", marginLeft: "calc(50% - 50vw)", marginRight: "calc(50% - 50vw)" }}>
                     <ScrollArrow direction="left" onClick={() => scrollByAmount(forYouScrollRef, "left")} />
                     <ScrollArrow direction="right" onClick={() => scrollByAmount(forYouScrollRef, "right")} />
                     <div
                       ref={forYouScrollRef}
                       className="foryou-scroll"
-                      style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch",marginLeft:30, cursor: "grab", scrollSnapType: "x mandatory", paddingBottom: 4, userSelect: "none", paddingLeft: 0, paddingRight: 0 }}
+                      style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch", marginLeft: 30, cursor: "grab", scrollSnapType: "x mandatory", paddingBottom: 4, userSelect: "none", paddingLeft: 0, paddingRight: 0 }}
                       onMouseDown={e => {
                         const el = forYouScrollRef.current;
                         el.dataset.isDragging = "true";
@@ -1793,7 +1774,6 @@ export default function ProductView() {
                               minWidth: 240,
                               flexShrink: 0,
                               height: 330,
-
                               display: "flex",
                               scrollSnapAlign: "start",
                             }}

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
-
+import { Helmet } from "react-helmet-async";
 export default function NotFound() {
   const navigate   = useNavigate();
   const isLoggedIn = !!Cookies.get("user");
@@ -9,6 +9,16 @@ export default function NotFound() {
 
   return (
     <>
+    <Helmet>
+  <title>404 - Page Not Found | ChomokTomok</title>
+
+  <meta
+    name="description"
+    content="The page you're looking for doesn't exist or may have been moved."
+  />
+
+  <meta name="robots" content="noindex,nofollow" />
+</Helmet>
       <style>{`
         /* ── Page base ── */
         .nf-root {

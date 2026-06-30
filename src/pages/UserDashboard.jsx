@@ -4,10 +4,26 @@ import HeroSection from "../sections/home/HeroSection";
 import Features from "../sections/home/Features";
 import ProductSection from "../components/ProductSection";
 import SpinnerDiscount from "../components/SpinnerDiscount";
-
+import { Helmet } from "react-helmet-async";
 
 export default function UserDashboard() {
   return (
+    <>
+  <Helmet>
+    <title>Dashboard | ChomokTomok</title>
+
+    <meta
+      name="description"
+      content="Your ChomokTomok dashboard. Browse products, manage your account, orders, cart and wishlist."
+    />
+
+    <meta name="robots" content="noindex,nofollow" />
+
+    <link
+      rel="canonical"
+      href="https://chomoktomok.com/user/dashboard/"
+    />
+  </Helmet>
     <div className="bg-[#0E1320] text-white min-h-screen">
 
 
@@ -25,5 +41,6 @@ export default function UserDashboard() {
 <ProductSection title="Hoodies" link="/user/dashboard/categories/hoodies" />
 
     </div>
+    </>
   );
 }

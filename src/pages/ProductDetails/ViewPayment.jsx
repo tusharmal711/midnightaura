@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 import { IoIosFlash }                               from "react-icons/io";
 import { MdDiscount, MdDeliveryDining }             from "react-icons/md";
+import { Helmet } from "react-helmet-async";
 import {
   FiCheck, FiChevronDown, FiChevronUp,
   FiTag, FiCreditCard, FiSmartphone, FiShoppingBag,
@@ -425,6 +426,53 @@ export default function ViewPayment() {
   // ── Main render ───────────────────────────────────────────────────────────
   return (
     <>
+        <Helmet>
+      <title>
+        {product
+          ? `Payment - ${product.name} | ChomokTomok`
+          : "Secure Payment | ChomokTomok"}
+      </title>
+
+      <meta
+        name="description"
+        content={
+          product
+            ? `Complete the payment securely for ${product.name} at ChomokTomok.`
+            : "Secure payment for your order at ChomokTomok."
+        }
+      />
+
+      <meta name="robots" content="noindex,nofollow" />
+
+      <link
+        rel="canonical"
+        href="https://chomoktomok.com/view-payment"
+      />
+
+      <meta
+        property="og:title"
+        content={
+          product
+            ? `Payment - ${product.name} | ChomokTomok`
+            : "Secure Payment | ChomokTomok"
+        }
+      />
+
+      <meta
+        property="og:description"
+        content="Complete your payment securely at ChomokTomok."
+      />
+
+      <meta
+        property="og:image"
+        content={
+          productImage ||
+          "https://chomoktomok.com/Images/chomoktomok-og.png"
+        }
+      />
+
+      <meta property="og:type" content="website" />
+    </Helmet>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
       <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />

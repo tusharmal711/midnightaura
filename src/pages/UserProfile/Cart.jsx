@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import CryptoJS from "crypto-js";
 import { API } from "../../api";
-
+import { Helmet } from "react-helmet-async";
 const SECRET_KEY    = "midnightaura_secret_key";
 const BASE_URL      = "http://localhost:8008";
 
@@ -536,6 +536,38 @@ const withVoucher = (baseSummary, voucher) => {
       className="-mx-5 -mt-5 md:mx-0 md:mt-0"
       style={{ minHeight:"100%", padding:"0 0 30px", background:"transparent" }}
     >
+      <Helmet>
+  <title>My Cart | ChomokTomok</title>
+
+  <meta
+    name="description"
+    content="View and manage the products in your ChomokTomok shopping cart before checkout."
+  />
+
+  <meta name="robots" content="noindex,nofollow" />
+
+  <link
+    rel="canonical"
+    href="https://chomoktomok.com/user/profile/cart"
+  />
+
+  <meta
+    property="og:title"
+    content="My Cart | ChomokTomok"
+  />
+
+  <meta
+    property="og:description"
+    content="Review your shopping cart and proceed to checkout on ChomokTomok."
+  />
+
+  <meta
+    property="og:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+
+  <meta property="og:type" content="website" />
+</Helmet>
       <style>{`
         @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.45} }
         @keyframes spin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }

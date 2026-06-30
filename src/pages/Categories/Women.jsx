@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import ProductCard from "../../components/ProductCard";
 import { API } from "../../api";
-
+import { useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 const LIMIT = 10;
-
+ 
 function ProductCardSkeleton() {
   return (
     <div className="rounded-xl overflow-hidden">
@@ -64,7 +65,9 @@ const Women = () => {
   const [page, setPage]             = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal]           = useState(0);
+const location = useLocation();
 
+  const isDashboard = location.pathname.startsWith("/user/dashboard");
   const fetchWomenProducts = async (pageNum = 1) => {
     setLoading(true);
     try {
@@ -94,6 +97,71 @@ const Women = () => {
 
   return (
     <>
+    <Helmet>
+  <title>Women's Collection | ChomokTomok</title>
+
+  <meta
+    name="description"
+    content="Shop premium women's fashion online at ChomokTomok. Explore stylish ladies' T-shirts, tops, oversized T-shirts, hoodies and trendy fashion wear."
+  />
+
+  <meta
+    name="keywords"
+    content="women tshirts, ladies tops, women's fashion, women's clothing, oversized tshirts for women, hoodies for women, ChomokTomok"
+  />
+
+  <meta
+    name="robots"
+    content={isDashboard ? "noindex,nofollow" : "index,follow"}
+  />
+
+  <link
+    rel="canonical"
+    href="https://chomoktomok.com/categories/women"
+  />
+
+  <meta
+    property="og:title"
+    content="Women's Collection | ChomokTomok"
+  />
+
+  <meta
+    property="og:description"
+    content="Discover premium women's fashion and stylish clothing at ChomokTomok."
+  />
+
+  <meta
+    property="og:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+
+  <meta
+    property="og:url"
+    content="https://chomoktomok.com/categories/women"
+  />
+
+  <meta property="og:type" content="website" />
+
+  <meta
+    name="twitter:card"
+    content="summary_large_image"
+  />
+
+  <meta
+    name="twitter:title"
+    content="Women's Collection | ChomokTomok"
+  />
+
+  <meta
+    name="twitter:description"
+    content="Shop premium women's clothing and fashion online from ChomokTomok."
+  />
+
+  <meta
+    name="twitter:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+</Helmet>
       <style>{`
         @keyframes sk-shimmer {
           0%   { background-position: -600px 0; }

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Cookies from "js-cookie";
 import { API } from "../../api";
 import { createPortal } from "react-dom";
-
+import { Helmet } from "react-helmet-async";
 // ── Google Maps loader ─────────────────────────────────────────────
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || ""
 
@@ -1476,6 +1476,35 @@ export default function ProfileDetails() {
 
   return (
     <div>
+       <Helmet>
+      <title>My Profile | ChomokTomok</title>
+
+      <meta
+        name="description"
+        content="Manage your ChomokTomok account, profile information, and delivery addresses."
+      />
+
+      <meta name="robots" content="noindex,nofollow" />
+
+      <link
+        rel="canonical"
+        href="https://chomoktomok.com/user/profile"
+      />
+
+      <meta property="og:title" content="My Profile | ChomokTomok" />
+
+      <meta
+        property="og:description"
+        content="Manage your ChomokTomok profile and saved delivery addresses."
+      />
+
+      <meta
+        property="og:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <meta property="og:type" content="website" />
+    </Helmet>
       <div style={{ marginBottom: "1.75rem" }}>
         <h2
           style={{

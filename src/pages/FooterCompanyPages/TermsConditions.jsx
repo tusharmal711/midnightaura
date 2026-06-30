@@ -1,9 +1,88 @@
 
 import LegalSection from "./LegalSection";
 import PageHeader from "../../components/PageHeader";
-
+import { Helmet } from "react-helmet-async";
 export default function TermsAndConditions() {
   return (
+     <>
+    <Helmet>
+      <title>Terms & Conditions | ChomokTomok</title>
+
+      <meta
+        name="description"
+        content="Read the ChomokTomok Terms & Conditions governing the use of our website, custom T-shirt orders, payments, shipping, returns, and customer responsibilities."
+      />
+
+      <meta
+        name="keywords"
+        content="terms and conditions, ChomokTomok terms, online shopping terms, custom tshirt terms, ecommerce terms, website terms"
+      />
+
+      <meta name="robots" content="index,follow" />
+
+      <link
+        rel="canonical"
+        href="https://chomoktomok.com/terms-and-conditions"
+      />
+
+      <meta
+        property="og:title"
+        content="Terms & Conditions | ChomokTomok"
+      />
+
+      <meta
+        property="og:description"
+        content="Read the Terms & Conditions for shopping and using ChomokTomok."
+      />
+
+      <meta
+        property="og:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <meta
+        property="og:url"
+        content="https://chomoktomok.com/terms-and-conditions"
+      />
+
+      <meta property="og:type" content="website" />
+
+      <meta
+        name="twitter:card"
+        content="summary_large_image"
+      />
+
+      <meta
+        name="twitter:title"
+        content="Terms & Conditions | ChomokTomok"
+      />
+
+      <meta
+        name="twitter:description"
+        content="Read the Terms & Conditions for using ChomokTomok."
+      />
+
+      <meta
+        name="twitter:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Terms & Conditions",
+          url: "https://chomoktomok.com/terms-and-conditions",
+          description:
+            "Terms and Conditions governing the use of ChomokTomok and purchases made through the website.",
+          isPartOf: {
+            "@type": "WebSite",
+            name: "ChomokTomok",
+            url: "https://chomoktomok.com",
+          },
+        })}
+      </script>
+    </Helmet>
     <div className="bg-[#080c14] min-h-screen">
       <PageHeader
         eyebrow="Legal"
@@ -55,5 +134,6 @@ export default function TermsAndConditions() {
 
       </section>
     </div>
+    </>
   );
 }

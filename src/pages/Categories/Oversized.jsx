@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import ProductCard from "../../components/ProductCard";
 import { API } from "../../api";
-
+import { useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 const LIMIT = 10;
 
 function ProductCardSkeleton() {
@@ -64,7 +65,9 @@ const Oversized = () => {
   const [page, setPage]             = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal]           = useState(0);
+const location = useLocation();
 
+  const isDashboard = location.pathname.startsWith("/user/dashboard");
   const fetchOversizedProducts = async (pageNum = 1) => {
     setLoading(true);
     try {
@@ -94,6 +97,71 @@ const Oversized = () => {
 
   return (
     <>
+    <Helmet>
+  <title>Oversized T-Shirts Collection | ChomokTomok</title>
+
+  <meta
+    name="description"
+    content="Shop premium oversized T-shirts online at ChomokTomok. Discover stylish oversized cotton T-shirts with unique printed designs and premium quality."
+  />
+
+  <meta
+    name="keywords"
+    content="oversized t shirts, oversized tshirts, baggy t shirts, cotton oversized t shirts, printed oversized tshirts, ChomokTomok"
+  />
+
+  <meta
+    name="robots"
+    content={isDashboard ? "noindex,nofollow" : "index,follow"}
+  />
+
+  <link
+    rel="canonical"
+    href="https://chomoktomok.com/categories/oversized"
+  />
+
+  <meta
+    property="og:title"
+    content="Oversized T-Shirts Collection | ChomokTomok"
+  />
+
+  <meta
+    property="og:description"
+    content="Explore premium oversized T-shirts at ChomokTomok."
+  />
+
+  <meta
+    property="og:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+
+  <meta
+    property="og:url"
+    content="https://chomoktomok.com/categories/oversized"
+  />
+
+  <meta property="og:type" content="website" />
+
+  <meta
+    name="twitter:card"
+    content="summary_large_image"
+  />
+
+  <meta
+    name="twitter:title"
+    content="Oversized T-Shirts Collection | ChomokTomok"
+  />
+
+  <meta
+    name="twitter:description"
+    content="Buy premium oversized T-shirts online from ChomokTomok."
+  />
+
+  <meta
+    name="twitter:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+</Helmet>
       <style>{`
         @keyframes sk-shimmer {
           0%   { background-position: -600px 0; }

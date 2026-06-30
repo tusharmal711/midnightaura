@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FiShoppingBag, FiPackage, FiCheck, FiList } from "react-icons/fi";
 import { IoIosFlash } from "react-icons/io";
 import { BsPatchCheckFill } from "react-icons/bs";
-
+import { Helmet } from "react-helmet-async";
 // ── Yellow Celebration Canvas ─────────────────────────────────────────────────
 function YellowCelebrationCanvas() {
   const canvasRef = useRef(null);
@@ -175,6 +175,29 @@ export default function OrderSuccess() {
 
   return (
     <>
+
+
+     <Helmet>
+      <title>Order Successful | ChomokTomok</title>
+
+      <meta
+        name="description"
+        content="Your order has been placed successfully. Thank you for shopping with ChomokTomok."
+      />
+
+      <meta name="robots" content="noindex,nofollow" />
+
+      <link
+        rel="canonical"
+        href="https://chomoktomok.com/order-success"
+      />
+    </Helmet>
+
+
+
+
+
+
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
       <link

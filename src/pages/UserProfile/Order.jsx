@@ -6,7 +6,7 @@ import CryptoJS from "crypto-js";
 import { API } from "../../api";
 import { FaImage } from "react-icons/fa6";
 import { IoChatboxEllipses } from "react-icons/io5";
-
+import { Helmet } from "react-helmet-async";
 const SECRET_KEY = "midnightaura_secret_key";
 const BASE_URL   = "http://localhost:8008";
 
@@ -1321,6 +1321,38 @@ export default function Order() {
     // Outer wrapper: zero padding — let parent/page handle page-level horizontal padding.
     // The card list itself sits flush so cards can use all available width.
     <div style={{ position: "relative" }}>
+        <Helmet>
+      <title>My Orders | ChomokTomok</title>
+
+      <meta
+        name="description"
+        content="View your ChomokTomok order history, order status, returns, and feedback."
+      />
+
+      <meta name="robots" content="noindex,nofollow" />
+
+      <link
+        rel="canonical"
+        href="https://chomoktomok.com/user/profile/orders"
+      />
+
+      <meta
+        property="og:title"
+        content="My Orders | ChomokTomok"
+      />
+
+      <meta
+        property="og:description"
+        content="Track your orders and manage returns on ChomokTomok."
+      />
+
+      <meta
+        property="og:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <meta property="og:type" content="website" />
+    </Helmet>
       <style>{`@keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
 
       <div style={{ marginBottom: 16 }}>

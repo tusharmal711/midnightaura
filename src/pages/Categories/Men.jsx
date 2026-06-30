@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import ProductCard from "../../components/ProductCard";
 import { API } from "../../api";
-
+import { useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 const LIMIT = 10;
 
 // Skeleton matches exact ProductCard DOM: image block + name line + price line
@@ -68,7 +69,9 @@ const Men = () => {
   const [page, setPage]             = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal]           = useState(0);
+const location = useLocation();
 
+  const isDashboard = location.pathname.startsWith("/user/dashboard");
   const fetchMenProducts = async (pageNum = 1) => {
     setLoading(true);
     try {
@@ -107,6 +110,71 @@ const Men = () => {
 
   return (
     <>
+    <Helmet>
+  <title>Men's T-Shirts Collection | ChomokTomok</title>
+
+  <meta
+    name="description"
+    content="Shop premium men's T-shirts, printed T-shirts, oversized T-shirts, hoodies and fashion wear online at ChomokTomok."
+  />
+
+  <meta
+    name="keywords"
+    content="men tshirts, men's t shirts, printed tshirts, oversized tshirts, hoodies, cotton tshirts, fashion wear, ChomokTomok"
+  />
+
+  <meta
+    name="robots"
+    content={isDashboard ? "noindex,nofollow" : "index,follow"}
+  />
+
+  <link
+    rel="canonical"
+    href="https://chomoktomok.com/categories/men"
+  />
+
+  <meta
+    property="og:title"
+    content="Men's T-Shirts Collection | ChomokTomok"
+  />
+
+  <meta
+    property="og:description"
+    content="Discover premium men's T-shirts and fashion wear at ChomokTomok."
+  />
+
+  <meta
+    property="og:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+
+  <meta
+    property="og:url"
+    content="https://chomoktomok.com/categories/men"
+  />
+
+  <meta property="og:type" content="website" />
+
+  <meta
+    name="twitter:card"
+    content="summary_large_image"
+  />
+
+  <meta
+    name="twitter:title"
+    content="Men's T-Shirts Collection | ChomokTomok"
+  />
+
+  <meta
+    name="twitter:description"
+    content="Buy premium men's T-shirts online from ChomokTomok."
+  />
+
+  <meta
+    name="twitter:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+</Helmet>
       <style>{`
         @keyframes sk-shimmer {
           0%   { background-position: -600px 0; }

@@ -152,7 +152,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-[#0E1320] flex items-center justify-center px-6 py-10">
      <Helmet>
-      <title>Login – ChomokTomok</title>
+      <title>Login | ChomokTomok</title>
       <meta
         name="description"
         content="Sign in to your ChomokTomok account to shop premium custom T-shirts, hoodies, and fashion accessories."

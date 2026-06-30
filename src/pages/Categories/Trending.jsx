@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import ProductCard from "../../components/ProductCard";
 import { API } from "../../api";
-
+import { useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 const LIMIT = 10;
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
@@ -40,7 +41,9 @@ const Trending = () => {
   const [total, setTotal]             = useState(0);
   const [loading, setLoading]         = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
+const location = useLocation();
 
+  const isDashboard = location.pathname.startsWith("/user/dashboard");
   // Sentinel div watched by IntersectionObserver
   const sentinelRef   = useRef(null);
   const isFetchingRef = useRef(false); // prevent duplicate in-flight requests
@@ -100,6 +103,71 @@ const Trending = () => {
 
   return (
     <>
+    <Helmet>
+  <title>Trending Fashion | Best Selling Products | ChomokTomok</title>
+
+  <meta
+    name="description"
+    content="Shop trending fashion products at ChomokTomok. Explore our best-selling T-shirts, oversized T-shirts, hoodies, kids wear, earrings, necklaces and latest customer favorites."
+  />
+
+  <meta
+    name="keywords"
+    content="trending tshirts, best selling tshirts, trending fashion, trending hoodies, popular oversized tshirts, best selling products, ChomokTomok"
+  />
+
+  <meta
+    name="robots"
+    content={isDashboard ? "noindex,nofollow" : "index,follow"}
+  />
+
+  <link
+    rel="canonical"
+    href="https://chomoktomok.com/trending"
+  />
+
+  <meta
+    property="og:title"
+    content="Trending Fashion | ChomokTomok"
+  />
+
+  <meta
+    property="og:description"
+    content="Discover the most popular and trending fashion products at ChomokTomok."
+  />
+
+  <meta
+    property="og:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+
+  <meta
+    property="og:url"
+    content="https://chomoktomok.com/trending"
+  />
+
+  <meta property="og:type" content="website" />
+
+  <meta
+    name="twitter:card"
+    content="summary_large_image"
+  />
+
+  <meta
+    name="twitter:title"
+    content="Trending Fashion | ChomokTomok"
+  />
+
+  <meta
+    name="twitter:description"
+    content="Browse the trending and best-selling products at ChomokTomok."
+  />
+
+  <meta
+    name="twitter:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+</Helmet>
       <style>{`
         @keyframes sk-shimmer {
           0%   { background-position: -600px 0; }

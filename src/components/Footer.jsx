@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 import appLogo from "../assets/images/appImage/chomoktomok-logo.png";
 import InstallApp from "./InstallApp"; // adjust path as needed
 
@@ -65,17 +66,6 @@ const socials = [
   },
 ];
 
-// ── Shop categories (mirrors main navbar order) ───────────────────────────────
-const shopCategories = [
-  { label: "Men", path: "/category/men" },
-  { label: "Women", path: "/category/women" },
-  { label: "Kids", path: "/category/kids" },
-  { label: "Earrings", path: "/category/earrings" },
-  { label: "Necklaces", path: "/category/necklaces" },
-  { label: "Oversized", path: "/category/oversized" },
-  { label: "Hoodies", path: "/category/hoodies" },
-];
-
 // ── Company / legal links ─────────────────────────────────────────────────────
 const companyLinks = [
   { label: "About Us", path: "/about" },
@@ -87,6 +77,26 @@ const companyLinks = [
 
 export default function Footer() {
   const navigate = useNavigate();
+
+  // ── Login-aware shop category links ───────────────────────────────────────
+  // Mirrors the same isLoggedIn check used for the home button elsewhere in
+  // the app: logged-out users browse under /categories/*, logged-in users
+  // browse under /user/dashboard/categories/* (same slugs, just nested under
+  // the dashboard route). Built here — inside the component — instead of as
+  // a static module-level array, so it re-evaluates the cookie on every
+  // render and always points at the correct route for the current session.
+  const isLoggedIn = !!Cookies.get("user");
+  const dashboardPrefix = isLoggedIn ? "/user/dashboard" : "";
+
+  const shopCategories = [
+    { label: "Men",       path: `${dashboardPrefix}/categories/men` },
+    { label: "Women",     path: `${dashboardPrefix}/categories/women` },
+    { label: "Kids",      path: `${dashboardPrefix}/categories/kids` },
+    { label: "Earrings",  path: `${dashboardPrefix}/categories/earrings` },
+    { label: "Necklaces", path: `${dashboardPrefix}/categories/necklaces` },
+    { label: "Oversized", path: `${dashboardPrefix}/categories/oversized` },
+    { label: "Hoodies",   path: `${dashboardPrefix}/categories/hoodies` },
+  ];
 
   return (
     <>

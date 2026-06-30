@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { IoIosFlash } from "react-icons/io";
 import { MdDeliveryDining, MdDiscount, MdEmail } from "react-icons/md";
+import { Helmet } from "react-helmet-async";
 import {
   FiEdit2, FiChevronDown, FiChevronUp,
   FiX, FiCheck, FiUser, FiPhone, FiTag, FiLoader,
@@ -664,6 +665,31 @@ export default function ViewCheckout() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
+        <Helmet>
+      <title>Checkout | ChomokTomok</title>
+
+      <meta
+        name="description"
+        content="Secure checkout at ChomokTomok. Review your order, shipping details, and complete your purchase safely."
+      />
+
+      <meta name="robots" content="noindex,nofollow" />
+
+      <link
+        rel="canonical"
+        href="https://chomoktomok.com/view-checkout"
+      />
+
+      <meta property="og:title" content="Checkout | ChomokTomok" />
+      <meta
+        property="og:description"
+        content="Secure checkout at ChomokTomok."
+      />
+      <meta
+        property="og:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+    </Helmet>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
       <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Raleway:wght@300;400;500;600&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />

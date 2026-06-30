@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import ProductCard from "../../components/ProductCard";
 import { API } from "../../api";
-
+import { useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 const LIMIT = 10;
 
 function ProductCardSkeleton() {
@@ -91,9 +92,56 @@ const Hoodies = () => {
   useEffect(() => {
     fetchHoodies(page);
   }, [page]);
+const location = useLocation();
 
+  const isDashboard = location.pathname.startsWith("/user/dashboard");
   return (
     <>
+    <Helmet>
+  <title>Hoodies Collection | ChomokTomok</title>
+
+  <meta
+    name="description"
+    content="Shop premium hoodies online at ChomokTomok. Explore stylish hoodies with premium fabric and modern designs."
+  />
+
+  <meta
+    name="keywords"
+    content="hoodies, hoodies online, premium hoodies, cotton hoodies, winter hoodies, ChomokTomok"
+  />
+
+  <meta
+    name="robots"
+    content={isDashboard ? "noindex,nofollow" : "index,follow"}
+  />
+
+  <link
+    rel="canonical"
+    href="https://chomoktomok.com/categories/hoodies"
+  />
+
+  <meta
+    property="og:title"
+    content="Hoodies Collection | ChomokTomok"
+  />
+
+  <meta
+    property="og:description"
+    content="Explore premium hoodies at ChomokTomok."
+  />
+
+  <meta
+    property="og:image"
+    content="https://chomoktomok.com/Images/chomoktomok-og.png"
+  />
+
+  <meta
+    property="og:url"
+    content="https://chomoktomok.com/categories/hoodies"
+  />
+
+  <meta property="og:type" content="website" />
+</Helmet>
       <style>{`
         @keyframes sk-shimmer {
           0%   { background-position: -600px 0; }

@@ -1,5 +1,5 @@
 import PageHeader from "../../components/PageHeader";
-
+import { Helmet } from "react-helmet-async";
 const products = [
   "Printed T-Shirts",
   "Ladies Tops",
@@ -63,8 +63,94 @@ const team = [
 ];
 
 export default function AboutUs() {
-  return (
+  return (<>
+    <Helmet>
+    <title>
+      About ChomokTomok | Premium Custom T-Shirts, Hoodies & Fashion Brand
+    </title>
+
+    <meta
+      name="description"
+      content="Learn about ChomokTomok, an Indian fashion brand offering premium custom T-shirts, oversized T-shirts, hoodies, ladies tops, kids wear, earrings, necklaces, and personalized apparel made with quality cotton."
+    />
+
+    <meta
+      name="keywords"
+      content="about chomoktomok, custom t shirts, oversized t shirts, hoodies, ladies tops, kids wear, t shirt printing, fashion brand india, cotton tshirts"
+    />
+
+    <meta name="robots" content="index,follow" />
+
+    <link
+      rel="canonical"
+      href="https://chomoktomok.com/about"
+    />
+
+    <meta
+      property="og:title"
+      content="About ChomokTomok | Premium Custom T-Shirts & Fashion Brand"
+    />
+
+    <meta
+      property="og:description"
+      content="Discover the story behind ChomokTomok and our mission to deliver premium custom fashion, oversized T-shirts, hoodies, accessories, and personalized apparel."
+    />
+
+    <meta
+      property="og:image"
+      content="https://chomoktomok.com/Images/chomoktomok-og.png"
+    />
+
+    <meta
+      property="og:url"
+      content="https://chomoktomok.com/about"
+    />
+
+    <meta property="og:type" content="website" />
+
+    <meta
+      name="twitter:card"
+      content="summary_large_image"
+    />
+
+    <meta
+      name="twitter:title"
+      content="About ChomokTomok"
+    />
+
+    <meta
+      name="twitter:description"
+      content="Learn more about ChomokTomok and our premium fashion products."
+    />
+
+    <meta
+      name="twitter:image"
+      content="https://chomoktomok.com/Images/chomoktomok-og.png"
+    />
+
+    <script type="application/ld+json">
+      {JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "AboutPage",
+        name: "About ChomokTomok",
+        url: "https://chomoktomok.com/about",
+        description:
+          "About ChomokTomok, an Indian fashion brand specializing in premium custom T-shirts, hoodies, oversized T-shirts, ladies tops, kids wear and accessories.",
+        publisher: {
+          "@type": "Organization",
+          name: "ChomokTomok",
+          url: "https://chomoktomok.com",
+          logo: {
+            "@type": "ImageObject",
+            url: "https://chomoktomok.com/Images/chomoktomok-app.png",
+          },
+        },
+      })}
+    </script>
+  </Helmet>
+ 
     <div className="bg-[#080c14] min-h-screen">
+
       <PageHeader
         eyebrow="Our Story"
         title="We sell quality and buy trust."
@@ -249,5 +335,6 @@ export default function AboutUs() {
         </div>
       </section>
     </div>
+     </>
   );
 }

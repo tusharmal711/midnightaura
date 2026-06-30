@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PageHeader from "../../components/PageHeader";
-
+import { Helmet } from "react-helmet-async";
 const contactChannels = [
   {
     label: "Email",
@@ -53,6 +53,90 @@ export default function ContactUs() {
   };
 
   return (
+     <>
+    <Helmet>
+      <title>Contact Us | ChomokTomok - Custom T-Shirts & Fashion Store</title>
+
+      <meta
+        name="description"
+        content="Contact ChomokTomok for custom T-shirts, hoodies, oversized T-shirts, ladies tops, kids wear, jewellery, order support, or business enquiries. We're here to help."
+      />
+
+      <meta
+        name="keywords"
+        content="contact chomoktomok, customer support, custom tshirt, oversized tshirt, hoodie, ladies tops, fashion store, order support, tshirt printing"
+      />
+
+      <meta name="robots" content="index,follow" />
+
+      <link
+        rel="canonical"
+        href="https://chomoktomok.com/contact"
+      />
+
+      <meta
+        property="og:title"
+        content="Contact ChomokTomok"
+      />
+
+      <meta
+        property="og:description"
+        content="Need help with an order or want a custom T-shirt? Contact the ChomokTomok team."
+      />
+
+      <meta
+        property="og:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <meta
+        property="og:url"
+        content="https://chomoktomok.com/contact"
+      />
+
+      <meta property="og:type" content="website" />
+
+      <meta
+        name="twitter:card"
+        content="summary_large_image"
+      />
+
+      <meta
+        name="twitter:title"
+        content="Contact ChomokTomok"
+      />
+
+      <meta
+        name="twitter:description"
+        content="Contact ChomokTomok for customer support, custom apparel, and business enquiries."
+      />
+
+      <meta
+        name="twitter:image"
+        content="https://chomoktomok.com/Images/chomoktomok-og.png"
+      />
+
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "ContactPage",
+          name: "Contact ChomokTomok",
+          url: "https://chomoktomok.com/contact",
+          description:
+            "Contact ChomokTomok for support, custom T-shirt printing, order enquiries and business information.",
+          publisher: {
+            "@type": "Organization",
+            name: "ChomokTomok",
+            url: "https://chomoktomok.com",
+            logo: {
+              "@type": "ImageObject",
+              url: "https://chomoktomok.com/Images/chomoktomok-app.png",
+            },
+          },
+        })}
+      </script>
+    </Helmet>
+
     <div className="bg-[#080c14] min-h-screen">
       <PageHeader
         eyebrow="Get In Touch"
@@ -176,5 +260,6 @@ export default function ContactUs() {
         </div>
       </section>
     </div>
+    </>
   );
 }
