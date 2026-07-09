@@ -6,6 +6,7 @@ import { TbTruckDelivery } from "react-icons/tb";
 import { ImCross } from "react-icons/im";
 import { IoSend } from "react-icons/io5";
 import { API } from "../../api";
+import paymentQr from "../../assets/images/payment/payment-receive-qr.png";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const BASE_URL = "http://localhost:8008";
@@ -29,6 +30,9 @@ const fmtDate = (d) =>
     : "—";
 
 const PAY_METHOD_LABEL = { COD: "Cash on Delivery", CARD: "Card", UPI: "UPI" };
+
+// ─── QR code image used for the "Pay Online" modal ────────────────────────────
+const PAYMENT_QR_IMAGE = paymentQr;
 
 const openGoogleMaps = (lat, lng) =>
   window.open(`https://www.google.com/maps?q=${lat},${lng}&z=17&hl=en`, "_blank", "noopener,noreferrer");
@@ -113,6 +117,127 @@ function Skeleton({ w, h, radius = 8 }) {
       background: "linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%)",
       backgroundSize: "600px 100%", animation: "skShimmer 1.4s infinite linear",
     }} />
+  );
+}
+
+// ─── Payment Method Dropdown (Offline / Online) ───────────────────────────────
+function PaymentMethodDropdown({ value, onChange }) {
+  const isOnline = value === "ONLINE";
+  return (
+    <div style={{ position: "relative", display: "inline-flex" }}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        title="Choose how this order will be paid for"
+        style={{
+          appearance: "none",
+          WebkitAppearance: "none",
+          MozAppearance: "none",
+          padding: "9px 32px 9px 14px",
+          borderRadius: 12,
+          fontSize: 12,
+          fontWeight: 700,
+          cursor: "pointer",
+          outline: "none",
+          whiteSpace: "nowrap",
+          background: isOnline ? "rgba(34,197,94,0.14)" : "rgba(255,255,255,0.06)",
+          color: isOnline ? "#4ade80" : "rgba(255,255,255,0.65)",
+          border: `1px solid ${isOnline ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.12)"}`,
+          transition: "all 0.15s",
+        }}
+      >
+        <option value="OFFLINE" style={{ background: "#0f0f14", color: "#fff" }}>
+          💵 Cash on Delivery
+        </option>
+        <option value="ONLINE" style={{ background: "#0f0f14", color: "#fff" }}>
+          📲 Pay Online (UPI/QR)
+        </option>
+      </select>
+      <svg
+        width="10" height="10" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="3"
+        style={{
+          position: "absolute", right: 11, top: "50%",
+          transform: "translateY(-50%)", pointerEvents: "none",
+          color: isOnline ? "#4ade80" : "rgba(255,255,255,0.4)",
+        }}
+      >
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </div>
+  );
+}
+
+// ─── QR Payment Modal (shown when "Pay Online" is selected) ──────────────────
+function QRPaymentModal({ order, onClose }) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        background: "rgba(0,0,0,0.88)", backdropFilter: "blur(14px)",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          borderRadius: 24, padding: 22, width: "100%", maxWidth: 340,
+          background: "#0f0f14", border: "1px solid rgba(34,197,94,0.28)",
+          boxShadow: "0 50px 120px rgba(0,0,0,0.95)",
+          animation: "fadeIn 0.25s ease both",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div>
+            <h3 style={{ color: "#fff", fontSize: 15, fontWeight: 800, margin: 0 }}>Scan &amp; Pay</h3>
+            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, margin: "3px 0 0" }}>
+              #{order.cartOrderId}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+              background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+              color: "rgba(255,255,255,0.6)", fontSize: 13, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >✕</button>
+        </div>
+
+        {/* QR code image — exact uploaded QR */}
+        <div style={{
+          borderRadius: 18, overflow: "hidden",
+          border: "1px solid rgba(255,255,255,0.08)",
+          boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+        }}>
+          <img
+            src={PAYMENT_QR_IMAGE}
+            alt="Scan to pay via UPI"
+            style={{ width: "100%", display: "block" }}
+          />
+        </div>
+
+        <div style={{
+          marginTop: 14, padding: "10px 14px", borderRadius: 12,
+          background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.28)",
+          color: "#fde68a", fontSize: 11, fontWeight: 600, lineHeight: 1.5,
+        }}>
+          Amount payable for this order: <b>₹{fmt(Number(order.totalPrice || 0))}</b>. Have the customer scan and pay this amount before confirming delivery.
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{
+            width: "100%", marginTop: 14, padding: "12px", borderRadius: 12,
+            fontSize: 13, fontWeight: 700,
+            background: "rgba(34,197,94,0.16)", color: "#4ade80",
+            border: "1px solid rgba(34,197,94,0.35)", cursor: "pointer",
+          }}
+        >Done</button>
+      </div>
+    </div>
   );
 }
 
@@ -286,7 +411,6 @@ function CartDeliveryCodePanel({ order, onDelivered, onDeliveryFailed }) {
     setSendLoading(true);
     setVerifyError("");
     try {
-      // Reuse the same delivery code endpoint pattern — adjust if cart orders use a different route
       const res = await API.post(`/delivery/sendDeliveryCode/${order.cartOrderId}`);
       if (res.data.success) {
         setCodeSent(true);
@@ -780,6 +904,10 @@ export default function CartDeliveryProductDetails() {
   const [toast,      setToast]      = useState(null);
   const toastRef = useRef(null);
 
+  // ── Payment method (Offline = Cash on Delivery, Online = UPI/QR) ──
+  const [paymentMethod, setPaymentMethod] = useState("OFFLINE");
+  const [showQRModal,   setShowQRModal]   = useState(false);
+
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
     clearTimeout(toastRef.current);
@@ -824,6 +952,14 @@ export default function CartDeliveryProductDetails() {
       throw err;
     }
   }, [order]);
+
+  // ── Payment method change handler: selecting "Online" opens the QR popup ──
+  const handlePaymentMethodChange = useCallback((val) => {
+    setPaymentMethod(val);
+    if (val === "ONLINE") {
+      setShowQRModal(true);
+    }
+  }, []);
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const isShipped   = order?.orderState === "SHIPPED";
@@ -890,6 +1026,11 @@ export default function CartDeliveryProductDetails() {
         </div>
       )}
 
+      {/* QR Payment Modal — opens automatically when "Pay Online" is selected */}
+      {showQRModal && order && (
+        <QRPaymentModal order={order} onClose={() => setShowQRModal(false)} />
+      )}
+
       <div>
         {/* ── Back + Header ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24, flexWrap: "wrap" }}>
@@ -928,22 +1069,30 @@ export default function CartDeliveryProductDetails() {
           </div>
 
           {!loading && order && (
-            <button
-              onClick={() => printCartBill(order)}
-              style={{
-                display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 12,
-                background: "rgba(59,130,246,0.15)", color: "#93c5fd",
-                border: "1px solid rgba(59,130,246,0.3)", cursor: "pointer",
-                fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", transition: "all 0.15s",
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(59,130,246,0.25)"}
-              onMouseLeave={e => e.currentTarget.style.background = "rgba(59,130,246,0.15)"}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>
-              </svg>
-              Print Bill
-            </button>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              {/* ── Payment Method Dropdown (left of Print Bill) ── */}
+              <PaymentMethodDropdown
+                value={paymentMethod}
+                onChange={handlePaymentMethodChange}
+              />
+
+              <button
+                onClick={() => printCartBill(order)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 7, padding: "9px 16px", borderRadius: 12,
+                  background: "rgba(59,130,246,0.15)", color: "#93c5fd",
+                  border: "1px solid rgba(59,130,246,0.3)", cursor: "pointer",
+                  fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", transition: "all 0.15s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(59,130,246,0.25)"}
+                onMouseLeave={e => e.currentTarget.style.background = "rgba(59,130,246,0.15)"}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>
+                </svg>
+                Print Bill
+              </button>
+            </div>
           )}
         </div>
 
@@ -976,6 +1125,11 @@ export default function CartDeliveryProductDetails() {
                   <InfoRow label="Order State"     value={<StatusBadge status={order.orderState}    styles={ORDER_STATUS_STYLES} />} />
                   <InfoRow label="Payment Status"  value={<StatusBadge status={order.paymentStatus} styles={PAY_STATUS_STYLES} />} />
                   <InfoRow label="Payment Method"  value={PAY_METHOD_LABEL[order.payMethod] || order.payMethod || "—"} />
+                  <InfoRow
+                    label="Collection Mode"
+                    value={paymentMethod === "ONLINE" ? "Pay Online (UPI/QR)" : "Cash on Delivery"}
+                    accent={paymentMethod === "ONLINE" ? "#4ade80" : "#fbbf24"}
+                  />
                   <InfoRow label="Total Items"     value={order.items?.length ?? "—"} accent="#c4b5fd" />
                 </div>
                 <div style={{ paddingLeft: 20 }}>
