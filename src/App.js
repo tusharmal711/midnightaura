@@ -52,6 +52,7 @@ import ViewCartPayment from "./pages/CartItem/ViewCartPayment";
 import CartOrderDetail from "./pages/AdminPanel/CartOrderDetails";
 import CartDeliveryProductDetails from "./pages/DeliveryBoyPanel/Cartdeliveryproductdetails";
 import Trending from "./pages/Categories/Trending";
+import AdminLogin from "./pages/AdminPanel/AdminLogin";
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 
@@ -78,7 +79,14 @@ function ConditionalProductViewLayout() {
   const isLoggedIn = !!Cookies.get("user");
   return isLoggedIn ? <UserDashboardLayout /> : <MainLayout />;
 }
-
+function AdminPrivateRoute({ children }) {
+  const isAdminLoggedIn = !!localStorage.getItem("admin");
+  return isAdminLoggedIn ? children : <Navigate to="/admin" replace />;
+}
+function AdminPublicOnlyRoute({ children }) {
+  const isAdminLoggedIn = !!localStorage.getItem("admin");
+  return isAdminLoggedIn ? <Navigate to="/admin/dashboard" replace /> : children;
+}
 // ── App ───────────────────────────────────────────────────────────────────────
 
 function App() {
@@ -190,7 +198,17 @@ function App() {
         <Route path="/order-success" element={<OrderSuccess />} />
 
         {/* ── Admin panel ─────────────────────────────────────────────────── */}
-        <Route path="/admin" element={<AdminPanelLayout />}>
+        <Route path="/admin"  element={
+    <AdminPublicOnlyRoute>
+      <AdminLogin />
+    </AdminPublicOnlyRoute>
+  } />
+        <Route path="/admin/dashboard"  
+        element={
+    <AdminPrivateRoute>
+      <AdminPanelLayout />
+    </AdminPrivateRoute>
+  }>
           <Route index element={<AdminDashboard />} />
           <Route path="listing"         element={<ListingProducts />} />
           <Route path="orders"          element={<AdminOrder />} />

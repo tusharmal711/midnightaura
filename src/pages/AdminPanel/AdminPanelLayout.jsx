@@ -287,7 +287,7 @@ export default function AdminPanelLayout() {
                 style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)" }}>
                 Cancel
               </button>
-              <button onClick={() => { localStorage.removeItem("token"); navigate("/"); }}
+              <button onClick={() => { localStorage.removeItem("admin"); navigate("/"); }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
                 style={{ background: "linear-gradient(135deg,#dc2626,#b91c1c)", color: "#fff", boxShadow: "0 4px 16px rgba(220,38,38,0.35)" }}>
                 Yes, Logout
