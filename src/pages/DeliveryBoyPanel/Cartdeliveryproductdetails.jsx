@@ -1035,7 +1035,7 @@ export default function CartDeliveryProductDetails() {
         {/* ── Back + Header ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24, flexWrap: "wrap" }}>
           <button
-            onClick={() => navigate("/delivery-boy/deliveries")}
+            onClick={() => navigate("/delivery/dashboard/deliveries")}
             style={{
               display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 11,
               background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.55)",

@@ -494,7 +494,7 @@ export default function DeliveryBoyLayout() {
               </button>
               <button
                 onClick={() => {
-                  localStorage.removeItem("token");
+                  localStorage.removeItem("deliveryBoy");
                   navigate("/");
                 }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold"

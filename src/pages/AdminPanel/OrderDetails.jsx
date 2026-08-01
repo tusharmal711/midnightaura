@@ -506,7 +506,7 @@ export default function OrderDetail() {
         {/* Back + Header */}
         <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24,flexWrap:"wrap"}}>
           <button
-            onClick={()=>navigate("/admin/orders")}
+            onClick={()=>navigate("/admin/dashboard/orders")}
             style={{display:"flex",alignItems:"center",gap:7,padding:"8px 14px",borderRadius:11,background:"rgba(255,255,255,0.06)",color:"rgba(255,255,255,0.55)",border:"1px solid rgba(255,255,255,0.1)",cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap",transition:"all 0.15s"}}
             onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.1)"}
             onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.06)"}

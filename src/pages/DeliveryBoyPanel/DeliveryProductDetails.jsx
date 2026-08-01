@@ -1349,7 +1349,7 @@ export default function DeliveryProductDetails() {
         {/* ── Back + Header ── */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24, flexWrap: "wrap" }}>
           <button
-            onClick={() => navigate("/delivery-boy/deliveries")}
+            onClick={() => navigate("/delivery/dashboard/deliveries")}
             style={{
               display: "flex", alignItems: "center", gap: 7,
               padding: "8px 14px", borderRadius: 11,

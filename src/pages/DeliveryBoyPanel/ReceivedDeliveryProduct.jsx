@@ -464,9 +464,9 @@ function DeliveryRow({ order, pendingCountMap }) {
 
   const handleView = () => {
     if (order._source === "cart") {
-      navigate(`/delivery-boy/cart-deliveries/${order.orderId}`);
+      navigate(`/delivery/dashboard/cart-deliveries/${order.orderId}`);
     } else {
-      navigate(`/delivery-boy/deliveries/${order.orderId}`);
+      navigate(`/delivery/dashboard/deliveries/${order.orderId}`);
     }
   };
 

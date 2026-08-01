@@ -276,7 +276,7 @@ function OrderRow({ order, onImageClick, onAccept, onCancelRequest, acceptLoad }
     }
   };
 
-  const viewPath = isCart ? `/admin/cart-orders/${idField}` : `/admin/orders/${idField}`;
+  const viewPath = isCart ? `/admin/dashboard/cart-orders/${idField}` : `/admin/dashboard/orders/${idField}`;
 
   return (
     <>

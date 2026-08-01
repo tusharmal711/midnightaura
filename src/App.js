@@ -53,6 +53,7 @@ import CartOrderDetail from "./pages/AdminPanel/CartOrderDetails";
 import CartDeliveryProductDetails from "./pages/DeliveryBoyPanel/Cartdeliveryproductdetails";
 import Trending from "./pages/Categories/Trending";
 import AdminLogin from "./pages/AdminPanel/AdminLogin";
+import DeliveryBoyLogin from "./pages/DeliveryBoyPanel/DeliveryBoyLogin";
 
 // ── Guards ────────────────────────────────────────────────────────────────────
 
@@ -86,6 +87,15 @@ function AdminPrivateRoute({ children }) {
 function AdminPublicOnlyRoute({ children }) {
   const isAdminLoggedIn = !!localStorage.getItem("admin");
   return isAdminLoggedIn ? <Navigate to="/admin/dashboard" replace /> : children;
+}
+
+function DeliveryBoyPrivateRoute({ children }) {
+  const isDeliveryBoyLoggedIn = !!localStorage.getItem("deliveryBoy");
+  return isDeliveryBoyLoggedIn ? children : <Navigate to="/delivery" replace />;
+}
+function DeliveryBoyPublicOnlyRoute({ children }) {
+  const isDeliveryBoyLoggedIn = !!localStorage.getItem("deliveryBoy");
+  return isDeliveryBoyLoggedIn ? <Navigate to="/delivery/dashboard" replace /> : children;
 }
 // ── App ───────────────────────────────────────────────────────────────────────
 
@@ -218,7 +228,18 @@ function App() {
         </Route>
 
         {/* ── Delivery boy panel ──────────────────────────────────────────── */}
-        <Route path="/delivery-boy" element={<DeliveryBoyLayout />}>
+
+
+             <Route path="/delivery"  element={
+    <DeliveryBoyPublicOnlyRoute>
+      <DeliveryBoyLogin />
+    </DeliveryBoyPublicOnlyRoute>
+  } />
+        <Route path="/delivery/dashboard" element={
+          <DeliveryBoyPrivateRoute>
+           <DeliveryBoyLayout />
+          </DeliveryBoyPrivateRoute>
+          }>
           <Route index element={<DeliveryDashboard />} />
           <Route path="deliveries"          element={<ReceivedDeliveries />} />
           <Route path="deliveries/:orderId" element={<DeliveryProductDetails />} />
